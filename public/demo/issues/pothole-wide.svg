@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Synthetic Ward 12 crossing evidence</title>
+  <desc id="desc">A wide illustrated street crossing, created for the NagarSakhi demo.</desc>
+  <rect width="1200" height="760" fill="#efe7d4"/>
+  <path d="M0 280h1200v480H0Z" fill="#4a5355"/>
+  <path d="M113 280v480m122-480v480m122-480v480m122-480v480" stroke="#e7dbc3" stroke-width="54"/>
+  <path d="M850 280v480m122-480v480m122-480v480" stroke="#e7dbc3" stroke-width="54"/>
+  <path d="m532 434 77-39 129 25 69 76-45 104-153 32-114-71Z" fill="#263035"/>
+  <rect x="0" y="151" width="1200" height="129" fill="#c58c3b"/>
+  <circle cx="1058" cy="108" r="61" fill="#62794e"/>
+  <rect x="1047" y="150" width="25" height="130" fill="#67462e"/>
+</svg>
