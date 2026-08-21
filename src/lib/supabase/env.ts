@@ -23,6 +23,12 @@ export const runtimeEnvSchema = z
     SARVAM_API_KEY: optionalString,
     DEMO_AUTH: optionalString,
     DEMO_OTP: optionalString,
+    NEXT_PUBLIC_FIREBASE_API_KEY: optionalString,
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: optionalString,
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: optionalString,
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: optionalString,
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: optionalString,
+    NEXT_PUBLIC_FIREBASE_APP_ID: optionalString,
   })
   .passthrough();
 
@@ -45,9 +51,32 @@ export type RuntimeEnv = {
   issues: EnvIssue[];
   isDemoMode: boolean;
   hasSupabaseConfiguration: boolean;
+  firebase: {
+    apiKey?: string;
+    authDomain?: string;
+    projectId?: string;
+    storageBucket?: string;
+    messagingSenderId?: string;
+    appId?: string;
+  };
+  hasFirebaseConfiguration: boolean;
 };
 
 type EnvSource = Record<string, string | undefined>;
+
+const getBrowserPublicEnv = (): EnvSource => ({
+  NODE_ENV: process.env.NODE_ENV,
+  NEXT_PUBLIC_DATA_MODE: process.env.NEXT_PUBLIC_DATA_MODE,
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:
+    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+});
 
 const parseBooleanFlag = (value: string | undefined, fallback: boolean): boolean => {
   const parsed = booleanFlag.safeParse(value);
@@ -114,6 +143,16 @@ export function validateRuntimeEnv(source: EnvSource = process.env): RuntimeEnv 
     supabase.url && supabase.publishableKey && hasValidSupabaseUrl,
   );
 
+  const firebase = {
+    apiKey: values.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: values.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: values.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: values.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: values.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: values.NEXT_PUBLIC_FIREBASE_APP_ID,
+  };
+  const hasFirebaseConfiguration = Object.values(firebase).every(Boolean);
+
   if (selectedMode === "supabase" && !hasSupabaseConfiguration) {
     issues.push({
       variable: "NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
@@ -144,7 +183,10 @@ export function validateRuntimeEnv(source: EnvSource = process.env): RuntimeEnv 
     issues,
     isDemoMode: selectedMode === "demo",
     hasSupabaseConfiguration,
+    firebase,
+    hasFirebaseConfiguration,
   };
 }
 
-export const getRuntimeEnv = (): RuntimeEnv => validateRuntimeEnv(process.env);
+export const getRuntimeEnv = (): RuntimeEnv =>
+  validateRuntimeEnv(typeof window === "undefined" ? process.env : getBrowserPublicEnv());

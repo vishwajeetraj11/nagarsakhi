@@ -1,5 +1,3 @@
-import "server-only";
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { PublicDemoData } from "@/data/demo";
@@ -39,10 +37,12 @@ type QueryResult<T> = { data: T | null; error: QueryError | null };
 
 type ProfileRow = {
   id: string;
+  firebase_uid?: string | null;
   municipality_id: string;
   ward_id: string | null;
   name: string;
   role: string;
+  onboarding_completed?: boolean;
 };
 type MunicipalityRow = { id: string; name: string; district: string; state: string };
 type WardRow = { id: string; municipality_id: string; ward_number: number; name: string };
@@ -99,6 +99,7 @@ export type LiveDataSuccess = {
   ok: true;
   data: PublicDemoData;
   session: DemoSession;
+  needsOnboarding: boolean;
 };
 
 export type LiveDataResult = LiveDataSuccess | LiveDataFailure;
@@ -106,6 +107,7 @@ export type LiveDataResult = LiveDataSuccess | LiveDataFailure;
 export type LoadLiveDataOptions = {
   /** Signed media URLs are short lived and only generated after RLS has allowed the media row. */
   includeMediaUrls?: boolean;
+  firebaseUid?: string;
 };
 
 const isRole = (value: string): value is UserRole => (
@@ -167,19 +169,25 @@ export async function loadLiveData(
   supabase: SupabaseClient,
   options: LoadLiveDataOptions = {},
 ): Promise<LiveDataResult> {
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return {
-      ok: false,
-      error: { code: "UNAUTHENTICATED", message: "Please sign in to view your municipality.", detail: authError?.message },
-    };
+  const firebaseUid = options.firebaseUid?.trim();
+  let profileQuery = supabase
+    .from("profiles")
+    .select("id, firebase_uid, municipality_id, ward_id, name, role, onboarding_completed");
+
+  if (firebaseUid) {
+    profileQuery = profileQuery.eq("firebase_uid", firebaseUid);
+  } else {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      return {
+        ok: false,
+        error: { code: "UNAUTHENTICATED", message: "Please sign in to view your municipality.", detail: authError?.message },
+      };
+    }
+    profileQuery = profileQuery.eq("id", authData.user.id);
   }
 
-  const profileResult = await supabase
-    .from("profiles")
-    .select("id, municipality_id, ward_id, name, role")
-    .eq("id", authData.user.id)
-    .maybeSingle() as unknown as QueryResult<ProfileRow>;
+  const profileResult = await profileQuery.maybeSingle() as unknown as QueryResult<ProfileRow>;
 
   if (profileResult.error) {
     return {
@@ -411,5 +419,10 @@ export async function loadLiveData(
     }];
   });
 
-  return { ok: true, data: { municipality, wards, publicProfiles, officials, issues, notices, alerts, expenditures, escalations }, session };
+  return {
+    ok: true,
+    data: { municipality, wards, publicProfiles, officials, issues, notices, alerts, expenditures, escalations },
+    session,
+    needsOnboarding: profileResult.data.onboarding_completed === false,
+  };
 }

@@ -44,6 +44,26 @@ export function createBrowserSupabaseClient(env: RuntimeEnv = getRuntimeEnv()): 
   });
 }
 
+export function createFirebaseSupabaseClient(
+  accessToken: () => Promise<string | null>,
+  env: RuntimeEnv = getRuntimeEnv(),
+): SupabaseClient | null {
+  const config = configuredClientValues(env);
+
+  if (!config) {
+    return null;
+  }
+
+  return createClient(config.url, config.key, {
+    accessToken,
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      persistSession: false,
+    },
+  });
+}
+
 /**
  * Creates a request-scoped server client. Callers should pass a cookie adapter
  * backed by `cookies()` so auth refreshes can be persisted in route handlers.

@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { IssueStatus } from "@/lib/domain/types";
-import { createBrowserSupabaseClient } from "@/lib/supabase";
+import { getFirebaseAuth } from "@/lib/firebase";
+import { createBrowserSupabaseClient, createFirebaseSupabaseClient } from "@/lib/supabase";
 
 export type LiveMutationErrorCode = "NOT_CONFIGURED" | "UNAUTHENTICATED" | "VALIDATION" | "REQUEST_FAILED";
 
@@ -12,18 +13,20 @@ export type LiveMutationResult<T = undefined> =
 type MutationClient = SupabaseClient;
 
 const getClient = (client?: MutationClient): LiveMutationResult<MutationClient> => {
-  const resolved = client ?? createBrowserSupabaseClient();
+  const firebaseUser = getFirebaseAuth()?.currentUser;
+  const resolved = client
+    ?? (firebaseUser ? createFirebaseSupabaseClient(() => firebaseUser.getIdToken(false)) : createBrowserSupabaseClient());
   return resolved
     ? { ok: true, data: resolved }
     : { ok: false, error: { code: "NOT_CONFIGURED", message: "Live NagarSakhi is not configured in this browser." } };
 };
 
 async function requireUser(client: MutationClient): Promise<LiveMutationResult<{ id: string }>> {
-  const { data, error } = await client.auth.getUser();
-  if (error || !data.user) {
+  const { data, error } = await client.rpc("current_profile_id");
+  if (error || !data) {
     return { ok: false, error: { code: "UNAUTHENTICATED", message: "Please sign in again before making this change.", detail: error?.message } };
   }
-  return { ok: true, data: { id: data.user.id } };
+  return { ok: true, data: { id: data as string } };
 }
 
 const requestFailure = (message: string, detail?: string): LiveMutationResult<never> => ({

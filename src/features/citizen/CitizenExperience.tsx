@@ -19,6 +19,7 @@ import { AiJobStatus } from "@/components/ai";
 import type { PublicDemoData } from "@/data/demo";
 import { createLiveIssue, deleteIssueVote, setIssueVote } from "@/lib/data/live-mutations";
 import type { DemoSession, Issue, IssueStatus } from "@/lib/domain/types";
+import { getFirebaseAuthorizationHeader } from "@/lib/firebase";
 import styles from "./CitizenExperience.module.css";
 
 type View = "home" | "issues" | "report" | "wards";
@@ -205,7 +206,7 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
       issueId = result.data.id;
       const aiResponse = await fetch("/api/ai-jobs", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...(await getFirebaseAuthorizationHeader()) },
         body: JSON.stringify({
           jobType: "summarization",
           issueId,

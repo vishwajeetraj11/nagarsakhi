@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { parseAiJobRecord } from "@/lib/ai/jobs/record";
 import type { AiJobRecord } from "@/lib/ai/types";
-import { createBrowserSupabaseClient } from "@/lib/supabase";
+import { getFirebaseAuth, getFirebaseAuthorizationHeader } from "@/lib/firebase";
+import { createBrowserSupabaseClient, createFirebaseSupabaseClient } from "@/lib/supabase";
 
 export type AiJobStatusState = {
   job: AiJobRecord | null;
@@ -27,6 +28,7 @@ export function useAiJobStatus(jobId: string | null, pollIntervalMs = 10_000): A
     const response = await fetch(`/api/ai-jobs/${encodeURIComponent(jobId)}`, {
       credentials: "same-origin",
       cache: "no-store",
+      headers: await getFirebaseAuthorizationHeader(),
     });
     const body = (await response.json().catch(() => null)) as { job?: unknown; error?: string } | null;
     const parsed = parseAiJobRecord(body?.job);
@@ -55,7 +57,10 @@ export function useAiJobStatus(jobId: string | null, pollIntervalMs = 10_000): A
     };
     void load();
 
-    const supabase = createBrowserSupabaseClient();
+    const firebaseUser = getFirebaseAuth()?.currentUser;
+    const supabase = firebaseUser
+      ? createFirebaseSupabaseClient(() => firebaseUser.getIdToken(false))
+      : createBrowserSupabaseClient();
     const channel = supabase
       ?.channel(`ai-job:${jobId}`)
       .on(

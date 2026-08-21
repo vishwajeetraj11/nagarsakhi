@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       throw new AiJobRouteError("Request body must be valid JSON.", 400);
     });
     const createRequest = parseCreateAiJobRequest(body);
-    const context = await getAuthenticatedAiJobContext();
+    const context = await getAuthenticatedAiJobContext(request);
     const { data, error } = await context.userClient.rpc("enqueue_ai_job", {
       target_issue_id: createRequest.issueId,
       target_job_type: createRequest.jobType,
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "A valid jobId is required." }, { status: 400 });
 
   try {
-    const context = await getAuthenticatedAiJobContext();
+    const context = await getAuthenticatedAiJobContext(request);
     const { data, error } = await context.userClient.from("ai_jobs").select(jobFields).eq("id", parsed.data).maybeSingle();
     if (error) throw new AiJobRouteError("Unable to load AI job.", 500);
     if (!data) throw new AiJobRouteError("AI job not found.", 404);

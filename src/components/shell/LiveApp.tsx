@@ -1,0 +1,141 @@
+"use client";
+
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { useEffect, useMemo, useState } from "react";
+
+import { AppShell } from "@/components/shell/AppShell";
+import { LiveLogin } from "@/components/shell/LiveLogin";
+import { LiveOnboarding } from "@/components/shell/LiveOnboarding";
+import type { PublicDemoData } from "@/data/demo";
+import { CorporationExperience, ParshadExperience } from "@/features/admin";
+import { CitizenExperience } from "@/features/citizen/CitizenExperience";
+import { getFirebaseAuth } from "@/lib/firebase";
+import { loadLiveData, type LiveDataFailure } from "@/lib/data/live";
+import type { DemoSession } from "@/lib/domain/types";
+import { createFirebaseSupabaseClient } from "@/lib/supabase";
+
+type LiveState =
+  | { status: "checking" }
+  | { status: "signed_out" }
+  | { status: "onboarding"; user: User }
+  | { status: "ready"; data: PublicDemoData; session: DemoSession }
+  | { status: "error"; error: LiveDataFailure["error"] };
+
+async function provisionFirebaseProfile(user: User) {
+  const supabase = createFirebaseSupabaseClient(() => user.getIdToken(false));
+  if (!supabase) {
+    return { ok: false as const, message: "Supabase is not configured in this browser." };
+  }
+
+  const { error } = await supabase.rpc("provision_firebase_profile", {
+    display_name: user.displayName || null,
+  });
+
+  return error
+    ? { ok: false as const, message: error.message }
+    : { ok: true as const, supabase };
+}
+
+export function LiveApp() {
+  const auth = useMemo(() => getFirebaseAuth(), []);
+  const [state, setState] = useState<LiveState>(() => (
+    auth
+      ? { status: "checking" }
+      : {
+        status: "error",
+        error: { code: "UNAUTHENTICATED", message: "Firebase sign-in is not configured." },
+      }
+  ));
+
+  useEffect(() => {
+    if (!auth) {
+      return;
+    }
+
+    return onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setState({ status: "signed_out" });
+        return;
+      }
+
+      setState({ status: "checking" });
+      const provisioned = await provisionFirebaseProfile(user);
+      if (!provisioned.ok) {
+        setState({
+          status: "error",
+          error: { code: "QUERY_FAILED", message: "Unable to prepare your NagarSakhi profile.", detail: provisioned.message },
+        });
+        return;
+      }
+
+      const result = await loadLiveData(provisioned.supabase, { firebaseUid: user.uid });
+      if (!result.ok) {
+        setState({ status: "error", error: result.error });
+      } else if (result.needsOnboarding) {
+        setState({ status: "onboarding", user });
+      } else {
+        setState({ status: "ready", data: result.data, session: result.session });
+      }
+    });
+  }, [auth]);
+
+  if (state.status === "signed_out") return <LiveLogin />;
+
+  if (state.status === "onboarding") {
+    return (
+      <LiveOnboarding
+        user={state.user}
+        onComplete={() => {
+          setState({ status: "checking" });
+          void state.user.getIdToken(true).then(async () => {
+            const supabase = createFirebaseSupabaseClient(() => state.user.getIdToken(false));
+            if (!supabase) {
+              setState({
+                status: "error",
+                error: { code: "QUERY_FAILED", message: "Supabase is not configured in this browser." },
+              });
+              return;
+            }
+            const result = await loadLiveData(supabase, { firebaseUid: state.user.uid });
+            setState(result.ok ? { status: "ready", data: result.data, session: result.session } : { status: "error", error: result.error });
+          });
+        }}
+      />
+    );
+  }
+
+  if (state.status === "checking") {
+    return (
+      <main className="login-page" id="main-content">
+        <section className="login-intro">
+          <div className="brand-lockup"><span className="brand-mark" aria-hidden="true">न</span><span>NagarSakhi</span></div>
+          <p className="eyebrow">Live municipality record</p>
+          <h1>Opening your civic workspace.</h1>
+          <p className="login-lede">We are checking your verified mobile number and loading the ward record.</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (state.status === "error") {
+    return (
+      <main className="login-page" id="main-content">
+        <section className="login-intro">
+          <div className="brand-lockup"><span className="brand-mark" aria-hidden="true">न</span><span>NagarSakhi</span></div>
+          <p className="eyebrow">Live municipality record</p>
+          <h1>We could not open your civic workspace.</h1>
+          <p className="login-lede">{state.error.message}</p>
+          {state.error.detail ? <p className="demo-note">{state.error.detail}</p> : null}
+        </section>
+      </main>
+    );
+  }
+
+  const experience = {
+    citizen: <CitizenExperience data={state.data} dataMode="supabase" session={state.session} />,
+    parshad: <ParshadExperience data={state.data} dataMode="supabase" session={state.session} />,
+    corporation_admin: <CorporationExperience data={state.data} dataMode="supabase" session={state.session} />,
+  }[state.session.role];
+
+  return <AppShell dataMode="supabase" session={state.session}>{experience}</AppShell>;
+}

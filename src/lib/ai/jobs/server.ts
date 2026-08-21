@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
+  createFirebaseSupabaseClient,
   createServerSupabaseClient,
   createServiceRoleSupabaseClient,
   getRuntimeEnv,
@@ -44,6 +45,7 @@ const requestCookies = async () => {
 
 /** Authenticates a Supabase cookie session and obtains the caller's RLS-scoped profile. */
 export async function getAuthenticatedAiJobContext(
+  request?: Request,
   options: { serviceRole?: boolean } = {},
 ): Promise<AuthenticatedAiJobContext> {
   const env = getRuntimeEnv();
@@ -51,20 +53,23 @@ export async function getAuthenticatedAiJobContext(
     throw new AiJobRouteError("Durable AI jobs require Supabase mode.", 503);
   }
 
-  const userClient = createServerSupabaseClient(await requestCookies(), env);
+  const bearerToken = request?.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null;
+  const userClient = bearerToken
+    ? createFirebaseSupabaseClient(async () => bearerToken, env)
+    : createServerSupabaseClient(await requestCookies(), env);
   if (!userClient) {
     throw new AiJobRouteError("Supabase is not configured.", 503);
   }
 
-  const { data: auth, error: authError } = await userClient.auth.getUser();
-  if (authError || !auth.user) {
+  const { data: profileId, error: profileIdError } = await userClient.rpc("current_profile_id");
+  if (profileIdError || !profileId) {
     throw new AiJobRouteError("Authentication required.", 401);
   }
 
   const { data: profile, error: profileError } = await userClient
     .from("profiles")
     .select("id, municipality_id")
-    .eq("id", auth.user.id)
+    .eq("id", profileId as string)
     .maybeSingle();
   if (profileError) {
     throw new AiJobRouteError("Unable to validate the current profile.", 500);
@@ -79,7 +84,7 @@ export async function getAuthenticatedAiJobContext(
   }
 
   return {
-    userId: auth.user.id,
+    userId: profile.id,
     municipalityId: profile.municipality_id,
     userClient,
     serviceClient,

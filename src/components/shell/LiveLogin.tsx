@@ -1,108 +1,208 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { ConfirmationResult, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { FormEvent, useRef, useState } from "react";
+import { ArrowLeft, CheckCircle2, ShieldCheck } from "lucide-react";
 
-import { createBrowserSupabaseClient } from "@/lib/supabase";
+import { getFirebaseAuth } from "@/lib/firebase";
 
 type LoginStage = "phone" | "code";
-type LoginState = "idle" | "sending" | "verifying" | "error";
+type MessageTone = "error" | "success";
+
+const friendlyAuthError = (error: unknown): string => {
+  const message = error instanceof Error ? error.message : "";
+
+  if (message.includes("auth/invalid-app-credential")) {
+    return "Firebase rejected the app verification. Check Authorized domains and complete the reCAPTCHA before trying again.";
+  }
+
+  if (message.includes("auth/billing-not-enabled")) {
+    return "Firebase billing is not enabled for real SMS. Use a Firebase test number or enable billing.";
+  }
+
+  return message || "Could not send the verification code.";
+};
 
 export function LiveLogin() {
-  const router = useRouter();
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [stage, setStage] = useState<LoginStage>("phone");
-  const [state, setState] = useState<LoginState>("idle");
+  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<MessageTone>("error");
+  const confirmation = useRef<ConfirmationResult | null>(null);
+  const recaptcha = useRef<RecaptchaVerifier | null>(null);
+
+  const resetRecaptcha = () => {
+    recaptcha.current?.clear();
+    recaptcha.current = null;
+  };
 
   async function sendOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const client = createBrowserSupabaseClient();
-    if (!client) {
-      setState("error");
-      setMessage("Live sign-in is not configured in this browser.");
-      return;
-    }
-    if (!phone.trim()) {
-      setState("error");
-      setMessage("Enter the mobile number linked to your NagarSakhi account.");
+    const auth = getFirebaseAuth();
+
+    if (!auth) {
+      setMessageTone("error");
+      setMessage("Firebase sign-in is not configured.");
       return;
     }
 
-    setState("sending");
-    setMessage("");
-    const { error } = await client.auth.signInWithOtp({
-      phone: phone.trim(),
-      options: { shouldCreateUser: false },
-    });
-    if (error) {
-      setState("error");
-      setMessage(error.message);
+    if (!phone.trim()) {
+      setMessageTone("error");
+      setMessage("Enter your mobile number with country code.");
       return;
     }
-    setOtp("");
-    setStage("code");
-    setState("idle");
-    setMessage("We sent a six-digit verification code to your mobile number.");
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      resetRecaptcha();
+      recaptcha.current = new RecaptchaVerifier(auth, "firebase-recaptcha", {
+        "expired-callback": resetRecaptcha,
+        size: "normal",
+      });
+      await recaptcha.current.render();
+      confirmation.current = await signInWithPhoneNumber(auth, phone.trim(), recaptcha.current);
+      setOtp("");
+      setStage("code");
+      setMessageTone("success");
+      setMessage("Code sent. Enter the six digits from the SMS.");
+    } catch (error) {
+      resetRecaptcha();
+      setMessageTone("error");
+      setMessage(friendlyAuthError(error));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function verifyOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const client = createBrowserSupabaseClient();
-    if (!client) {
-      setState("error");
-      setMessage("Live sign-in is not configured in this browser.");
+
+    if (!confirmation.current) {
+      setMessageTone("error");
+      setMessage("Your verification session expired. Request a new code.");
       return;
     }
+
     if (otp.length !== 6) {
-      setState("error");
+      setMessageTone("error");
       setMessage("Enter the six-digit verification code.");
       return;
     }
 
-    setState("verifying");
+    setBusy(true);
     setMessage("");
-    const { error } = await client.auth.verifyOtp({ phone: phone.trim(), token: otp, type: "sms" });
-    if (error) {
-      setState("error");
-      setMessage(error.message);
-      return;
+
+    try {
+      await confirmation.current.confirm(otp);
+      setMessageTone("success");
+      setMessage("Mobile verified. Opening NagarSakhi...");
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error instanceof Error ? error.message : "That code was not accepted.");
+    } finally {
+      setBusy(false);
     }
-    router.refresh();
   }
 
-  const busy = state === "sending" || state === "verifying";
-
   return (
-    <main className="login-page" id="main-content">
+    <main className="login-page live-login" id="main-content">
       <section className="login-intro" aria-labelledby="live-welcome-title">
-        <div className="brand-lockup"><span className="brand-mark" aria-hidden="true">न</span><span>NagarSakhi</span></div>
+        <div className="brand-lockup">
+          <span className="brand-mark" aria-hidden="true">न</span>
+          <span>NagarSakhi</span>
+        </div>
         <p className="eyebrow">Your ward, in the open</p>
-        <h1 id="live-welcome-title">Sign in to see your municipality’s public record.</h1>
-        <p className="login-lede">Use the mobile number registered with NagarSakhi. We will send a one-time verification code.</p>
-        <div className="civic-rule" aria-hidden="true"><span>वार्ड</span><span>Ward</span><span>नगर</span><span>City</span></div>
-        <p className="demo-note">Your phone number is used only for sign-in. Public records show names and civic updates, not residents’ contact details.</p>
+        <h1 id="live-welcome-title">Sign in to see your municipality&apos;s public record.</h1>
+        <p className="login-lede">Firebase verifies your mobile number; Supabase protects the civic data.</p>
+        <div className="civic-rule" aria-hidden="true">
+          <span>वार्ड</span>
+          <span>Ward</span>
+          <span>नगर</span>
+          <span>City</span>
+        </div>
+        <p className="demo-note">Your phone number is used only for sign-in. Public records never expose residents&apos; contact details.</p>
       </section>
 
       <section className="login-panel" aria-labelledby="live-signin-title">
-        <div><p className="section-kicker">Secure sign-in</p><h2 id="live-signin-title">{stage === "phone" ? "Enter your mobile number" : "Enter your verification code"}</h2></div>
+        <div>
+          <p className="section-kicker">Secure sign-in</p>
+          <h2 id="live-signin-title">{stage === "phone" ? "Enter your mobile number" : "Enter your verification code"}</h2>
+        </div>
+        <div className="auth-stepper" aria-label="Sign-in progress">
+          <span data-active="true">Mobile</span>
+          <span data-active={stage === "code"}>OTP</span>
+        </div>
         {stage === "phone" ? (
-          <form className="login-form" onSubmit={sendOtp} noValidate>
+          <form className="login-form" onSubmit={sendOtp}>
             <label htmlFor="live-phone">Mobile number</label>
-            <input aria-describedby={state === "error" ? "live-login-message" : "live-phone-help"} autoComplete="tel" id="live-phone" inputMode="tel" onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" required value={phone} />
-            <p id="live-phone-help">Include your country code, for example +91.</p>
-            <button className="primary-action" disabled={busy} type="submit">{state === "sending" ? "Sending code…" : "Send verification code"}</button>
+            <input
+              autoComplete="tel"
+              id="live-phone"
+              inputMode="tel"
+              onChange={(event) => setPhone(event.target.value)}
+              placeholder="+91 98765 43210"
+              required
+              value={phone}
+            />
+            <p>Include your country code.</p>
+            <div className="recaptcha-wrap" id="firebase-recaptcha" />
+            <button className="primary-action" disabled={busy} type="submit">
+              <ShieldCheck aria-hidden="true" size={18} />
+              {busy ? "Sending code..." : "Send verification code"}
+            </button>
           </form>
         ) : (
-          <form className="login-form" onSubmit={verifyOtp} noValidate>
-            <div className="field-heading"><label htmlFor="live-otp">Six-digit verification code</label><button disabled={busy} onClick={() => { setStage("phone"); setState("idle"); setMessage(""); }} type="button">Change number</button></div>
-            <input aria-describedby={state === "error" ? "live-login-message" : "live-code-help"} autoComplete="one-time-code" id="live-otp" inputMode="numeric" maxLength={6} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} pattern="[0-9]{6}" required value={otp} />
-            <p id="live-code-help">Sent to {phone}.</p>
-            <button className="primary-action" disabled={busy} type="submit">{state === "verifying" ? "Verifying…" : "Open NagarSakhi"}</button>
+          <form className="login-form otp-form" onSubmit={verifyOtp}>
+            <div className="otp-heading">
+              <button
+                aria-label="Change mobile number"
+                className="icon-action"
+                disabled={busy}
+                onClick={() => {
+                  resetRecaptcha();
+                  setStage("phone");
+                  setMessage("");
+                }}
+                type="button"
+              >
+                <ArrowLeft aria-hidden="true" size={18} />
+              </button>
+              <div>
+                <label htmlFor="live-otp">Six-digit verification code</label>
+                <p>Sent to <span>{phone}</span></p>
+              </div>
+            </div>
+            <input
+              autoComplete="one-time-code"
+              className="otp-input"
+              id="live-otp"
+              inputMode="numeric"
+              maxLength={6}
+              onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))}
+              required
+              value={otp}
+            />
+            <button className="primary-action" disabled={busy} type="submit">
+              <CheckCircle2 aria-hidden="true" size={18} />
+              {busy ? "Verifying..." : "Open NagarSakhi"}
+            </button>
+            <button className="quiet-action" disabled={busy} onClick={() => setOtp("")} type="button">
+              Clear code
+            </button>
+            <button className="text-action" disabled={busy} onClick={() => setStage("phone")} type="button">
+              Change number
+            </button>
           </form>
         )}
-        {message ? <p aria-live="polite" className={state === "error" ? "form-error" : undefined} id="live-login-message" role={state === "error" ? "alert" : undefined}>{message}</p> : null}
+        {message ? (
+          <p aria-live="polite" className={`form-message form-message--${messageTone}`} role={messageTone === "error" ? "alert" : "status"}>
+            {message}
+          </p>
+        ) : null}
       </section>
     </main>
   );
