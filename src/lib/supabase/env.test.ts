@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { validateRuntimeEnv } from "./env";
 
 describe("validateRuntimeEnv", () => {
-  it("keeps blank local configuration runnable in demo mode", () => {
+  it("keeps explicit demo configuration available for local demos", () => {
     const env = validateRuntimeEnv({
       NEXT_PUBLIC_DATA_MODE: "demo",
       NEXT_PUBLIC_SUPABASE_URL: "",
@@ -19,10 +19,19 @@ describe("validateRuntimeEnv", () => {
     const env = validateRuntimeEnv({ NEXT_PUBLIC_DATA_MODE: "production" });
     const incomplete = validateRuntimeEnv({ NEXT_PUBLIC_DATA_MODE: "supabase" });
 
-    expect(env.dataMode).toBe("demo");
+    expect(env.dataMode).toBe("supabase");
     expect(env.issues[0]?.variable).toBe("NEXT_PUBLIC_DATA_MODE");
     expect(incomplete.hasSupabaseConfiguration).toBe(false);
     expect(incomplete.issues).toHaveLength(1);
+  });
+
+  it("defaults to live mode instead of showing the old civic demo", () => {
+    const env = validateRuntimeEnv({});
+
+    expect(env.dataMode).toBe("supabase");
+    expect(env.isDemoMode).toBe(false);
+    expect(env.demoAuth).toBe(false);
+    expect(env.hasSupabaseConfiguration).toBe(false);
   });
 
   it("requires an explicit production demo opt-in and disables demo auth in Supabase mode", () => {

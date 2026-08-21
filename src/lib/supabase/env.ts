@@ -11,7 +11,8 @@ const booleanFlag = z.enum(["true", "false", "1", "0"]);
 
 /**
  * The raw variables accepted by NagarSakhi. Validation is intentionally safe:
- * an incomplete local .env must leave the app usable in demo mode.
+ * an incomplete environment should show a live-configuration error instead of
+ * falling back to the old civic demo login.
  */
 export const runtimeEnvSchema = z
   .object({
@@ -89,8 +90,8 @@ const parseBooleanFlag = (value: string | undefined, fallback: boolean): boolean
 };
 
 /**
- * Safely validates environment input. It never throws so that a fresh checkout
- * with the blank values from .env.example automatically remains runnable.
+ * Safely validates environment input. It never throws so the app can render a
+ * useful configuration error instead of crashing during boot.
  */
 export function validateRuntimeEnv(source: EnvSource = process.env): RuntimeEnv {
   const parsed = runtimeEnvSchema.safeParse(source);
@@ -109,13 +110,13 @@ export function validateRuntimeEnv(source: EnvSource = process.env): RuntimeEnv 
   }
 
   const requestedMode = values.NEXT_PUBLIC_DATA_MODE;
-  const modeResult = dataMode.safeParse(requestedMode ?? "demo");
-  const selectedMode = modeResult.success ? modeResult.data : "demo";
+  const modeResult = dataMode.safeParse(requestedMode ?? "supabase");
+  const selectedMode = modeResult.success ? modeResult.data : "supabase";
 
   if (!modeResult.success) {
     issues.push({
       variable: "NEXT_PUBLIC_DATA_MODE",
-      message: "Expected 'demo' or 'supabase'; using demo mode.",
+      message: "Expected 'demo' or 'supabase'; using live Supabase mode.",
     });
   }
 
