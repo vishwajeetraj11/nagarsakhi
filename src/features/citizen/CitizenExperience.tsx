@@ -21,7 +21,7 @@ import type { DemoSession, Issue, IssueStatus } from "@/lib/domain/types";
 import { getFirebaseAuthorizationHeader } from "@/lib/firebase";
 import styles from "./CitizenExperience.module.css";
 
-type View = "home" | "issues" | "report" | "wards";
+type View = "home" | "issues" | "report" | "wards" | "parshad";
 type ReportStage = "form" | "duplicates" | "success";
 
 const statusCopy: Record<IssueStatus, string> = {
@@ -124,7 +124,6 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false }:
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [reportStage, setReportStage] = useState<ReportStage>("form");
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
-  const [showParshadProfile, setShowParshadProfile] = useState(false);
   const [submittedTitle, setSubmittedTitle] = useState("");
   const [submittedDescription, setSubmittedDescription] = useState("");
   const [formError, setFormError] = useState("");
@@ -323,16 +322,11 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false }:
               <aside className={styles.sideLedger} aria-label="Ward notices and information">
                 <section className={styles.miniSection}>
                   <p className={styles.kicker}>Ward representative</p>
-                  <button type="button" className={styles.profileButton} aria-expanded={showParshadProfile} onClick={() => setShowParshadProfile((open) => !open)}>
+                  <button type="button" className={styles.profileButton} onClick={() => moveTo("parshad")}>
                     <h2>{wardOfficial?.name ?? "Ward office"}</h2>
                     <span>View Parshad profile <ArrowUpRight size={15} aria-hidden="true" /></span>
                   </button>
                   <p>{wardOfficial?.roleLabel ?? "Ward administration"} · Current term</p>
-                  {showParshadProfile ? <div className={styles.profilePanel} role="region" aria-label="Parshad profile">
-                    <p>{wardOfficial?.name ?? "Ward representative"} serves Ward {ward.number}.</p>
-                    <p>Public notices and issue updates are recorded here for residents to follow.</p>
-                    <button type="button" className={styles.textAction} onClick={() => setShowParshadProfile(false)}>Return to citizen record</button>
-                  </div> : null}
                 </section>
                 <section className={styles.miniSection}>
                   <p className={styles.kicker}>Latest notice</p>
@@ -394,6 +388,18 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false }:
         )}
 
         {view === "wards" && <section className={styles.wardBrowser} aria-labelledby="ward-browser-title"><p className={styles.kicker}>{data.municipality.district}, {data.municipality.state}</p><h2 id="ward-browser-title">Browse Phusro wards</h2><p className={styles.leadCopy}>Choose a ward to read its public issue record and budget summary.</p><div className={styles.wardList}>{data.wards.map((item) => <button key={item.id} type="button" className={item.number === ward.number ? styles.wardSelected : ""} aria-current={item.number === ward.number ? "true" : undefined} onClick={() => { setSelectedWardNumber(item.number); moveTo("home"); }}><span>Ward {item.number}</span><strong>{item.name}</strong><small>{formatRupees(item.spentBudget)} spent</small><ChevronRight size={18} aria-hidden="true" /></button>)}</div></section>}
+
+        {view === "parshad" && <section className={styles.profilePage} aria-labelledby="parshad-profile-title">
+          <button type="button" className={styles.backButton} onClick={() => moveTo("home")}><ArrowLeft size={18} aria-hidden="true" /> Back to Ward {ward.number}</button>
+          <p className={styles.kicker}>Ward representative · सार्वजनिक प्रोफ़ाइल</p>
+          <h2 id="parshad-profile-title">{wardOfficial?.name ?? "Ward Parshad"}</h2>
+          <p className={styles.profileRole}>{wardOfficial?.roleLabel ?? "Ward Parshad"} · Ward {ward.number}, {data.municipality.name}</p>
+          <div className={styles.profileGrid}>
+            <section><p className={styles.kicker}>Public responsibility</p><h3>Keep the ward record moving.</h3><p>Residents can follow reported issues, public notices, and progress updates for this ward from the civic record.</p></section>
+            <section><p className={styles.kicker}>Current term</p><h3>{wardOfficial?.current ? "Active representative" : "Term record"}</h3><p>{wardOfficial?.wonByVotes ? `${wardOfficial.wonByVotes.toLocaleString("en-IN")} votes recorded` : "Current term information is maintained by the municipality."}</p></section>
+          </div>
+          <button type="button" className={styles.primaryAction} onClick={() => moveTo("home")}>Return to citizen view</button>
+        </section>}
       </main>
 
       <footer className={styles.footer}>{dataMode === "demo" ? "NagarSakhi uses synthetic people, records, media and budgets for this demonstration." : "NagarSakhi keeps resident phone and household details outside the public record."}</footer>

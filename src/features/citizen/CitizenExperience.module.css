@@ -61,8 +61,13 @@
 .miniSection h2 { font-size: 1.3rem; }
 .profileButton { display: inline-flex; align-items: center; gap: .5rem; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .profileButton span { display: inline-flex; align-items: center; gap: .2rem; color: var(--indigo); font-size: .78rem; font-weight: 750; white-space: nowrap; }
-.profilePanel { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
-.profilePanel p { margin: .45rem 0 0; }
+.profilePage { max-width: 56rem; }
+.profilePage h2 { max-width: none; margin: .55rem 0 .35rem; font-size: clamp(2.4rem, 7vw, 5rem); }
+.profileRole { margin: 0; color: var(--muted); font-size: 1.05rem; }
+.profileGrid { display: grid; gap: 1.25rem; margin: 2.5rem 0; }
+.profileGrid section { padding: 1.25rem 0; border-top: 3px solid var(--marigold); }
+.profileGrid h3 { margin: 0 0 .5rem; font-size: 1.25rem; }
+.profileGrid section p:last-child { margin: 0; color: var(--muted); line-height: 1.6; }
 .miniSection > p:not(.kicker) { margin: .5rem 0 0; color: var(--muted); line-height: 1.55; }
 .noticeBody { color: var(--ink) !important; }
 .finePrint { display: block; margin-top: .7rem; color: var(--muted); font-size: .8rem; }
