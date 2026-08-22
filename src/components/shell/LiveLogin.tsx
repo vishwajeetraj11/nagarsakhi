@@ -2,7 +2,7 @@
 
 import { ConfirmationResult, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { FormEvent, useRef, useState } from "react";
-import { ArrowLeft, CheckCircle2, ShieldCheck } from "lucide-react";
+import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 import { getFirebaseAuth } from "@/lib/firebase";
 
@@ -48,9 +48,9 @@ export function LiveLogin() {
       return;
     }
 
-    if (!phone.trim()) {
+    if (!/^\d{10}$/.test(phone)) {
       setMessageTone("error");
-      setMessage("Enter your mobile number with country code.");
+      setMessage("Enter a 10-digit Indian mobile number.");
       return;
     }
 
@@ -64,7 +64,7 @@ export function LiveLogin() {
         size: "normal",
       });
       await recaptcha.current.render();
-      confirmation.current = await signInWithPhoneNumber(auth, phone.trim(), recaptcha.current);
+      confirmation.current = await signInWithPhoneNumber(auth, `+91${phone}`, recaptcha.current);
       setOtp("");
       setStage("code");
       setMessageTone("success");
@@ -139,16 +139,21 @@ export function LiveLogin() {
         {stage === "phone" ? (
           <form className="login-form" onSubmit={sendOtp}>
             <label htmlFor="live-phone">Mobile number</label>
-            <input
-              autoComplete="tel"
-              id="live-phone"
-              inputMode="tel"
-              onChange={(event) => setPhone(event.target.value)}
-              placeholder="+91 98765 43210"
-              required
-              value={phone}
-            />
-            <p>Include your country code.</p>
+            <div className="phone-field">
+              <span aria-hidden="true">+91</span>
+              <input
+                autoComplete="tel-national"
+                id="live-phone"
+                inputMode="numeric"
+                maxLength={10}
+                onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))}
+                pattern="[0-9]{10}"
+                placeholder="98765 43210"
+                required
+                value={phone}
+              />
+            </div>
+            <p>Use the mobile number registered with your municipality.</p>
             <div className="recaptcha-wrap" id="firebase-recaptcha" />
             <button className="primary-action" disabled={busy} type="submit">
               <ShieldCheck aria-hidden="true" size={18} />
@@ -158,22 +163,9 @@ export function LiveLogin() {
         ) : (
           <form className="login-form otp-form" onSubmit={verifyOtp}>
             <div className="otp-heading">
-              <button
-                aria-label="Change mobile number"
-                className="icon-action"
-                disabled={busy}
-                onClick={() => {
-                  resetRecaptcha();
-                  setStage("phone");
-                  setMessage("");
-                }}
-                type="button"
-              >
-                <ArrowLeft aria-hidden="true" size={18} />
-              </button>
               <div>
                 <label htmlFor="live-otp">Six-digit verification code</label>
-                <p>Sent to <span>{phone}</span></p>
+                <p>Sent to <span>+91 {phone}</span></p>
               </div>
             </div>
             <input
@@ -182,19 +174,14 @@ export function LiveLogin() {
               id="live-otp"
               inputMode="numeric"
               maxLength={6}
+              autoFocus
               onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))}
               required
               value={otp}
             />
             <button className="primary-action" disabled={busy} type="submit">
               <CheckCircle2 aria-hidden="true" size={18} />
-              {busy ? "Verifying..." : "Open NagarSakhi"}
-            </button>
-            <button className="quiet-action" disabled={busy} onClick={() => setOtp("")} type="button">
-              Clear code
-            </button>
-            <button className="text-action" disabled={busy} onClick={() => setStage("phone")} type="button">
-              Change number
+              {busy ? "Verifying..." : "Enter NagarSakhi"}
             </button>
           </form>
         )}

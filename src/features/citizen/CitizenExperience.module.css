@@ -59,6 +59,10 @@
 .sideLedger { border-top: 3px solid var(--marigold); }
 .miniSection { padding: 1.3rem 0; border-bottom: 1px solid var(--rule); }
 .miniSection h2 { font-size: 1.3rem; }
+.profileButton { display: inline-flex; align-items: center; gap: .5rem; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.profileButton span { display: inline-flex; align-items: center; gap: .2rem; color: var(--indigo); font-size: .78rem; font-weight: 750; white-space: nowrap; }
+.profilePanel { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+.profilePanel p { margin: .45rem 0 0; }
 .miniSection > p:not(.kicker) { margin: .5rem 0 0; color: var(--muted); line-height: 1.55; }
 .noticeBody { color: var(--ink) !important; }
 .finePrint { display: block; margin-top: .7rem; color: var(--muted); font-size: .8rem; }
@@ -116,6 +120,7 @@
 .attachments { margin: 0; padding: 1rem 0 0; border: 0; border-top: 1px solid var(--rule); }
 .attachments legend span { color: var(--muted); font-weight: 500; }
 .attachments > div { display: flex; flex-wrap: wrap; gap: .6rem; margin: .75rem 0 .55rem; }
+.attachments > input { width: 100%; padding: .7rem; border: 1px dashed oklch(58% .025 80); background: oklch(99% .005 85); color: var(--ink); }
 .attachments button { min-height: 44px; display: inline-flex; align-items: center; gap: .45rem; border: 1px dashed oklch(58% .025 80); border-radius: .2rem; padding: .55rem .75rem; background: transparent; cursor: pointer; }
 .attachments button.attachmentOn { border-style: solid; border-color: var(--green); background: var(--green-soft); color: oklch(30% .07 150); }
 .formError { padding: .75rem; margin: 0; border-left: 3px solid var(--red); background: oklch(96% .025 27); color: oklch(33% .1 27); line-height: 1.45; }
@@ -123,6 +128,7 @@
 .duplicateStep > p { color: var(--muted); line-height: 1.55; }
 .duplicateRecord { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-top: 1px solid var(--rule); }
 .duplicateRecord > div { display: grid; gap: .35rem; }
+.duplicateActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .6rem; }
 .duplicateRecord strong { font-size: 1rem; }
 .duplicateRecord span:not(.status) { color: var(--muted); font-size: .82rem; }
 .reportActions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: 1.5rem; }

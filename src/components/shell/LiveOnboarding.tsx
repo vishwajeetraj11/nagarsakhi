@@ -65,8 +65,10 @@ export function LiveOnboarding({ user, onComplete }: LiveOnboardingProps) {
 
   async function completeOnboarding(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!supabase || !municipalityId || !wardId) {
-      setMessage("Choose your municipality and ward.");
+    const cleanName = name.trim();
+    const selectedWard = wards.find((ward) => ward.ward_id === wardId);
+    if (!supabase || !cleanName || !municipalityId || !selectedWard || selectedWard.municipality_id !== municipalityId) {
+      setMessage(!cleanName ? "Enter your public or official display name." : "Choose a valid municipality and ward.");
       return;
     }
 
@@ -75,7 +77,7 @@ export function LiveOnboarding({ user, onComplete }: LiveOnboardingProps) {
     const { error } = await supabase.rpc("complete_firebase_profile_onboarding", {
       target_municipality_id: municipalityId,
       target_ward_id: wardId,
-      display_name: name.trim() || null,
+      display_name: cleanName,
     });
     setBusy(false);
 
@@ -104,12 +106,14 @@ export function LiveOnboarding({ user, onComplete }: LiveOnboardingProps) {
           <h2 id="ward-form-title">Set your civic home</h2>
         </div>
         <form className="login-form onboarding-form" onSubmit={completeOnboarding}>
-          <label htmlFor="onboarding-name">Your name</label>
+          <label htmlFor="onboarding-name">Public / official display name</label>
           <input
             autoComplete="name"
             id="onboarding-name"
+            minLength={2}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Your public display name"
+            placeholder="Enter your public or official display name"
+            required
             value={name}
           />
 

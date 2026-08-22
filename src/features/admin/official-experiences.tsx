@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import type { PublicDemoData } from "@/data/demo";
+import { CitizenExperience } from "@/features/citizen/CitizenExperience";
 import { publishLiveNotice, setLiveAlertCompletion, transitionLiveEscalation, transitionLiveIssue } from "@/lib/data/live-mutations";
 import type { DemoSession, Escalation, IssueStatus, Notice } from "@/lib/domain/types";
 import styles from "./official-experiences.module.css";
@@ -54,6 +55,7 @@ function AuditLine({ children }: { children: React.ReactNode }) {
 }
 
 export function ParshadExperience({ data, dataMode, session }: ExperienceProps) {
+  const [citizenView, setCitizenView] = useState(false);
   const ward = data.wards.find((item) => item.id === session?.wardId) ?? data.wards.find((item) => item.number === 12) ?? data.wards[0];
   const official = data.officials.find((item) => item.wardId === ward?.id && item.current);
   const [issues, setIssues] = useState(() => data.issues.filter((item) => item.wardId === ward?.id));
@@ -69,6 +71,16 @@ export function ParshadExperience({ data, dataMode, session }: ExperienceProps) 
   const completedCount = issues.filter((item) => item.status === "completed").length;
   const residents = data.publicProfiles.filter((person) => person.wardId === ward?.id).length;
   const wardEscalations = data.escalations.filter((item) => item.wardId === ward?.id);
+
+  if (citizenView) {
+    return <>
+      <div className={styles.viewSwitchBar}>
+        <span>Citizen view · reading the public ward record</span>
+        <button type="button" onClick={() => setCitizenView(false)}>Back to Parshad desk</button>
+      </div>
+      <CitizenExperience data={data} dataMode={dataMode} session={session ? { ...session, role: "citizen" } : undefined} readOnly />
+    </>;
+  }
 
   async function changeStatus(issueId: string, status: IssueStatus) {
     const target = issues.find((item) => item.id === issueId);
@@ -120,6 +132,10 @@ export function ParshadExperience({ data, dataMode, session }: ExperienceProps) 
       </div>
       <div className={styles.wardStamp} aria-label="Ward 12 context"><b>12</b><span>ward<br />register</span></div>
     </header>
+    <div className={styles.roleSwitchBar} role="group" aria-label="Role view">
+      <span>Viewing as <b>Parshad</b></span>
+      <button type="button" onClick={() => setCitizenView(true)}>View as Citizen</button>
+    </div>
     <WorkspaceNotice dataMode={dataMode} />
 
     <section className={styles.ledgerSummary} aria-label="Ward 12 summary">

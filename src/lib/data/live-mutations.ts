@@ -88,6 +88,40 @@ export async function createLiveIssue(input: CreateLiveIssueInput, client?: Muta
   return error || !data ? requestFailure("Your issue could not be submitted.", error?.message) : { ok: true, data: { id: data.id as string } };
 }
 
+/** Uploads up to three photo/video files after the issue row exists. The database
+ * stores both image and video evidence as public `photo` media records because
+ * the existing issue_media contract intentionally has only photo/audio kinds. */
+export async function uploadLiveIssueMedia(
+  issueId: string,
+  files: File[],
+  client?: MutationClient,
+): Promise<LiveMutationResult> {
+  if (!issueId || files.length === 0) return { ok: true, data: undefined };
+  const supported = files.filter((file) => file.type.startsWith("image/") || file.type.startsWith("video/")).slice(0, 3);
+  if (supported.length !== files.length) {
+    return { ok: false, error: { code: "VALIDATION", message: "Attach image or video files only." } };
+  }
+
+  const configured = getClient(client);
+  if (!configured.ok) return configured;
+  const user = await requireUser(configured.data);
+  if (!user.ok) return user;
+
+  const mediaRows: Array<{ issue_id: string; kind: "photo"; storage_path: string; alt_text: string; sort_order: number }> = [];
+  for (const [index, file] of supported.entries()) {
+    const storagePath = `${user.data.id}/${issueId}/photo-${index + 1}`;
+    const { error: uploadError } = await configured.data.storage.from("issue-media").upload(storagePath, file, {
+      contentType: file.type,
+      upsert: false,
+    });
+    if (uploadError) return requestFailure("The issue was saved, but its media could not be uploaded.", uploadError.message);
+    mediaRows.push({ issue_id: issueId, kind: "photo", storage_path: storagePath, alt_text: file.name, sort_order: index });
+  }
+
+  const { error } = await configured.data.from("issue_media").insert(mediaRows);
+  return error ? requestFailure("The issue was saved, but its media record could not be created.", error.message) : { ok: true, data: undefined };
+}
+
 export async function transitionLiveIssue(
   issueId: string,
   status: Exclude<IssueStatus, "requested">,

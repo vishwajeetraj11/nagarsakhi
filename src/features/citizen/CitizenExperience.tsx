@@ -9,7 +9,6 @@ import {
   ChevronRight,
   FileText,
   MapPin,
-  Mic,
   Plus,
   ThumbsDown,
   ThumbsUp,
@@ -17,14 +16,13 @@ import {
 } from "lucide-react";
 import { AiJobStatus } from "@/components/ai";
 import type { PublicDemoData } from "@/data/demo";
-import { createLiveIssue, deleteIssueVote, setIssueVote } from "@/lib/data/live-mutations";
+import { createLiveIssue, deleteIssueVote, setIssueVote, uploadLiveIssueMedia } from "@/lib/data/live-mutations";
 import type { DemoSession, Issue, IssueStatus } from "@/lib/domain/types";
 import { getFirebaseAuthorizationHeader } from "@/lib/firebase";
 import styles from "./CitizenExperience.module.css";
 
 type View = "home" | "issues" | "report" | "wards";
 type ReportStage = "form" | "duplicates" | "success";
-type AttachmentKind = "photo" | "voice";
 
 const statusCopy: Record<IssueStatus, string> = {
   requested: "Reported",
@@ -43,6 +41,17 @@ const formatDate = (value: string) =>
 
 const formatRupees = (amount: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(amount);
+
+const issueWords = (value: string) => new Set(value.toLowerCase().split(/[^a-z0-9\u0900-\u097f]+/u).filter((word) => word.length > 2));
+
+const issueSimilarity = (left: string, right: string) => {
+  const leftWords = issueWords(left);
+  const rightWords = issueWords(right);
+  if (leftWords.size === 0 || rightWords.size === 0) return 0;
+  let overlap = 0;
+  for (const word of leftWords) if (rightWords.has(word)) overlap += 1;
+  return overlap / Math.min(leftWords.size, rightWords.size);
+};
 
 function StatusMark({ status }: { status: IssueStatus }) {
   return (
@@ -103,9 +112,10 @@ type CitizenExperienceProps = {
   data: PublicDemoData;
   dataMode: "demo" | "supabase";
   session?: DemoSession;
+  readOnly?: boolean;
 };
 
-export function CitizenExperience({ data, dataMode, session }: CitizenExperienceProps) {
+export function CitizenExperience({ data, dataMode, session, readOnly = false }: CitizenExperienceProps) {
   const [view, setView] = useState<View>("home");
   const initialWard = data.wards.find((item) => item.id === session?.wardId) ?? data.wards.find((item) => item.number === 12) ?? data.wards[0];
   const [selectedWardNumber, setSelectedWardNumber] = useState(initialWard?.number ?? 1);
@@ -113,7 +123,8 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
   const [filter, setFilter] = useState<"all" | IssueStatus>("all");
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [reportStage, setReportStage] = useState<ReportStage>("form");
-  const [attachments, setAttachments] = useState<AttachmentKind[]>([]);
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+  const [showParshadProfile, setShowParshadProfile] = useState(false);
   const [submittedTitle, setSubmittedTitle] = useState("");
   const [submittedDescription, setSubmittedDescription] = useState("");
   const [formError, setFormError] = useState("");
@@ -122,6 +133,7 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
 
   const ward = data.wards.find((item) => item.number === selectedWardNumber) ?? data.wards[0];
   const wardId = ward?.id ?? "";
+  const canReportInWard = !readOnly && (dataMode === "demo" || ward.id === session?.wardId);
   const wardIssues = useMemo(() => issues.filter((item) => item.wardId === wardId), [issues, wardId]);
   if (!ward) return <p role="alert">No ward record is available for this municipality.</p>;
   const filteredIssues = filter === "all" ? wardIssues : wardIssues.filter((item) => item.status === filter);
@@ -134,8 +146,19 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
     (result, item) => ({ ...result, [item.status]: result[item.status] + 1 }),
     { requested: 0, in_progress: 0, completed: 0 },
   );
+  const similarIssues = wardIssues
+    .filter((issue) => issue.status !== "completed")
+    .map((issue) => ({ issue, score: issueSimilarity(`${submittedTitle} ${submittedDescription}`, `${issue.title} ${issue.description}`) }))
+    .filter(({ score }) => score >= 0.25)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 3)
+    .map(({ issue }) => issue);
 
   const moveTo = (next: View) => {
+    if (next === "report" && !canReportInWard) {
+      setActionMessage("Citizens can report issues only in their selected ward.");
+      return;
+    }
     setView(next);
     if (next === "report") {
       setReportStage("form");
@@ -165,10 +188,6 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
     }
   };
 
-  const toggleAttachment = (kind: AttachmentKind) => {
-    setAttachments((current) => current.includes(kind) ? current.filter((item) => item !== kind) : [...current, kind]);
-  };
-
   const handleReportStart = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -190,6 +209,10 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
   };
 
   const publishNewReport = async () => {
+    if (dataMode === "supabase" && !canReportInWard) {
+      setFormError("Citizens can report issues only in their selected ward.");
+      return;
+    }
     let issueId = `issue-local-${issues.length + 1}`;
     if (dataMode === "supabase") {
       const result = await createLiveIssue({
@@ -204,6 +227,10 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
         return;
       }
       issueId = result.data.id;
+      if (evidenceFiles.length > 0) {
+        const mediaResult = await uploadLiveIssueMedia(issueId, evidenceFiles);
+        if (!mediaResult.ok) setActionMessage(mediaResult.error.message);
+      }
       const aiResponse = await fetch("/api/ai-jobs", {
         method: "POST",
         headers: { "content-type": "application/json", ...(await getFirebaseAuthorizationHeader()) },
@@ -234,7 +261,7 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
       upvotes: 1,
       downvotes: 0,
       viewerVote: 1,
-      media: dataMode === "demo" ? attachments.map((kind, index) => ({ id: `local-media-${index}`, kind: kind === "voice" ? "audio" : "photo", url: "", alt: kind === "photo" ? "Attached issue photo" : "Attached voice note" })) : [],
+      media: dataMode === "demo" ? evidenceFiles.map((file, index) => ({ id: `local-media-${index}`, kind: "photo" as const, url: URL.createObjectURL(file), alt: file.name })) : [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       escalated: false,
@@ -259,7 +286,7 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
 
       <nav className={styles.nav} aria-label="Citizen sections">
         {([
-          ["home", "Overview"], ["issues", "Issues"], ["report", "Report"], ["wards", "Wards"],
+          ["home", "Overview"], ["issues", "Issues"], ...(canReportInWard ? [["report", "Report"]] : []), ["wards", "Wards"],
         ] as [View, string][]).map(([item, label]) => (
           <button key={item} type="button" aria-current={view === item ? "page" : undefined} className={view === item ? styles.navActive : ""} onClick={() => { if (item !== "issues") setSelectedIssueId(null); moveTo(item); }}>{label}</button>
         ))}
@@ -275,7 +302,7 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
                 <h2 id="overview-title">See what your ward is working on.</h2>
                 <p className={styles.leadCopy}>Follow reports, back a neighbour’s issue, and keep track of public work in one clear record.</p>
               </div>
-              <button type="button" className={styles.primaryAction} onClick={() => moveTo("report")}><Plus size={19} aria-hidden="true" /> Report an issue</button>
+              {canReportInWard ? <button type="button" className={styles.primaryAction} onClick={() => moveTo("report")}><Plus size={19} aria-hidden="true" /> Report an issue</button> : null}
             </section>
 
             <section className={styles.pulse} aria-label="Issue status summary">
@@ -296,8 +323,16 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
               <aside className={styles.sideLedger} aria-label="Ward notices and information">
                 <section className={styles.miniSection}>
                   <p className={styles.kicker}>Ward representative</p>
-                  <h2>{wardOfficial?.name ?? "Ward office"}</h2>
+                  <button type="button" className={styles.profileButton} aria-expanded={showParshadProfile} onClick={() => setShowParshadProfile((open) => !open)}>
+                    <h2>{wardOfficial?.name ?? "Ward office"}</h2>
+                    <span>View Parshad profile <ArrowUpRight size={15} aria-hidden="true" /></span>
+                  </button>
                   <p>{wardOfficial?.roleLabel ?? "Ward administration"} · Current term</p>
+                  {showParshadProfile ? <div className={styles.profilePanel} role="region" aria-label="Parshad profile">
+                    <p>{wardOfficial?.name ?? "Ward representative"} serves Ward {ward.number}.</p>
+                    <p>Public notices and issue updates are recorded here for residents to follow.</p>
+                    <button type="button" className={styles.textAction} onClick={() => setShowParshadProfile(false)}>Return to citizen record</button>
+                  </div> : null}
                 </section>
                 <section className={styles.miniSection}>
                   <p className={styles.kicker}>Latest notice</p>
@@ -325,7 +360,7 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
           <section className={styles.issueBoard} aria-labelledby="issue-board-title">
             <div className={styles.sectionHead}>
               <div><p className={styles.kicker}>Community reports · जन शिकायतें</p><h2 id="issue-board-title">Ward {ward.number} issue board</h2></div>
-              <button type="button" className={styles.primaryAction} onClick={() => moveTo("report")}><Plus size={19} aria-hidden="true" /> Report issue</button>
+              {canReportInWard ? <button type="button" className={styles.primaryAction} onClick={() => moveTo("report")}><Plus size={19} aria-hidden="true" /> Report issue</button> : null}
             </div>
             <div className={styles.filterBar} role="group" aria-label="Filter issues by status">
               {(["all", "requested", "in_progress", "completed"] as const).map((item) => <button key={item} type="button" className={filter === item ? styles.filterActive : ""} aria-pressed={filter === item} onClick={() => setFilter(item)}>{item === "all" ? "All reports" : statusCopy[item]}</button>)}
@@ -349,11 +384,11 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
             {reportStage === "form" && <form className={styles.reportForm} onSubmit={handleReportStart} noValidate>
               <div className={styles.formField}><label htmlFor="issue-title">What needs attention?</label><input id="issue-title" name="title" type="text" maxLength={100} placeholder="Example: Streetlight near Nehru Park is off" aria-describedby={formError ? "report-error" : undefined} /></div>
               <div className={styles.formField}><label htmlFor="issue-description">Describe the place and problem</label><textarea id="issue-description" name="description" rows={5} placeholder="Include a nearby landmark so the ward team can find it." aria-describedby="report-help" /><p id="report-help">Use the language that is most comfortable for you. We will keep the original text with the report.</p></div>
-              <fieldset className={styles.attachments}><legend>Add helpful evidence <span>(optional)</span></legend><div><button type="button" aria-pressed={attachments.includes("photo")} className={attachments.includes("photo") ? styles.attachmentOn : ""} onClick={() => toggleAttachment("photo")}><Camera size={19} aria-hidden="true" /> {attachments.includes("photo") ? "Photo attached" : "Add photo"}</button><button type="button" aria-pressed={attachments.includes("voice")} className={attachments.includes("voice") ? styles.attachmentOn : ""} onClick={() => toggleAttachment("voice")}><Mic size={19} aria-hidden="true" /> {attachments.includes("voice") ? "Voice note attached" : "Record voice note"}</button></div><p>{dataMode === "demo" ? "Demo controls only — no file or recording leaves this device." : "Attachment preview only — this release submits the written report without uploading media."}</p></fieldset>
+              <fieldset className={styles.attachments}><legend>Photo or video evidence <span>(optional)</span></legend><input aria-label="Add photo or video evidence" accept="image/*,video/*" multiple onChange={(event) => setEvidenceFiles(Array.from(event.target.files ?? []).slice(0, 3))} type="file" />{evidenceFiles.length > 0 ? <p>{evidenceFiles.map((file) => file.name).join(", ")}</p> : <p>Add up to three photos or videos so the ward team can verify the location.</p>}</fieldset>
               {formError && <p id="report-error" className={styles.formError} role="alert">{formError}</p>}
               <button type="submit" className={styles.primaryAction}>Check for similar reports <ChevronRight size={19} aria-hidden="true" /></button>
             </form>}
-            {reportStage === "duplicates" && <div className={styles.duplicateStep}><h3>Similar reports nearby</h3><p>Supporting an existing report gives the ward team one stronger record to act on.</p>{wardIssues.filter((issue) => issue.status !== "completed").slice(0, 3).map((issue) => <div className={styles.duplicateRecord} key={issue.id}><div><StatusMark status={issue.status} /><strong>{issue.title}</strong><span>{issue.upvotes} neighbours support this</span></div><button type="button" className={styles.secondaryAction} onClick={() => chooseDuplicate(issue.id)}><ThumbsUp size={17} aria-hidden="true" /> Support this</button></div>)}<div className={styles.reportActions}><button type="button" className={styles.primaryAction} onClick={publishNewReport}>Create a new report</button><button type="button" className={styles.textAction} onClick={() => setReportStage("form")}>Edit my description</button></div></div>}
+            {reportStage === "duplicates" && <div className={styles.duplicateStep}><h3>{similarIssues.length ? "Similar reports nearby" : "No close match found"}</h3><p>{similarIssues.length ? "Supporting an existing report gives the ward team one stronger record to act on." : "You can still create a new report for this concern."}</p>{similarIssues.map((issue) => <div className={styles.duplicateRecord} key={issue.id}><div><StatusMark status={issue.status} /><strong>{issue.title}</strong><span>{issue.upvotes} neighbours support this</span></div><div className={styles.duplicateActions}><button type="button" className={styles.textAction} onClick={() => { setSelectedIssueId(issue.id); moveTo("issues"); }}>Open issue</button><button type="button" className={styles.secondaryAction} onClick={() => chooseDuplicate(issue.id)}><ThumbsUp size={17} aria-hidden="true" /> Support this</button></div></div>)}<div className={styles.reportActions}><button type="button" className={styles.primaryAction} onClick={publishNewReport}>Create a new report</button><button type="button" className={styles.textAction} onClick={() => setReportStage("form")}>Edit my description</button></div></div>}
             {reportStage === "success" && <div className={styles.successState} role="status"><span className={styles.successMark}><Check size={28} aria-hidden="true" /></span><h3>Your community record is updated.</h3><p>{dataMode === "demo" ? "In this synthetic demo, the update is saved only in this browser." : "The report is now in your municipality’s live issue register."} You can follow it from the Ward {ward.number} issue board.</p>{dataMode === "supabase" && aiJobId ? <AiJobStatus jobId={aiJobId} /> : null}<button type="button" className={styles.primaryAction} onClick={() => moveTo("issues")}>View the issue board <ArrowUpRight size={18} aria-hidden="true" /></button></div>}
           </section>
         )}
@@ -361,7 +396,7 @@ export function CitizenExperience({ data, dataMode, session }: CitizenExperience
         {view === "wards" && <section className={styles.wardBrowser} aria-labelledby="ward-browser-title"><p className={styles.kicker}>{data.municipality.district}, {data.municipality.state}</p><h2 id="ward-browser-title">Browse Phusro wards</h2><p className={styles.leadCopy}>Choose a ward to read its public issue record and budget summary.</p><div className={styles.wardList}>{data.wards.map((item) => <button key={item.id} type="button" className={item.number === ward.number ? styles.wardSelected : ""} aria-current={item.number === ward.number ? "true" : undefined} onClick={() => { setSelectedWardNumber(item.number); moveTo("home"); }}><span>Ward {item.number}</span><strong>{item.name}</strong><small>{formatRupees(item.spentBudget)} spent</small><ChevronRight size={18} aria-hidden="true" /></button>)}</div></section>}
       </main>
 
-      <footer className={styles.footer}>{dataMode === "demo" ? "NagarSakhi uses synthetic people, records, media and budgets for this demonstration." : "NagarSakhi keeps resident phone and household details outside the public record."} <button type="button" onClick={() => moveTo("home")}>Return to Ward {ward.number}</button></footer>
+      <footer className={styles.footer}>{dataMode === "demo" ? "NagarSakhi uses synthetic people, records, media and budgets for this demonstration." : "NagarSakhi keeps resident phone and household details outside the public record."}</footer>
     </section>
   );
 }
