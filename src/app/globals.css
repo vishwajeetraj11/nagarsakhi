@@ -468,6 +468,7 @@
   }
 
   .live-login .login-panel {
+    gap: var(--space-6);
     justify-content: center;
   }
 
@@ -655,8 +656,11 @@
   }
 
   .recaptcha-wrap {
+    min-height: 0;
+  }
+
+  .recaptcha-wrap:not(:empty) {
     min-height: 4.875rem;
-    margin-top: var(--space-1);
   }
 
   .recaptcha-wrap--hidden {
@@ -844,7 +848,7 @@
     min-height: 100svh;
   }
 
-  #main-content {
+  .app-frame > #main-content {
     display: flex;
     flex: 1;
     min-width: 0;
@@ -944,6 +948,7 @@
   }
 
   .login-intro {
+    min-width: 0;
     min-height: 100svh;
     border-right: 1px solid var(--line);
     border-bottom: 0;
@@ -951,6 +956,7 @@
   }
 
   .login-panel {
+    min-width: 0;
     padding: var(--space-12) clamp(var(--space-8), 5vw, 5rem);
   }
 
