@@ -66,12 +66,18 @@ export function LiveLogin() {
     setMessage("");
 
     try {
-      resetRecaptcha();
-      recaptcha.current = new RecaptchaVerifier(auth, "firebase-recaptcha", {
-        "expired-callback": resetRecaptcha,
-        size: "normal",
-      });
-      await recaptcha.current.render();
+      if (!recaptcha.current) {
+        recaptcha.current = new RecaptchaVerifier(auth, "firebase-recaptcha", {
+          "expired-callback": () => {
+            resetRecaptcha();
+            setStage("phone");
+            setMessageTone("error");
+            setMessage("The app verification expired. Complete the check again to request a new code.");
+          },
+          size: "normal",
+        });
+        await recaptcha.current.render();
+      }
       confirmation.current = await signInWithPhoneNumber(auth, `+91${phone}`, recaptcha.current);
       setOtpDigits(Array.from({ length: 6 }, () => ""));
       setStage("code");
@@ -81,6 +87,7 @@ export function LiveLogin() {
       window.setTimeout(() => otpRefs.current[0]?.focus(), 0);
     } catch (error) {
       resetRecaptcha();
+      if (stage === "code") setStage("phone");
       setMessageTone("error");
       setMessage(friendlyAuthError(error));
     } finally {
@@ -183,6 +190,7 @@ export function LiveLogin() {
           <span data-complete={stage === "code"} data-active={stage === "phone"}>{stage === "code" ? "✓ Mobile" : "Mobile"}</span>
           <span data-complete="false" data-active={stage === "code"}>OTP</span>
         </div>
+        <div className={`recaptcha-wrap${stage === "code" ? " recaptcha-wrap--hidden" : ""}`} id="firebase-recaptcha" aria-hidden={stage === "code"} />
         {stage === "phone" ? (
           <form className="login-form" onSubmit={sendOtp}>
             <label htmlFor="live-phone">Mobile number</label>
@@ -201,7 +209,6 @@ export function LiveLogin() {
               />
             </div>
             <p>Use the mobile number registered with your municipality.</p>
-            <div className="recaptcha-wrap" id="firebase-recaptcha" />
             <button className="primary-action" disabled={busy} type="submit">
               <ShieldCheck aria-hidden="true" size={18} />
               {busy ? "Sending code..." : "Send verification code"}
@@ -241,7 +248,6 @@ export function LiveLogin() {
               <CheckCircle2 aria-hidden="true" size={18} />
               {busy ? "Verifying..." : "Enter NagarSakhi"}
             </button>
-            <div className="recaptcha-wrap" id="firebase-recaptcha" />
             <button className="quiet-action resend-action" disabled={busy || resendSeconds > 0} onClick={() => void resendOtp()} type="button">
               {resendSeconds > 0 ? `Resend code in ${resendSeconds}s` : "Resend code"}
             </button>

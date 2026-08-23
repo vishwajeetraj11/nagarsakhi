@@ -88,6 +88,44 @@ export async function createLiveIssue(input: CreateLiveIssueInput, client?: Muta
   return error || !data ? requestFailure("Your issue could not be submitted.", error?.message) : { ok: true, data: { id: data.id as string } };
 }
 
+/** Removes a reporter's issue while it is still in the requested state. Media
+ * objects are deleted through Supabase Storage before the row is removed; the
+ * database policy independently enforces the same ownership and status rules.
+ */
+export async function deleteLiveIssue(issueId: string, client?: MutationClient): Promise<LiveMutationResult> {
+  if (!issueId) return { ok: false, error: { code: "VALIDATION", message: "Choose an issue before deleting it." } };
+  const configured = getClient(client);
+  if (!configured.ok) return configured;
+  const user = await requireUser(configured.data);
+  if (!user.ok) return user;
+
+  const { data: mediaRows, error: mediaQueryError } = await configured.data
+    .from("issue_media")
+    .select("storage_path")
+    .eq("issue_id", issueId);
+  if (mediaQueryError) return requestFailure("Your report could not be deleted.", mediaQueryError.message);
+
+  const paths = (mediaRows ?? [])
+    .map((row) => row.storage_path as string)
+    .filter(Boolean);
+  if (paths.length > 0) {
+    const { error: storageError } = await configured.data.storage.from("issue-media").remove(paths);
+    if (storageError) return requestFailure("Your report could not be deleted because its attachments could not be removed.", storageError.message);
+  }
+
+  const { data, error } = await configured.data
+    .from("issues")
+    .delete()
+    .eq("id", issueId)
+    .eq("reporter_id", user.data.id)
+    .eq("status", "requested")
+    .select("id")
+    .maybeSingle();
+  if (error) return requestFailure("Your report could not be deleted.", error.message);
+  if (!data) return requestFailure("Only your own reports that have not been picked up can be deleted.");
+  return { ok: true, data: undefined };
+}
+
 /** Uploads up to three photo/video files after the issue row exists. The database
  * stores both image and video evidence as public `photo` media records because
  * the existing issue_media contract intentionally has only photo/audio kinds. */
