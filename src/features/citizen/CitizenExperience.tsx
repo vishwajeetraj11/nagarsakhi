@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -23,6 +24,22 @@ import styles from "./CitizenExperience.module.css";
 
 type View = "home" | "issues" | "report" | "wards" | "parshad";
 type ReportStage = "form" | "success";
+
+const viewRoutes: Record<View, string> = {
+  home: "/overview",
+  issues: "/issues",
+  report: "/report",
+  wards: "/wards",
+  parshad: "/parshad",
+};
+
+const viewForPath = (pathname: string | null): View => {
+  if (pathname === "/issues") return "issues";
+  if (pathname === "/report") return "report";
+  if (pathname === "/wards") return "wards";
+  if (pathname === "/parshad") return "parshad";
+  return "home";
+};
 
 const statusCopy: Record<IssueStatus, string> = {
   requested: "Reported",
@@ -113,10 +130,12 @@ type CitizenExperienceProps = {
   dataMode: "demo" | "supabase";
   session?: DemoSession;
   readOnly?: boolean;
+  routing?: boolean;
 };
 
-export function CitizenExperience({ data, dataMode, session, readOnly = false }: CitizenExperienceProps) {
-  const [view, setView] = useState<View>("home");
+export function CitizenExperience({ data, dataMode, session, readOnly = false, routing = true }: CitizenExperienceProps) {
+  const pathname = usePathname();
+  const [localView, setLocalView] = useState<View>("home");
   const initialWard = data.wards.find((item) => item.id === session?.wardId) ?? data.wards.find((item) => item.number === 12) ?? data.wards[0];
   const [selectedWardNumber, setSelectedWardNumber] = useState(initialWard?.number ?? 1);
   const [issues, setIssues] = useState<Issue[]>(data.issues);
@@ -139,8 +158,18 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false }:
 
   const ward = data.wards.find((item) => item.number === selectedWardNumber) ?? data.wards[0];
   const wardId = ward?.id ?? "";
-  const canReportInWard = !readOnly && (dataMode === "demo" || ward.id === session?.wardId);
+  const canReportInWard = Boolean(ward && !readOnly && (dataMode === "demo" || ward.id === session?.wardId));
   const wardIssues = useMemo(() => issues.filter((item) => item.wardId === wardId), [issues, wardId]);
+
+  const requestedView = routing ? viewForPath(pathname) : localView;
+  const view = requestedView === "report" && !canReportInWard ? "home" : requestedView;
+
+  useEffect(() => {
+    if (routing && !canReportInWard && requestedView === "report" && pathname === viewRoutes.report) {
+      window.history.replaceState(null, "", viewRoutes.home);
+    }
+  }, [canReportInWard, pathname, requestedView, routing]);
+
   if (!ward) return <p role="alert">No ward record is available for this municipality.</p>;
   const filteredIssues = filter === "all" ? wardIssues : wardIssues.filter((item) => item.status === filter);
   const selectedIssue = issues.find((item) => item.id === selectedIssueId) ?? null;
@@ -152,12 +181,16 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false }:
     (result, item) => ({ ...result, [item.status]: result[item.status] + 1 }),
     { requested: 0, in_progress: 0, completed: 0 },
   );
+
   const moveTo = (next: View) => {
     if (next === "report" && !canReportInWard) {
       setActionMessage("Citizens can report issues only in their selected ward.");
       return;
     }
-    setView(next);
+    if (routing && window.location.pathname !== viewRoutes[next]) {
+      window.history.pushState(null, "", viewRoutes[next]);
+    }
+    if (!routing) setLocalView(next);
     if (next === "report") {
       setReportStage("form");
       setFormError("");

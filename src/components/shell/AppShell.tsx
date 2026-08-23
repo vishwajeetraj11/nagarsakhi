@@ -21,14 +21,16 @@ export function AppShell({ children, dataMode, session }: AppShellProps) {
     <div className="app-frame">
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="app-header">
-        <div className="brand-lockup brand-lockup--compact">
-          <span className="brand-mark" aria-hidden="true">न</span>
-          <span>NagarSakhi</span>
-        </div>
-        <div className="session-context">
-          <span className="role-chip">{roleLabel[session.role]}</span>
-          <span className="session-name">{session.name}</span>
-          <SignOutButton dataMode={dataMode} />
+        <div className="app-header__inner">
+          <div className="brand-lockup brand-lockup--compact">
+            <span className="brand-mark" aria-hidden="true">न</span>
+            <span>NagarSakhi</span>
+          </div>
+          <div className="session-context">
+            <span className="role-chip">{roleLabel[session.role]}</span>
+            <span className="session-name">{session.name}</span>
+            <SignOutButton dataMode={dataMode} />
+          </div>
         </div>
       </header>
       <div id="main-content">{children}</div>

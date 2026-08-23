@@ -78,7 +78,7 @@ export function ParshadExperience({ data, dataMode, session }: ExperienceProps) 
         <span>Citizen view · reading the public ward record</span>
         <button type="button" onClick={() => setCitizenView(false)}>Back to Parshad desk</button>
       </div>
-      <CitizenExperience data={data} dataMode={dataMode} session={session ? { ...session, role: "citizen" } : undefined} readOnly />
+      <CitizenExperience data={data} dataMode={dataMode} session={session ? { ...session, role: "citizen" } : undefined} readOnly routing={false} />
     </>;
   }
 
