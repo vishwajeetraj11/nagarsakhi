@@ -46,27 +46,32 @@
 
 @layer base {
   :root {
-    --paper: oklch(96.8% 0.018 82);
-    --paper-deep: oklch(92.5% 0.03 82);
-    --surface: oklch(98.5% 0.012 82);
-    --surface-raised: oklch(99% 0.008 82);
-    --ink: oklch(24% 0.045 272);
-    --ink-soft: oklch(43% 0.035 268);
-    --ink-faint: oklch(57% 0.025 265);
-    --line: oklch(83% 0.025 80);
-    --line-strong: oklch(66% 0.045 267);
-    --indigo: oklch(38% 0.13 271);
-    --indigo-strong: oklch(29% 0.115 271);
-    --indigo-soft: oklch(91% 0.045 271);
-    --green: oklch(42% 0.1 151);
-    --green-soft: oklch(91% 0.052 145);
-    --marigold: oklch(73% 0.15 77);
-    --marigold-soft: oklch(93% 0.06 83);
-    --danger: oklch(47% 0.18 28);
-    --danger-soft: oklch(92% 0.045 28);
-    --focus: oklch(57% 0.18 270);
-    --font-body: "Noto Sans Devanagari", "Noto Sans", "Kohinoor Devanagari", "Hind", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --font-display: "Noto Serif Devanagari", "Noto Serif", "Iowan Old Style", Georgia, serif;
+    --paper: oklch(98% 0.006 240);
+    --paper-deep: oklch(93.5% 0.014 242);
+    --surface: oklch(99% 0.003 240);
+    --surface-raised: oklch(99.5% 0.002 240);
+    --chrome-surface: oklch(95.5% 0.018 244);
+    --ink: oklch(23% 0.03 255);
+    --ink-soft: oklch(43% 0.032 252);
+    --ink-faint: oklch(57% 0.022 248);
+    --line: oklch(84% 0.016 242);
+    --line-strong: oklch(65% 0.04 248);
+    --indigo: oklch(45% 0.16 250);
+    --indigo-strong: oklch(34% 0.13 252);
+    --indigo-soft: oklch(93.5% 0.035 244);
+    --green: oklch(45% 0.09 175);
+    --green-soft: oklch(92% 0.04 175);
+    --marigold: oklch(72% 0.14 78);
+    --marigold-soft: oklch(94% 0.05 80);
+    --danger: oklch(47% 0.18 25);
+    --danger-soft: oklch(93% 0.045 25);
+    /* Cobalt remains visible on both the stone canvas and tinted controls. */
+    --focus: oklch(45% 0.16 250);
+    /* Mukta keeps bilingual UI copy readable; Anek gives civic headings a distinct voice. */
+    --font-body: var(--font-mukta), "Noto Sans Devanagari", "Noto Sans", system-ui, sans-serif;
+    --font-display: var(--font-anek-devanagari), var(--font-mukta), "Noto Sans Devanagari", system-ui, sans-serif;
+    --font-sans: var(--font-body);
+    --font-serif: var(--font-display);
     --content-max: 76rem;
     --text-xs: 0.75rem;
     --text-sm: 0.875rem;
@@ -93,9 +98,7 @@
   body {
     min-width: 20rem;
     min-height: 100svh;
-    background:
-      linear-gradient(90deg, transparent 0 97%, color-mix(in oklch, var(--marigold) 12%, transparent) 97% 100%),
-      var(--paper);
+    background: var(--paper);
     color: var(--ink);
     font-family: var(--font-body);
     font-size: var(--text-base);
@@ -110,9 +113,9 @@
   h2,
   h3 {
     font-family: var(--font-display);
-    font-weight: 650;
-    letter-spacing: -0.025em;
-    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.08;
     text-wrap: balance;
   }
 
@@ -136,13 +139,88 @@
   }
 
   :focus-visible {
-    outline: 3px solid var(--focus);
-    outline-offset: 3px;
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   ::selection {
     background: var(--marigold);
     color: var(--indigo-strong);
+  }
+}
+
+@layer components {
+  [data-sonner-toaster] {
+    --border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+  }
+
+  [data-sonner-toast][data-styled="true"] {
+    background: var(--paper) !important;
+    border: 1px solid var(--line) !important;
+    border-left: 3px solid var(--line-strong) !important;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 14px 35px oklch(20% 0.04 260 / 0.22);
+    color: var(--ink) !important;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    min-height: 3.5rem;
+    padding: 1rem 2.75rem 1rem 1rem;
+  }
+
+  [data-sonner-toast][data-styled="true"][data-type="success"] {
+    border-left-color: var(--green);
+    background: color-mix(in oklch, var(--paper) 90%, var(--green-soft)) !important;
+  }
+
+  [data-sonner-toast][data-styled="true"][data-type="info"] {
+    border-left-color: var(--indigo);
+    background: color-mix(in oklch, var(--paper) 90%, var(--indigo-soft)) !important;
+  }
+
+  [data-sonner-toast][data-styled="true"][data-type="error"] {
+    border-left-color: var(--danger);
+    background: color-mix(in oklch, var(--paper) 90%, var(--danger-soft)) !important;
+  }
+
+  [data-sonner-toast][data-styled="true"] [data-title] {
+    color: var(--ink) !important;
+    font-weight: 700;
+  }
+
+  [data-sonner-toast][data-styled="true"] [data-description] {
+    color: var(--ink-soft) !important;
+  }
+
+  [data-sonner-toast][data-styled="true"][data-type="success"] [data-icon] {
+    color: var(--green);
+  }
+
+  [data-sonner-toast][data-styled="true"][data-type="info"] [data-icon] {
+    color: var(--indigo);
+  }
+
+  [data-sonner-toast][data-styled="true"][data-type="error"] [data-icon] {
+    color: var(--danger);
+  }
+
+  [data-sonner-toast][data-styled="true"] [data-close-button] {
+    top: 0.5rem !important;
+    right: 0.5rem !important;
+    left: auto !important;
+    width: 1.75rem;
+    height: 1.75rem;
+    transform: none !important;
+    border: 1px solid var(--line) !important;
+    border-radius: var(--radius-sm) !important;
+    background: transparent !important;
+    color: var(--ink-soft) !important;
+  }
+
+  [data-sonner-toast][data-styled="true"] [data-close-button]:hover {
+    border-color: var(--indigo) !important;
+    background: var(--indigo-soft) !important;
+    color: var(--indigo-strong) !important;
   }
 }
 
@@ -170,7 +248,7 @@
     color: var(--indigo-strong);
     font-family: var(--font-body);
     font-size: var(--text-lg);
-    font-weight: 750;
+    font-weight: 700;
     letter-spacing: -0.035em;
   }
 
@@ -207,7 +285,7 @@
     padding: max(var(--space-6), env(safe-area-inset-top)) var(--space-6) var(--space-12);
     background:
       repeating-linear-gradient(0deg, transparent 0 31px, color-mix(in oklch, var(--indigo) 8%, transparent) 31px 32px),
-      var(--marigold-soft);
+      var(--indigo-soft);
     border-bottom: 1px solid var(--line);
   }
 
@@ -215,7 +293,7 @@
   .section-kicker {
     color: var(--green);
     font-size: var(--text-xs);
-    font-weight: 750;
+    font-weight: 600;
     letter-spacing: 0.13em;
     text-transform: uppercase;
   }
@@ -240,7 +318,7 @@
     border-block: 1px solid var(--indigo);
     color: var(--indigo);
     font-size: var(--text-xs);
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.12em;
     padding-block: var(--space-2);
     text-transform: uppercase;
@@ -423,6 +501,18 @@
     }
   }
 
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(0.35rem);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   .auth-stepper {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -538,8 +628,8 @@
 
   .phone-field:focus-within {
     border-color: var(--indigo);
-    outline: 3px solid var(--focus);
-    outline-offset: 3px;
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .phone-field > span {
@@ -619,7 +709,7 @@
     background: var(--surface-raised) !important;
     color: var(--indigo-strong) !important;
     font-size: clamp(1.65rem, 7vw, 2.35rem) !important;
-    font-weight: 800;
+    font-weight: 700;
     padding: .25rem !important;
     text-align: center;
     transition: border-color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
@@ -745,7 +835,20 @@
 
   .app-header {
     border-bottom: 1px solid var(--line);
-    background: color-mix(in oklch, var(--paper) 94%, var(--surface));
+    background: var(--chrome-surface);
+  }
+
+  .app-frame {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+  }
+
+  #main-content {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
   }
 
   .app-header__inner {
@@ -755,9 +858,9 @@
     gap: var(--space-4);
     width: 100%;
     max-width: var(--content-max);
-    min-height: 4.75rem;
+    min-height: 4rem;
     margin-inline: auto;
-    padding: var(--space-3) clamp(var(--space-5), 4vw, var(--space-8));
+    padding: var(--space-2) clamp(var(--space-5), 4vw, var(--space-8));
   }
 
   .session-context {
@@ -769,12 +872,10 @@
   }
 
   .role-chip {
-    border: 1px solid var(--green);
-    border-radius: 999px;
     color: var(--green);
     font-size: var(--text-xs);
     font-weight: 700;
-    padding: var(--space-1) var(--space-3);
+    padding: 0;
   }
 
   .session-name {
@@ -789,6 +890,11 @@
     font-size: var(--text-sm);
     padding: var(--space-2) var(--space-3);
     white-space: nowrap;
+  }
+
+  .app-header .quiet-action {
+    border: 0;
+    padding-inline: var(--space-2);
   }
 
   .temporary-role-view {

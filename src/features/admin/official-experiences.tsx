@@ -4,14 +4,16 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import type { PublicDemoData } from "@/data/demo";
 import { CitizenExperience } from "@/features/citizen/CitizenExperience";
+import type { WardIssuesResult } from "@/lib/data/live";
 import { publishLiveNotice, setLiveAlertCompletion, transitionLiveEscalation, transitionLiveIssue } from "@/lib/data/live-mutations";
 import type { DemoSession, Escalation, IssueStatus, Notice } from "@/lib/domain/types";
-import styles from "./official-experiences.module.css";
+import styles from "./adminStyles";
 
 type ExperienceProps = {
   data: PublicDemoData;
   dataMode: "demo" | "supabase";
   session?: DemoSession;
+  onWardIssuesLoad?: (wardId: string) => Promise<WardIssuesResult>;
 };
 
 const statusCopy: Record<IssueStatus, string> = {
@@ -54,7 +56,7 @@ function AuditLine({ children }: { children: React.ReactNode }) {
   return <p className={styles.auditLine}><span aria-hidden="true">•</span>{children}</p>;
 }
 
-export function ParshadExperience({ data, dataMode, session }: ExperienceProps) {
+export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }: ExperienceProps) {
   const [citizenView, setCitizenView] = useState(false);
   const ward = data.wards.find((item) => item.id === session?.wardId) ?? data.wards.find((item) => item.number === 12) ?? data.wards[0];
   const official = data.officials.find((item) => item.wardId === ward?.id && item.current);
@@ -78,7 +80,7 @@ export function ParshadExperience({ data, dataMode, session }: ExperienceProps) 
         <span>Citizen view · reading the public ward record</span>
         <button type="button" onClick={() => setCitizenView(false)}>Back to Parshad desk</button>
       </div>
-      <CitizenExperience data={data} dataMode={dataMode} session={session ? { ...session, role: "citizen" } : undefined} readOnly routing={false} />
+      <CitizenExperience data={data} dataMode={dataMode} session={session ? { ...session, role: "citizen" } : undefined} readOnly routing={false} onWardIssuesLoad={onWardIssuesLoad} />
     </>;
   }
 
@@ -123,7 +125,6 @@ export function ParshadExperience({ data, dataMode, session }: ExperienceProps) 
   if (!ward) return null;
 
   return <main className={styles.workspace} aria-label="Ward 12 Parshad workspace">
-    <a className={styles.skipLink} href="#ward-workflow">Skip to ward workflow</a>
     <header className={styles.masthead}>
       <div>
         <p className={styles.eyebrow}>Parshad desk / पार्षद डेस्क</p>
@@ -163,7 +164,7 @@ export function ParshadExperience({ data, dataMode, session }: ExperienceProps) 
           <h3>{selectedIssue.title}</h3>
           <p className={styles.issueDescription}>{selectedIssue.description}</p>
           <dl className={styles.detailMeta}><div><dt>Reporter</dt><dd>{selectedIssue.reporterName}</dd></div><div><dt>Language</dt><dd>{selectedIssue.originalLanguage === "hi" ? "Hindi / हिन्दी" : "English"}</dd></div><div><dt>Last record</dt><dd>{formatDate(selectedIssue.updatedAt)}</dd></div></dl>
-          {selectedIssue.media.length > 0 && <div className={styles.evidence}><p className={styles.kicker}>Attached evidence</p><div className={styles.evidenceStrip}>{selectedIssue.media.map((media) => <figure key={media.id}><Image src={media.url} alt={media.alt ?? "Issue evidence"} width={144} height={104} unoptimized={dataMode === "supabase"} /><figcaption>{media.kind === "photo" ? "Photo evidence" : "Audio statement"}</figcaption></figure>)}</div></div>}
+          {selectedIssue.media.length > 0 && <div className={styles.evidence}><p className={styles.kicker}>Attached evidence</p><div className={styles.evidenceStrip}>{selectedIssue.media.map((media) => <figure key={media.id}>{media.kind === "video" ? <video src={media.url} controls preload="metadata" width={144} height={104} aria-label={media.alt ?? "Issue video evidence"} /> : <Image src={media.url} alt={media.alt ?? "Issue evidence"} width={144} height={104} unoptimized={dataMode === "supabase"} />}<figcaption>{media.kind === "photo" ? "Photo evidence" : media.kind === "video" ? "Video evidence" : "Audio statement"}</figcaption></figure>)}</div></div>}
           <fieldset className={styles.statusField}><legend>Record a status update</legend><p>{dataMode === "demo" ? "Choose an explicit status. This demo records the change locally; it does not publish an official decision." : "Choose the next explicit status. Live transitions are role-checked and audited."}</p><div className={styles.statusActions}>{(["requested", "in_progress", "completed"] as IssueStatus[]).map((status) => <button type="button" key={status} onClick={() => changeStatus(selectedIssue.id, status)} className={selectedIssue.status === status ? styles.currentStatus : ""} aria-pressed={selectedIssue.status === status}>{statusCopy[status]}</button>)}</div></fieldset>
           {selectedIssue.escalated && <div className={styles.escalationBand}><b>Escalated / प्रेषित</b><span>This report has a corporation follow-up record. Keep the resident update specific.</span></div>}
         </article>}
@@ -236,7 +237,6 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
   }
 
   return <main className={styles.workspace} aria-label="Corporation administration workspace">
-    <a className={styles.skipLink} href="#ward-overview">Skip to ward overview</a>
     <header className={styles.masthead}>
       <div><p className={styles.eyebrow}>Corporation desk / निगम डेस्क</p><h1>{data.municipality.name}</h1><p className={styles.roleLine}>Cross-ward review · {data.municipality.district}, {data.municipality.state}</p></div>
       <div className={styles.wardStamp} aria-label={`${data.municipality.wardCount} wards`}><b>{data.municipality.wardCount}</b><span>wards<br />in register</span></div>

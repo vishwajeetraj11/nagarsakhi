@@ -99,6 +99,19 @@ export async function deleteLiveIssue(issueId: string, client?: MutationClient):
   const user = await requireUser(configured.data);
   if (!user.ok) return user;
 
+  const { data: issue, error: issueQueryError } = await configured.data
+    .from("issues")
+    .select("id, reporter_id, status")
+    .eq("id", issueId)
+    .maybeSingle();
+  if (issueQueryError) return requestFailure("Your report could not be deleted.", issueQueryError.message);
+  // DELETE is intentionally idempotent. A previous request may have removed the
+  // row even when PostgREST returned no representation to the browser.
+  if (!issue) return { ok: true, data: undefined };
+  if (issue.reporter_id !== user.data.id || issue.status !== "requested") {
+    return requestFailure("Only your own reports that have not been picked up can be deleted.");
+  }
+
   const { data: mediaRows, error: mediaQueryError } = await configured.data
     .from("issue_media")
     .select("storage_path")
@@ -118,22 +131,27 @@ export async function deleteLiveIssue(issueId: string, client?: MutationClient):
     if (!mediaDeleteResponse.ok) return requestFailure("Your report could not be deleted because its attachments could not be removed.", mediaDeleteBody?.error);
   }
 
-  const { data, error } = await configured.data
+  const { error } = await configured.data
     .from("issues")
     .delete()
     .eq("id", issueId)
     .eq("reporter_id", user.data.id)
-    .eq("status", "requested")
-    .select("id")
-    .maybeSingle();
+    .eq("status", "requested");
   if (error) return requestFailure("Your report could not be deleted.", error.message);
-  if (!data) return requestFailure("Only your own reports that have not been picked up can be deleted.");
+
+  const { data: remainingIssue, error: verificationError } = await configured.data
+    .from("issues")
+    .select("id")
+    .eq("id", issueId)
+    .maybeSingle();
+  if (verificationError) return requestFailure("Your report deletion could not be verified.", verificationError.message);
+  if (remainingIssue) {
+    return requestFailure("Your report is eligible for deletion, but the live database permission is not active yet.");
+  }
   return { ok: true, data: undefined };
 }
 
-/** Uploads up to three photo/video files after the issue row exists. The database
- * stores both image and video evidence as public `photo` media records because
- * the existing issue_media contract intentionally has only photo/audio kinds. */
+/** Uploads up to three photo/video files after the issue row exists. */
 export async function uploadLiveIssueMedia(
   issueId: string,
   files: File[],
@@ -150,31 +168,46 @@ export async function uploadLiveIssueMedia(
   const user = await requireUser(configured.data);
   if (!user.ok) return user;
 
-  const mediaRows: Array<{ issue_id: string; kind: "photo"; storage_path: string; alt_text: string; sort_order: number }> = [];
   for (const [index, file] of supported.entries()) {
-    const presignResponse = await fetch("/api/media/presign", {
-      method: "POST",
-      headers: { "content-type": "application/json", ...(await getFirebaseAuthorizationHeader()) },
-      body: JSON.stringify({ issueId, slot: index + 1, contentType: file.type, fileName: file.name, size: file.size }),
-    });
+    let presignResponse: Response;
+    try {
+      presignResponse = await fetch("/api/media/presign", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...(await getFirebaseAuthorizationHeader()) },
+        body: JSON.stringify({ issueId, slot: index + 1, contentType: file.type, fileName: file.name, size: file.size }),
+      });
+    } catch {
+      return requestFailure("The issue was saved, but its media could not be prepared.", "The upload service could not be reached.");
+    }
     const presignBody = (await presignResponse.json().catch(() => null)) as { uploadUrl?: string; storagePath?: string; error?: string } | null;
     if (!presignResponse.ok || !presignBody?.uploadUrl || !presignBody.storagePath) {
       return requestFailure("The issue was saved, but its media could not be prepared.", presignBody?.error);
     }
 
-    const uploadResponse = await fetch(presignBody.uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
+    let uploadResponse: Response;
+    try {
+      uploadResponse = await fetch(presignBody.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+    } catch {
+      return requestFailure("The issue was saved, but its media could not be uploaded.", "The browser could not reach media storage.");
+    }
     if (!uploadResponse.ok) return requestFailure("The issue was saved, but its media could not be uploaded.", `R2 upload returned ${uploadResponse.status}.`);
 
     const storagePath = presignBody.storagePath;
-    mediaRows.push({ issue_id: issueId, kind: "photo", storage_path: storagePath, alt_text: file.name, sort_order: index });
+    const { error: mediaError } = await configured.data.from("issue_media").insert({
+      issue_id: issueId,
+      kind: file.type.startsWith("video/") ? "video" : "photo",
+      storage_path: storagePath,
+      alt_text: file.name,
+      sort_order: index,
+    });
+    if (mediaError) return requestFailure("The issue was saved, but its media record could not be created.", mediaError.message);
   }
 
-  const { error } = await configured.data.from("issue_media").insert(mediaRows);
-  return error ? requestFailure("The issue was saved, but its media record could not be created.", error.message) : { ok: true, data: undefined };
+  return { ok: true, data: undefined };
 }
 
 export async function transitionLiveIssue(

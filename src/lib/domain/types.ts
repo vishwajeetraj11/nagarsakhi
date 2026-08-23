@@ -47,7 +47,7 @@ export type Official = {
 
 export type IssueMedia = {
   id: string;
-  kind: "photo" | "audio";
+  kind: "photo" | "video" | "audio";
   url: string;
   alt?: string;
 };

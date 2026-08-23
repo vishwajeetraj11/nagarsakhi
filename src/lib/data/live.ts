@@ -104,6 +104,10 @@ export type LiveDataSuccess = {
 
 export type LiveDataResult = LiveDataSuccess | LiveDataFailure;
 
+export type WardIssuesResult =
+  | { ok: true; data: Issue[] }
+  | LiveDataFailure;
+
 export type LoadLiveDataOptions = {
   /** Signed media URLs are short lived and only generated after RLS has allowed the media row. */
   includeMediaUrls?: boolean;
@@ -147,6 +151,91 @@ async function signVisibleMedia(
   // never falls back to Supabase Storage for issue evidence.
   if (!includeMediaUrls || mediaRows.length === 0) return new Map();
   return new Map();
+}
+
+function mapIssueRows(
+  issueRows: IssueRow[],
+  mediaRows: IssueMediaRow[],
+  voteRows: IssueVoteRow[],
+  escalationRows: EscalationRow[],
+  nameByProfile: Map<string, string>,
+  mediaUrlByPath: Map<string, string> = new Map(),
+): Issue[] {
+  const mediaByIssue = new Map<string, IssueMedia[]>();
+  for (const media of mediaRows) {
+    const url = mediaUrlByPath.get(media.storage_path) ?? `/api/media/file?path=${encodeURIComponent(media.storage_path)}`;
+    const mapped: IssueMedia = { id: media.id, kind: media.kind as IssueMedia["kind"], url, alt: media.alt_text ?? undefined };
+    mediaByIssue.set(media.issue_id, [...(mediaByIssue.get(media.issue_id) ?? []), mapped]);
+  }
+
+  const voteByIssue = new Map(voteRows.map((vote) => [vote.issue_id, vote.value]));
+  const escalatedIssueIds = new Set(escalationRows.map((escalation) => escalation.issue_id));
+
+  return issueRows.map((issue) => ({
+    id: issue.id,
+    municipalityId: issue.municipality_id,
+    wardId: issue.ward_id,
+    reporterId: issue.reporter_id,
+    reporterName: nameByProfile.get(issue.reporter_id) ?? "Community reporter",
+    title: issue.title,
+    description: issue.description,
+    originalLanguage: issue.original_language === "hi" ? "hi" : "en",
+    status: isIssueStatus(issue.status) ? issue.status : "requested",
+    upvotes: issue.upvote_count,
+    downvotes: issue.downvote_count,
+    viewerVote: voteByIssue.get(issue.id) === 1 ? 1 : voteByIssue.get(issue.id) === -1 ? -1 : 0,
+    media: mediaByIssue.get(issue.id) ?? [],
+    createdAt: issue.created_at,
+    updatedAt: issue.updated_at,
+    escalated: escalatedIssueIds.has(issue.id),
+  }));
+}
+
+export async function loadWardIssues(
+  supabase: SupabaseClient,
+  input: { municipalityId: string; wardId: string; viewerId: string },
+): Promise<WardIssuesResult> {
+  const issuesResult = await supabase
+    .from("issues")
+    .select("id, municipality_id, ward_id, reporter_id, title, description, original_language, status, upvote_count, downvote_count, created_at, updated_at")
+    .eq("municipality_id", input.municipalityId)
+    .eq("ward_id", input.wardId)
+    .order("created_at", { ascending: false })
+    .limit(LIMITS.issues) as unknown as QueryResult<IssueRow[]>;
+
+  if (issuesResult.error) {
+    return { ok: false, error: { code: "QUERY_FAILED", message: "Unable to load this ward's issues.", detail: issuesResult.error.message } };
+  }
+
+  const issueRows = rows(issuesResult);
+  if (issueRows.length === 0) return { ok: true, data: [] };
+
+  const issueIds = issueRows.map((issue) => issue.id);
+  const reporterIds = [...new Set(issueRows.map((issue) => issue.reporter_id))];
+  const [mediaResult, votesResult, escalationsResult, profilesResult] = await Promise.all([
+    supabase.from("issue_media").select("id, issue_id, kind, storage_path, alt_text, sort_order").in("issue_id", issueIds).order("sort_order").limit(LIMITS.media),
+    supabase.from("issue_votes").select("issue_id, value").eq("voter_id", input.viewerId).in("issue_id", issueIds).limit(LIMITS.votes),
+    supabase.from("escalations").select("id, issue_id, reason, status, created_at").in("issue_id", issueIds).order("created_at", { ascending: false }).limit(LIMITS.escalations),
+    supabase.from("public_profiles").select("id, name").in("id", reporterIds).limit(LIMITS.profiles),
+  ]) as unknown as [
+    QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>, QueryResult<PublicProfileRow[]>,
+  ];
+
+  const failure = queryFailure([
+    ["issue media", mediaResult], ["votes", votesResult], ["escalations", escalationsResult], ["reporters", profilesResult],
+  ]);
+  if (failure) return failure;
+
+  const visibleMediaRows = rows(mediaResult)
+    .filter((media) => media.kind === "photo" || media.kind === "video" || media.kind === "audio")
+    .slice(0, LIMITS.media);
+  const nameByProfile = new Map(rows(profilesResult).map((profile) => [profile.id, profile.name]));
+  const signedMediaUrls = await signVisibleMedia(visibleMediaRows, true);
+
+  return {
+    ok: true,
+    data: mapIssueRows(issueRows, visibleMediaRows, rows(votesResult), rows(escalationsResult), nameByProfile, signedMediaUrls),
+  };
 }
 
 /**
@@ -210,6 +299,17 @@ export async function loadLiveData(
     };
   }
 
+  let issuesQuery = supabase
+    .from("issues")
+    .select("id, municipality_id, ward_id, reporter_id, title, description, original_language, status, upvote_count, downvote_count, created_at, updated_at")
+    .eq("municipality_id", viewer.municipality_id);
+
+  if (viewer.role !== "corporation_admin") {
+    issuesQuery = viewer.ward_id
+      ? issuesQuery.eq("ward_id", viewer.ward_id)
+      : issuesQuery.is("ward_id", null);
+  }
+
   const [
     wardsResult,
     budgetsResult,
@@ -219,13 +319,10 @@ export async function loadLiveData(
     officialsResult,
     termsResult,
     issuesResult,
-    mediaResult,
-    votesResult,
     noticesResult,
     alertsResult,
     alertTargetsResult,
     alertCompletionsResult,
-    escalationsResult,
   ] = await Promise.all([
     supabase.from("wards").select("id, municipality_id, ward_number, name").eq("municipality_id", viewer.municipality_id).order("ward_number").limit(LIMITS.wards),
     supabase.from("ward_budgets").select("ward_id, allocated_amount").limit(LIMITS.wards),
@@ -234,33 +331,44 @@ export async function loadLiveData(
     supabase.from("profiles").select("id, name, role, ward_id").eq("municipality_id", viewer.municipality_id).limit(LIMITS.profiles),
     supabase.from("officials").select("id, municipality_id, name, role_label, department").eq("municipality_id", viewer.municipality_id).limit(LIMITS.officials),
     supabase.from("official_terms").select("id, official_id, ward_id, role_label, won_by_votes, is_current").limit(LIMITS.officialTerms),
-    supabase.from("issues").select("id, municipality_id, ward_id, reporter_id, title, description, original_language, status, upvote_count, downvote_count, created_at, updated_at").eq("municipality_id", viewer.municipality_id).order("created_at", { ascending: false }).limit(LIMITS.issues),
-    supabase.from("issue_media").select("id, issue_id, kind, storage_path, alt_text, sort_order").order("sort_order").limit(LIMITS.media),
-    supabase.from("issue_votes").select("issue_id, value").eq("voter_id", viewer.id).limit(LIMITS.votes),
+    issuesQuery.order("created_at", { ascending: false }).limit(LIMITS.issues),
     supabase.from("notices").select("id, municipality_id, ward_id, author_id, body, created_at").eq("municipality_id", viewer.municipality_id).order("created_at", { ascending: false }).limit(LIMITS.notices),
     supabase.from("alerts").select("id, municipality_id, title, description, due_at, targets_all_wards, created_at").eq("municipality_id", viewer.municipality_id).order("created_at", { ascending: false }).limit(LIMITS.alerts),
     supabase.from("alert_ward_targets").select("alert_id, ward_id").limit(LIMITS.alertTargets),
     supabase.from("alert_completions").select("alert_id").eq("profile_id", viewer.id).limit(LIMITS.alerts),
-    supabase.from("escalations").select("id, issue_id, reason, status, created_at").order("created_at", { ascending: false }).limit(LIMITS.escalations),
   ]) as unknown as [
     QueryResult<WardRow[]>, QueryResult<BudgetRow[]>, QueryResult<ExpenditureRow[]>, QueryResult<PublicProfileRow[]>, QueryResult<ProfileRow[]>,
-    QueryResult<OfficialRow[]>, QueryResult<OfficialTermRow[]>, QueryResult<IssueRow[]>, QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>,
-    QueryResult<NoticeRow[]>, QueryResult<AlertRow[]>, QueryResult<AlertTargetRow[]>, QueryResult<AlertCompletionRow[]>, QueryResult<EscalationRow[]>,
+    QueryResult<OfficialRow[]>, QueryResult<OfficialTermRow[]>, QueryResult<IssueRow[]>, QueryResult<NoticeRow[]>, QueryResult<AlertRow[]>,
+    QueryResult<AlertTargetRow[]>, QueryResult<AlertCompletionRow[]>,
   ];
 
   const failure = queryFailure([
     ["wards", wardsResult], ["budgets", budgetsResult], ["expenditures", expendituresResult], ["public profiles", publicProfilesResult], ["visible profiles", visibleProfilesResult],
-    ["officials", officialsResult], ["official terms", termsResult], ["issues", issuesResult], ["issue media", mediaResult], ["votes", votesResult],
-    ["notices", noticesResult], ["alerts", alertsResult], ["alert targets", alertTargetsResult], ["alert completions", alertCompletionsResult],
-    ["escalations", escalationsResult],
+    ["officials", officialsResult], ["official terms", termsResult], ["issues", issuesResult], ["notices", noticesResult], ["alerts", alertsResult],
+    ["alert targets", alertTargetsResult], ["alert completions", alertCompletionsResult],
   ]);
   if (failure) return failure;
 
   const wardRows = rows(wardsResult);
   const issueRows = rows(issuesResult);
   const issueIds = new Set(issueRows.map((issue) => issue.id));
+  const issueIdList = [...issueIds];
+  const emptyRows = { data: [], error: null };
+  const [mediaResult, votesResult, escalationsResult] = issueIdList.length > 0
+    ? await Promise.all([
+      supabase.from("issue_media").select("id, issue_id, kind, storage_path, alt_text, sort_order").in("issue_id", issueIdList).order("sort_order").limit(LIMITS.media),
+      supabase.from("issue_votes").select("issue_id, value").eq("voter_id", viewer.id).in("issue_id", issueIdList).limit(LIMITS.votes),
+      supabase.from("escalations").select("id, issue_id, reason, status, created_at").in("issue_id", issueIdList).order("created_at", { ascending: false }).limit(LIMITS.escalations),
+    ]) as unknown as [QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>]
+    : [emptyRows, emptyRows, emptyRows] as [QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>];
+
+  const issueDetailFailure = queryFailure([
+    ["issue media", mediaResult], ["votes", votesResult], ["escalations", escalationsResult],
+  ]);
+  if (issueDetailFailure) return issueDetailFailure;
+
   const visibleMediaRows = rows(mediaResult)
-    .filter((media) => issueIds.has(media.issue_id) && (media.kind === "photo" || media.kind === "audio"))
+    .filter((media) => issueIds.has(media.issue_id) && (media.kind === "photo" || media.kind === "video" || media.kind === "audio"))
     .slice(0, LIMITS.media);
   const signedMediaUrls = await signVisibleMedia(visibleMediaRows, options.includeMediaUrls !== false);
 
@@ -312,33 +420,8 @@ export async function loadLiveData(
     publicProfiles.push({ id: viewer.id, name: viewer.name, role: viewer.role as UserRole, wardId: viewer.ward_id });
   }
 
-  const mediaByIssue = new Map<string, IssueMedia[]>();
-  for (const media of visibleMediaRows) {
-    const url = signedMediaUrls.get(media.storage_path) ?? `/api/media/file?path=${encodeURIComponent(media.storage_path)}`;
-    const mapped: IssueMedia = { id: media.id, kind: media.kind as IssueMedia["kind"], url, alt: media.alt_text ?? undefined };
-    mediaByIssue.set(media.issue_id, [...(mediaByIssue.get(media.issue_id) ?? []), mapped]);
-  }
-  const voteByIssue = new Map(rows(votesResult).map((vote) => [vote.issue_id, vote.value]));
   const escalationRows = rows(escalationsResult).filter((escalation) => issueIds.has(escalation.issue_id));
-  const escalatedIssueIds = new Set(escalationRows.map((escalation) => escalation.issue_id));
-  const issues: Issue[] = issueRows.map((issue) => ({
-    id: issue.id,
-    municipalityId: issue.municipality_id,
-    wardId: issue.ward_id,
-    reporterId: issue.reporter_id,
-    reporterName: nameByProfile.get(issue.reporter_id) ?? "Community reporter",
-    title: issue.title,
-    description: issue.description,
-    originalLanguage: issue.original_language === "hi" ? "hi" : "en",
-    status: isIssueStatus(issue.status) ? issue.status : "requested",
-    upvotes: issue.upvote_count,
-    downvotes: issue.downvote_count,
-    viewerVote: voteByIssue.get(issue.id) === 1 ? 1 : voteByIssue.get(issue.id) === -1 ? -1 : 0,
-    media: mediaByIssue.get(issue.id) ?? [],
-    createdAt: issue.created_at,
-    updatedAt: issue.updated_at,
-    escalated: escalatedIssueIds.has(issue.id),
-  }));
+  const issues = mapIssueRows(issueRows, visibleMediaRows, rows(votesResult), escalationRows, nameByProfile, signedMediaUrls);
 
   const officialById = new Map(rows(officialsResult).map((official) => [official.id, official]));
   const officials: Official[] = rows(termsResult)

@@ -1,6 +1,7 @@
 "use client";
 
 import { onAuthStateChanged, type User } from "firebase/auth";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "@/components/shell/AppShell";
@@ -10,7 +11,7 @@ import type { PublicDemoData } from "@/data/demo";
 import { CorporationExperience, ParshadExperience } from "@/features/admin";
 import { CitizenExperience } from "@/features/citizen/CitizenExperience";
 import { getFirebaseAuth } from "@/lib/firebase";
-import { loadLiveData, type LiveDataFailure } from "@/lib/data/live";
+import { loadLiveData, loadWardIssues, type LiveDataFailure, type WardIssuesResult } from "@/lib/data/live";
 import type { DemoSession } from "@/lib/domain/types";
 import { createFirebaseSupabaseClient } from "@/lib/supabase";
 
@@ -38,6 +39,7 @@ async function provisionFirebaseProfile(user: User) {
 
 export function LiveApp() {
   const auth = useMemo(() => getFirebaseAuth(), []);
+  const pathname = usePathname();
   const [state, setState] = useState<LiveState>(() => (
     auth
       ? { status: "checking" }
@@ -153,11 +155,30 @@ export function LiveApp() {
     );
   }
 
-  const experience = {
-    citizen: <CitizenExperience data={state.data} dataMode="supabase" session={state.session} />,
-    parshad: <ParshadExperience data={state.data} dataMode="supabase" session={state.session} />,
-    corporation_admin: <CorporationExperience data={state.data} dataMode="supabase" session={state.session} />,
-  }[state.session.role];
+  const handleWardIssuesLoad = async (wardId: string): Promise<WardIssuesResult> => {
+    const user = auth?.currentUser;
+    if (!user) {
+      return { ok: false, error: { code: "UNAUTHENTICATED", message: "Please sign in to view this ward." } };
+    }
+    const supabase = createFirebaseSupabaseClient(() => user.getIdToken(false));
+    if (!supabase) {
+      return { ok: false, error: { code: "QUERY_FAILED", message: "Supabase is not configured in this browser." } };
+    }
+    return loadWardIssues(supabase, {
+      municipalityId: state.session.municipalityId,
+      wardId,
+      viewerId: state.session.profileId,
+    });
+  };
+
+  const publicOfficialProfile = pathname?.startsWith("/officials/") === true;
+  const experience = publicOfficialProfile
+    ? <CitizenExperience data={state.data} dataMode="supabase" session={state.session} readOnly onWardIssuesLoad={handleWardIssuesLoad} />
+    : {
+      citizen: <CitizenExperience data={state.data} dataMode="supabase" session={state.session} onWardIssuesLoad={handleWardIssuesLoad} />,
+      parshad: <ParshadExperience data={state.data} dataMode="supabase" session={state.session} onWardIssuesLoad={handleWardIssuesLoad} />,
+      corporation_admin: <CorporationExperience data={state.data} dataMode="supabase" session={state.session} />,
+    }[state.session.role];
 
   return <AppShell dataMode="supabase" session={state.session}>{experience}</AppShell>;
 }
