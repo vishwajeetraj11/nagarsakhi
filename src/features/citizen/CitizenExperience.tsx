@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -22,7 +22,7 @@ import { getFirebaseAuthorizationHeader } from "@/lib/firebase";
 import styles from "./CitizenExperience.module.css";
 
 type View = "home" | "issues" | "report" | "wards" | "parshad";
-type ReportStage = "form" | "duplicates" | "success";
+type ReportStage = "form" | "success";
 
 const statusCopy: Record<IssueStatus, string> = {
   requested: "Reported",
@@ -128,7 +128,14 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false }:
   const [submittedDescription, setSubmittedDescription] = useState("");
   const [formError, setFormError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
   const [aiJobId, setAiJobId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timeout = window.setTimeout(() => setToastMessage(""), 5200);
+    return () => window.clearTimeout(timeout);
+  }, [toastMessage]);
 
   const ward = data.wards.find((item) => item.number === selectedWardNumber) ?? data.wards[0];
   const wardId = ward?.id ?? "";
@@ -145,14 +152,6 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false }:
     (result, item) => ({ ...result, [item.status]: result[item.status] + 1 }),
     { requested: 0, in_progress: 0, completed: 0 },
   );
-  const similarIssues = wardIssues
-    .filter((issue) => issue.status !== "completed")
-    .map((issue) => ({ issue, score: issueSimilarity(`${submittedTitle} ${submittedDescription}`, `${issue.title} ${issue.description}`) }))
-    .filter(({ score }) => score >= 0.25)
-    .sort((left, right) => right.score - left.score)
-    .slice(0, 3)
-    .map(({ issue }) => issue);
-
   const moveTo = (next: View) => {
     if (next === "report" && !canReportInWard) {
       setActionMessage("Citizens can report issues only in their selected ward.");
@@ -187,27 +186,18 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false }:
     }
   };
 
-  const handleReportStart = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const title = String(data.get("title") ?? "").trim();
-    const description = String(data.get("description") ?? "").trim();
-    if (!title || !description) {
-      setFormError("Please add a short title and describe what needs attention.");
-      return;
-    }
+  const findSimilarIssues = (title: string, description: string) => wardIssues
+    .filter((issue) => issue.status !== "completed")
+    .map((issue) => ({ issue, score: issueSimilarity(`${title} ${description}`, `${issue.title} ${issue.description}`) }))
+    .filter(({ score }) => score >= 0.25)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 3)
+    .map(({ issue }) => issue);
+
+  const publishNewReport = async (title = submittedTitle, description = submittedDescription) => {
     setSubmittedTitle(title);
     setSubmittedDescription(description);
     setFormError("");
-    setReportStage("duplicates");
-  };
-
-  const chooseDuplicate = (issueId: string) => {
-    handleVote(issueId, 1);
-    setReportStage("success");
-  };
-
-  const publishNewReport = async () => {
     if (dataMode === "supabase" && !canReportInWard) {
       setFormError("Citizens can report issues only in their selected ward.");
       return;
@@ -269,6 +259,28 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false }:
     setReportStage("success");
   };
 
+  const handleReportSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const title = String(form.get("title") ?? "").trim();
+    const description = String(form.get("description") ?? "").trim();
+    if (title.length < 4 || description.length < 8) {
+      setFormError("Please add a short title and describe the place and problem.");
+      return;
+    }
+
+    const matches = findSimilarIssues(title, description);
+    if (matches.length > 0) {
+      const names = matches.slice(0, 2).map((issue) => `“${issue.title}”`).join(" and ");
+      setToastMessage(`A similar report already exists: ${names}. Open the Issues section to support it.`);
+      setActionMessage("We did not create a duplicate report.");
+      setFormError("");
+      return;
+    }
+
+    await publishNewReport(title, description);
+  };
+
   return (
     <section className={styles.experience} aria-label="NagarSakhi citizen experience">
       <a className={styles.skipLink} href="#citizen-main">Skip to ward information</a>
@@ -293,6 +305,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false }:
 
       <main id="citizen-main" className={styles.main}>
         {actionMessage ? <p className={actionMessage.includes("could not") ? styles.formError : styles.finePrint} role="status">{actionMessage}</p> : null}
+        {toastMessage ? <div className="fixed right-4 bottom-4 z-20 flex w-[min(28rem,calc(100vw-2rem))] items-start gap-4 bg-[var(--indigo)] px-4 py-4 pl-[1.1rem] text-[0.9rem] leading-[1.45] text-[var(--paper)] shadow-[0_14px_35px_oklch(20%_0.04_260_/_0.22)]" role="status" aria-live="polite"><span>{toastMessage}</span><button className="-mt-1 -mr-1 h-8 w-8 shrink-0 bg-transparent text-[1.35rem] leading-none text-inherit" type="button" onClick={() => setToastMessage("")} aria-label="Dismiss notification">×</button></div> : null}
         {view === "home" && (
           <>
             <section className={styles.homeLead} aria-labelledby="overview-title">
@@ -374,15 +387,13 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false }:
             <p className={styles.kicker}>New public record · नया रिकॉर्ड</p>
             <h2 id="report-title">Report a ward issue</h2>
             <p className={styles.leadCopy}>Your phone number and house details stay private. Your report shows your name only.</p>
-            <ol className={styles.steps} aria-label="Reporting steps"><li className={reportStage === "form" ? styles.currentStep : ""}>1. Describe</li><li className={reportStage === "duplicates" ? styles.currentStep : ""}>2. Check similar reports</li><li className={reportStage === "success" ? styles.currentStep : ""}>3. Confirmed</li></ol>
-            {reportStage === "form" && <form className={styles.reportForm} onSubmit={handleReportStart} noValidate>
+            {reportStage === "form" && <form className={styles.reportForm} onSubmit={handleReportSubmit} noValidate>
               <div className={styles.formField}><label htmlFor="issue-title">What needs attention?</label><input id="issue-title" name="title" type="text" maxLength={100} placeholder="Example: Streetlight near Nehru Park is off" aria-describedby={formError ? "report-error" : undefined} /></div>
               <div className={styles.formField}><label htmlFor="issue-description">Describe the place and problem</label><textarea id="issue-description" name="description" rows={5} placeholder="Include a nearby landmark so the ward team can find it." aria-describedby="report-help" /><p id="report-help">Use the language that is most comfortable for you. We will keep the original text with the report.</p></div>
               <fieldset className={styles.attachments}><legend>Photo or video evidence <span>(optional)</span></legend><input aria-label="Add photo or video evidence" accept="image/*,video/*" multiple onChange={(event) => setEvidenceFiles(Array.from(event.target.files ?? []).slice(0, 3))} type="file" />{evidenceFiles.length > 0 ? <p>{evidenceFiles.map((file) => file.name).join(", ")}</p> : <p>Add up to three photos or videos so the ward team can verify the location.</p>}</fieldset>
               {formError && <p id="report-error" className={styles.formError} role="alert">{formError}</p>}
-              <button type="submit" className={styles.primaryAction}>Check for similar reports <ChevronRight size={19} aria-hidden="true" /></button>
+              <button type="submit" className={`${styles.primaryAction} inline-flex items-center gap-2 transition-transform duration-150 hover:-translate-y-px`}>Submit report <ChevronRight size={19} aria-hidden="true" /></button>
             </form>}
-            {reportStage === "duplicates" && <div className={styles.duplicateStep}><h3>{similarIssues.length ? "Similar reports nearby" : "No close match found"}</h3><p>{similarIssues.length ? "Supporting an existing report gives the ward team one stronger record to act on." : "You can still create a new report for this concern."}</p>{similarIssues.map((issue) => <div className={styles.duplicateRecord} key={issue.id}><div><StatusMark status={issue.status} /><strong>{issue.title}</strong><span>{issue.upvotes} neighbours support this</span></div><div className={styles.duplicateActions}><button type="button" className={styles.textAction} onClick={() => { setSelectedIssueId(issue.id); moveTo("issues"); }}>Open issue</button><button type="button" className={styles.secondaryAction} onClick={() => chooseDuplicate(issue.id)}><ThumbsUp size={17} aria-hidden="true" /> Support this</button></div></div>)}<div className={styles.reportActions}><button type="button" className={styles.primaryAction} onClick={publishNewReport}>Create a new report</button><button type="button" className={styles.textAction} onClick={() => setReportStage("form")}>Edit my description</button></div></div>}
             {reportStage === "success" && <div className={styles.successState} role="status"><span className={styles.successMark}><Check size={28} aria-hidden="true" /></span><h3>Your community record is updated.</h3><p>{dataMode === "demo" ? "In this synthetic demo, the update is saved only in this browser." : "The report is now in your municipality’s live issue register."} You can follow it from the Ward {ward.number} issue board.</p>{dataMode === "supabase" && aiJobId ? <AiJobStatus jobId={aiJobId} /> : null}<button type="button" className={styles.primaryAction} onClick={() => moveTo("issues")}>View the issue board <ArrowUpRight size={18} aria-hidden="true" /></button></div>}
           </section>
         )}

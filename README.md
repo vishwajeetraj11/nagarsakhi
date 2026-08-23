@@ -47,9 +47,6 @@ pnpm typecheck
 pnpm lint
 pnpm test
 pnpm build
-pnpm test:e2e
 ```
-
-The Playwright suite starts a local development server when one is not already running. It checks the citizen, Parshad, and corporation workflows at a narrow mobile viewport plus the citizen issue-detail layout at desktop width.
 
 The architecture and parallel-work ownership boundaries are documented in `docs/architecture.md`.

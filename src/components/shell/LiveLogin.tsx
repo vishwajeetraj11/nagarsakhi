@@ -1,7 +1,7 @@
 "use client";
 
 import { ConfirmationResult, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
-import { FormEvent, useRef, useState } from "react";
+import { ClipboardEvent, FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 import { getFirebaseAuth } from "@/lib/firebase";
@@ -25,21 +25,29 @@ const friendlyAuthError = (error: unknown): string => {
 
 export function LiveLogin() {
   const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
+  const [otpDigits, setOtpDigits] = useState<string[]>(() => Array.from({ length: 6 }, () => ""));
   const [stage, setStage] = useState<LoginStage>("phone");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<MessageTone>("error");
+  const [resendSeconds, setResendSeconds] = useState(0);
   const confirmation = useRef<ConfirmationResult | null>(null);
   const recaptcha = useRef<RecaptchaVerifier | null>(null);
+  const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const otp = otpDigits.join("");
+
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = window.setInterval(() => setResendSeconds((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendSeconds]);
 
   const resetRecaptcha = () => {
     recaptcha.current?.clear();
     recaptcha.current = null;
   };
 
-  async function sendOtp(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function requestOtp() {
     const auth = getFirebaseAuth();
 
     if (!auth) {
@@ -65,10 +73,12 @@ export function LiveLogin() {
       });
       await recaptcha.current.render();
       confirmation.current = await signInWithPhoneNumber(auth, `+91${phone}`, recaptcha.current);
-      setOtp("");
+      setOtpDigits(Array.from({ length: 6 }, () => ""));
       setStage("code");
+      setResendSeconds(30);
       setMessageTone("success");
       setMessage("Code sent. Enter the six digits from the SMS.");
+      window.setTimeout(() => otpRefs.current[0]?.focus(), 0);
     } catch (error) {
       resetRecaptcha();
       setMessageTone("error");
@@ -77,6 +87,43 @@ export function LiveLogin() {
       setBusy(false);
     }
   }
+
+  async function sendOtp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await requestOtp();
+  }
+
+  async function resendOtp() {
+    if (resendSeconds > 0 || busy) return;
+    await requestOtp();
+  }
+
+  const updateOtp = (index: number, rawValue: string) => {
+    const digits = rawValue.replace(/\D/g, "").slice(0, 6);
+    if (!digits) {
+      setOtpDigits((current) => current.map((digit, digitIndex) => digitIndex === index ? "" : digit));
+      return;
+    }
+    setOtpDigits((current) => {
+      const next = [...current];
+      digits.split("").forEach((digit, offset) => {
+        if (index + offset < 6) next[index + offset] = digit;
+      });
+      return next;
+    });
+    otpRefs.current[Math.min(index + digits.length, 5)]?.focus();
+  };
+
+  const handleOtpPaste = (event: ClipboardEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    updateOtp(0, event.clipboardData.getData("text"));
+  };
+
+  const handleOtpKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Backspace" && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
 
   async function verifyOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -133,8 +180,8 @@ export function LiveLogin() {
           <h2 id="live-signin-title">{stage === "phone" ? "Enter your mobile number" : "Enter your verification code"}</h2>
         </div>
         <div className="auth-stepper" aria-label="Sign-in progress">
-          <span data-active="true">Mobile</span>
-          <span data-active={stage === "code"}>OTP</span>
+          <span data-complete={stage === "code"} data-active={stage === "phone"}>{stage === "code" ? "✓ Mobile" : "Mobile"}</span>
+          <span data-complete="false" data-active={stage === "code"}>OTP</span>
         </div>
         {stage === "phone" ? (
           <form className="login-form" onSubmit={sendOtp}>
@@ -165,23 +212,38 @@ export function LiveLogin() {
             <div className="otp-heading">
               <div>
                 <label htmlFor="live-otp">Six-digit verification code</label>
-                <p>Sent to <span>+91 {phone}</span></p>
+                <p>Sent to <span>+91 •••••• {phone.slice(-4)}</span></p>
               </div>
             </div>
-            <input
-              autoComplete="one-time-code"
-              className="otp-input"
-              id="live-otp"
-              inputMode="numeric"
-              maxLength={6}
-              autoFocus
-              onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))}
-              required
-              value={otp}
-            />
-            <button className="primary-action" disabled={busy} type="submit">
+            <fieldset className="otp-fieldset">
+              <legend className="sr-only">Six-digit verification code</legend>
+              <div className="otp-inputs">
+                {Array.from({ length: 6 }, (_, index) => (
+                  <input
+                    key={index}
+                    ref={(element) => { otpRefs.current[index] = element; }}
+                    id={index === 0 ? "live-otp" : undefined}
+                    aria-label={`Verification digit ${index + 1} of 6`}
+                    autoComplete={index === 0 ? "one-time-code" : "off"}
+                    className="otp-digit"
+                    inputMode="numeric"
+                    maxLength={1}
+                    onChange={(event) => updateOtp(index, event.target.value)}
+                    onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                    onPaste={handleOtpPaste}
+                    required
+                    value={otp[index] ?? ""}
+                  />
+                ))}
+              </div>
+            </fieldset>
+            <button className="primary-action" disabled={busy || otp.length !== 6} type="submit">
               <CheckCircle2 aria-hidden="true" size={18} />
               {busy ? "Verifying..." : "Enter NagarSakhi"}
+            </button>
+            <div className="recaptcha-wrap" id="firebase-recaptcha" />
+            <button className="quiet-action resend-action" disabled={busy || resendSeconds > 0} onClick={() => void resendOtp()} type="button">
+              {resendSeconds > 0 ? `Resend code in ${resendSeconds}s` : "Resend code"}
             </button>
           </form>
         )}

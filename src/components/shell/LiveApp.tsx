@@ -106,12 +106,34 @@ export function LiveApp() {
 
   if (state.status === "checking") {
     return (
-      <main className="login-page" id="main-content">
-        <section className="login-intro">
+      <main className="login-page live-loading" id="main-content" aria-busy="true">
+        <section className="login-intro" aria-labelledby="live-loading-title">
           <div className="brand-lockup"><span className="brand-mark" aria-hidden="true">न</span><span>NagarSakhi</span></div>
           <p className="eyebrow">Live municipality record</p>
-          <h1>Opening your civic workspace.</h1>
+          <h1 id="live-loading-title">Opening your civic workspace.</h1>
           <p className="login-lede">We are checking your verified mobile number and loading the ward record.</p>
+          <div className="loading-register" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+        </section>
+        <section className="login-panel loading-panel" aria-labelledby="loading-status-title">
+          <div className="loading-card" role="status" aria-live="polite">
+            <div className="loading-seal" aria-hidden="true">
+              <span />
+            </div>
+            <div>
+              <p className="section-kicker">Loading / रिकॉर्ड खुल रहा है</p>
+              <h2 id="loading-status-title">Preparing your ward record</h2>
+              <p className="loading-copy">This can take a few seconds on slower mobile networks.</p>
+            </div>
+            <ol className="loading-steps">
+              <li><span aria-hidden="true" />Verifying mobile session</li>
+              <li><span aria-hidden="true" />Opening profile record</li>
+              <li><span aria-hidden="true" />Loading ward issues and notices</li>
+            </ol>
+          </div>
         </section>
       </main>
     );
