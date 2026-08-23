@@ -140,23 +140,13 @@ function queryFailure(queries: Array<[string, QueryResult<unknown>]>) {
 }
 
 async function signVisibleMedia(
-  supabase: SupabaseClient,
   mediaRows: IssueMediaRow[],
   includeMediaUrls: boolean,
 ): Promise<Map<string, string>> {
+  // R2 signs media through /api/media/file. Keep this map empty so the client
+  // never falls back to Supabase Storage for issue evidence.
   if (!includeMediaUrls || mediaRows.length === 0) return new Map();
-
-  const paths = mediaRows.map((media) => media.storage_path);
-  const { data, error } = await supabase.storage.from("issue-media").createSignedUrls(paths, 10 * 60);
-
-  // A signed URL is a convenience, not a reason to fail an otherwise safe public record.
-  if (error || !data) return new Map();
-
-  return new Map(
-    data
-      .filter((item): item is typeof item & { path: string; signedUrl: string } => Boolean(item.path && item.signedUrl))
-      .map((item) => [item.path, item.signedUrl]),
-  );
+  return new Map();
 }
 
 /**
@@ -272,7 +262,7 @@ export async function loadLiveData(
   const visibleMediaRows = rows(mediaResult)
     .filter((media) => issueIds.has(media.issue_id) && (media.kind === "photo" || media.kind === "audio"))
     .slice(0, LIMITS.media);
-  const signedMediaUrls = await signVisibleMedia(supabase, visibleMediaRows, options.includeMediaUrls !== false);
+  const signedMediaUrls = await signVisibleMedia(visibleMediaRows, options.includeMediaUrls !== false);
 
   const municipality: Municipality = { ...municipalityResult.data, wardCount: wardRows.length };
   const session: DemoSession = {
@@ -324,8 +314,7 @@ export async function loadLiveData(
 
   const mediaByIssue = new Map<string, IssueMedia[]>();
   for (const media of visibleMediaRows) {
-    const url = signedMediaUrls.get(media.storage_path);
-    if (!url) continue;
+    const url = signedMediaUrls.get(media.storage_path) ?? `/api/media/file?path=${encodeURIComponent(media.storage_path)}`;
     const mapped: IssueMedia = { id: media.id, kind: media.kind as IssueMedia["kind"], url, alt: media.alt_text ?? undefined };
     mediaByIssue.set(media.issue_id, [...(mediaByIssue.get(media.issue_id) ?? []), mapped]);
   }

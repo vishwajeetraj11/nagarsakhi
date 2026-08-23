@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { IssueStatus } from "@/lib/domain/types";
-import { getFirebaseAuth } from "@/lib/firebase";
+import { getFirebaseAuth, getFirebaseAuthorizationHeader } from "@/lib/firebase";
 import { createBrowserSupabaseClient, createFirebaseSupabaseClient } from "@/lib/supabase";
 
 export type LiveMutationErrorCode = "NOT_CONFIGURED" | "UNAUTHENTICATED" | "VALIDATION" | "REQUEST_FAILED";
@@ -109,8 +109,13 @@ export async function deleteLiveIssue(issueId: string, client?: MutationClient):
     .map((row) => row.storage_path as string)
     .filter(Boolean);
   if (paths.length > 0) {
-    const { error: storageError } = await configured.data.storage.from("issue-media").remove(paths);
-    if (storageError) return requestFailure("Your report could not be deleted because its attachments could not be removed.", storageError.message);
+    const mediaDeleteResponse = await fetch("/api/media/delete", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...(await getFirebaseAuthorizationHeader()) },
+      body: JSON.stringify({ issueId }),
+    });
+    const mediaDeleteBody = (await mediaDeleteResponse.json().catch(() => null)) as { error?: string } | null;
+    if (!mediaDeleteResponse.ok) return requestFailure("Your report could not be deleted because its attachments could not be removed.", mediaDeleteBody?.error);
   }
 
   const { data, error } = await configured.data
@@ -147,12 +152,24 @@ export async function uploadLiveIssueMedia(
 
   const mediaRows: Array<{ issue_id: string; kind: "photo"; storage_path: string; alt_text: string; sort_order: number }> = [];
   for (const [index, file] of supported.entries()) {
-    const storagePath = `${user.data.id}/${issueId}/photo-${index + 1}`;
-    const { error: uploadError } = await configured.data.storage.from("issue-media").upload(storagePath, file, {
-      contentType: file.type,
-      upsert: false,
+    const presignResponse = await fetch("/api/media/presign", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...(await getFirebaseAuthorizationHeader()) },
+      body: JSON.stringify({ issueId, slot: index + 1, contentType: file.type, fileName: file.name, size: file.size }),
     });
-    if (uploadError) return requestFailure("The issue was saved, but its media could not be uploaded.", uploadError.message);
+    const presignBody = (await presignResponse.json().catch(() => null)) as { uploadUrl?: string; storagePath?: string; error?: string } | null;
+    if (!presignResponse.ok || !presignBody?.uploadUrl || !presignBody.storagePath) {
+      return requestFailure("The issue was saved, but its media could not be prepared.", presignBody?.error);
+    }
+
+    const uploadResponse = await fetch(presignBody.uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!uploadResponse.ok) return requestFailure("The issue was saved, but its media could not be uploaded.", `R2 upload returned ${uploadResponse.status}.`);
+
+    const storagePath = presignBody.storagePath;
     mediaRows.push({ issue_id: issueId, kind: "photo", storage_path: storagePath, alt_text: file.name, sort_order: index });
   }
 

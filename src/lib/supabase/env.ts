@@ -30,6 +30,11 @@ export const runtimeEnvSchema = z
     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: optionalString,
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: optionalString,
     NEXT_PUBLIC_FIREBASE_APP_ID: optionalString,
+    R2_ACCOUNT_ID: optionalString,
+    R2_BUCKET_NAME: optionalString,
+    R2_ENDPOINT: optionalString,
+    R2_ACCESS_KEY_ID: optionalString,
+    R2_SECRET_ACCESS_KEY: optionalString,
   })
   .passthrough();
 
@@ -61,6 +66,14 @@ export type RuntimeEnv = {
     appId?: string;
   };
   hasFirebaseConfiguration: boolean;
+  r2: {
+    accountId?: string;
+    bucketName?: string;
+    endpoint?: string;
+    accessKeyId?: string;
+    secretAccessKey?: string;
+  };
+  hasR2Configuration: boolean;
 };
 
 type EnvSource = Record<string, string | undefined>;
@@ -154,6 +167,15 @@ export function validateRuntimeEnv(source: EnvSource = process.env): RuntimeEnv 
   };
   const hasFirebaseConfiguration = Object.values(firebase).every(Boolean);
 
+  const r2 = {
+    accountId: values.R2_ACCOUNT_ID,
+    bucketName: values.R2_BUCKET_NAME,
+    endpoint: values.R2_ENDPOINT,
+    accessKeyId: values.R2_ACCESS_KEY_ID,
+    secretAccessKey: values.R2_SECRET_ACCESS_KEY,
+  };
+  const hasR2Configuration = Object.values(r2).every(Boolean);
+
   if (selectedMode === "supabase" && !hasSupabaseConfiguration) {
     issues.push({
       variable: "NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
@@ -186,6 +208,8 @@ export function validateRuntimeEnv(source: EnvSource = process.env): RuntimeEnv 
     hasSupabaseConfiguration,
     firebase,
     hasFirebaseConfiguration,
+    r2,
+    hasR2Configuration,
   };
 }
 
