@@ -6,5 +6,8 @@
  */
 export function wardLocalityName(name: string): string | null {
   const trimmed = name.trim();
-  return /^ward(?:\s+no\.?)?\s+\d+$/i.test(trimmed) ? null : trimmed || null;
+  if (!trimmed) return null;
+  const numericWardLabel = /^ward(?:\s+no\.?)?\s+\d+$/i;
+  const parts = trimmed.split(/\s*[\/·|]\s*/).filter(Boolean);
+  return parts.length > 0 && parts.every((part) => numericWardLabel.test(part)) ? null : trimmed;
 }

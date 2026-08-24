@@ -210,11 +210,13 @@ export async function createLiveEscalation(
   return error || !data ? requestFailure("The issue could not be escalated.", error?.message) : { ok: true, data: { id: data.id as string } };
 }
 
-export type PublishNoticeInput = { municipalityId: string; wardId?: string | null; body: string };
+export type PublishNoticeInput = { municipalityId: string; wardId?: string | null; title: string; body: string };
 
 export async function publishLiveNotice(input: PublishNoticeInput, client?: MutationClient): Promise<LiveMutationResult<{ id: string }>> {
-  if (!input.municipalityId || input.body.trim().length < 2) {
-    return { ok: false, error: { code: "VALIDATION", message: "Write a notice before publishing it." } };
+  const title = input.title.trim();
+  const body = input.body.trim();
+  if (!input.municipalityId || title.length < 3 || title.length > 160 || body.length < 2 || body.length > 3000) {
+    return { ok: false, error: { code: "VALIDATION", message: "Add a title and notice description before publishing." } };
   }
   const configured = getClient(client);
   if (!configured.ok) return configured;
@@ -225,7 +227,8 @@ export async function publishLiveNotice(input: PublishNoticeInput, client?: Muta
     municipality_id: input.municipalityId,
     ward_id: input.wardId ?? null,
     author_id: user.data.id,
-    body: input.body.trim(),
+    title,
+    body,
   }).select("id").single();
   return error || !data ? requestFailure("The notice could not be published.", error?.message) : { ok: true, data: { id: data.id as string } };
 }

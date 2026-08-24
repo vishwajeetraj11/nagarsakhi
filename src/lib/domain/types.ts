@@ -2,6 +2,8 @@ export type UserRole = "citizen" | "parshad" | "corporation_admin";
 
 export type IssueStatus = "requested" | "in_progress" | "completed" | "rejected";
 
+export type EscalationStatus = "open" | "acknowledged" | "resolved";
+
 export type JobStatus = "queued" | "processing" | "completed" | "failed";
 
 export type Municipality = {
@@ -72,6 +74,7 @@ export type Issue = {
   createdAt: string;
   updatedAt: string;
   escalated: boolean;
+  escalationStatus?: EscalationStatus;
 };
 
 export type Notice = {
@@ -79,6 +82,7 @@ export type Notice = {
   municipalityId: string;
   wardId: string | null;
   authorName: string;
+  title?: string;
   body: string;
   createdAt: string;
 };
@@ -108,7 +112,7 @@ export type Escalation = {
   wardNumber: number;
   parshadName: string;
   reason: string;
-  status: "open" | "acknowledged" | "resolved";
+  status: EscalationStatus;
   createdAt: string;
 };
 

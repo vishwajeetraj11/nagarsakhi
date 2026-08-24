@@ -27,7 +27,7 @@ import { AiJobStatus } from "@/components/ai";
 import type { PublicDemoData } from "@/data/demo";
 import type { WardIssuesResult } from "@/lib/data/live";
 import { createLiveIssue, deleteIssueVote, setIssueVote, uploadLiveIssueMedia } from "@/lib/data/live-mutations";
-import type { DemoSession, Issue, IssueMedia, IssueStatus } from "@/lib/domain/types";
+import type { DemoSession, EscalationStatus, Issue, IssueMedia, IssueStatus } from "@/lib/domain/types";
 import { wardLocalityName } from "@/lib/domain/ward-label";
 import { getFirebaseAuthorizationHeader } from "@/lib/firebase";
 import styles from "./citizenStyles";
@@ -79,6 +79,12 @@ const statusHindi: Record<IssueStatus, string> = {
   rejected: "अस्वीकृत",
 };
 
+const escalationCopy: Record<EscalationStatus, string> = {
+  open: "Escalated to corporation",
+  acknowledged: "Acknowledged by corporation",
+  resolved: "Resolved by corporation",
+};
+
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 
@@ -126,7 +132,7 @@ function IssueRecord({ issue, onOpen, onVote, canVote, viewerId }: {
           <span>By {issue.reporterName}</span>
           <span>{formatDate(issue.createdAt)}</span>
           {mediaCount > 0 && <span>{mediaCount} attachment{mediaCount > 1 ? "s" : ""}</span>}
-          {issue.escalated && <span className={styles.escalated}>Escalated</span>}
+          {issue.escalated && <span className={styles.escalated}>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated"}</span>}
         </div>
         {issue.status === "rejected" && <div className={styles.rejectionSummary}><strong>Rejected: </strong>{issue.rejectionReason ?? "The ward office did not accept this report."}<small>Decision by {issue.rejectionActorName ?? "Ward representative"} · {issue.rejectionAt ? formatTimestamp(issue.rejectionAt) : formatDate(issue.updatedAt)}</small></div>}
       </button>
@@ -153,7 +159,7 @@ function IssueRecord({ issue, onOpen, onVote, canVote, viewerId }: {
             <strong>{issue.downvotes}</strong>
           </button>
         </div>
-      ) : <div className={styles.voteRow}><span className={styles.voteNotice}>Community support is available to residents only.</span></div>}
+      ) : null}
     </article>
   );
 }
@@ -173,7 +179,10 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
   const initialWard = data.wards.find((item) => item.id === session?.wardId) ?? data.wards.find((item) => item.number === 12) ?? data.wards[0];
   const residentWard = data.wards.find((item) => item.id === session?.wardId) ?? initialWard;
   const [selectedWardNumber, setSelectedWardNumber] = useState(initialWard?.number ?? 1);
-  const [issues, setIssues] = useState<Issue[]>(data.issues);
+  const [issues, setIssues] = useState<Issue[]>(() => data.issues.map((issue) => {
+    const escalation = data.escalations.find((item) => item.issueId === issue.id);
+    return escalation ? { ...issue, escalated: true, escalationStatus: escalation.status } : issue;
+  }));
   const [filter, setFilter] = useState<"all" | IssueStatus>("all");
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [reportStage, setReportStage] = useState<ReportStage>("form");
@@ -201,7 +210,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
   const wardLocality = ward ? wardLocalityName(ward.name) : null;
   const residentWardLocality = residentWard ? wardLocalityName(residentWard.name) : null;
   const canReportInWard = Boolean(ward && !readOnly && (dataMode === "demo" || ward.id === session?.wardId));
-  const canVote = session?.role === "citizen";
+  const canVote = session?.role === "citizen" && !readOnly;
   const wardIssues = useMemo(() => issues.filter((item) => item.wardId === wardId), [issues, wardId]);
   const openWardIssues = useMemo(() => wardIssues.filter((item) => item.status === "in_progress"), [wardIssues]);
 
@@ -469,15 +478,17 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
           <>
             {latestMunicipalityNotice ? <section className={styles.municipalityNotice} aria-labelledby="latest-municipality-note-title">
               <div>
-                <p className={styles.kicker}>In your municipality</p>
-                <h2 id="latest-municipality-note-title">{latestMunicipalityNotice.body}</h2>
+                <p className={styles.kicker}>Latest municipality note</p>
+                <h2 id="latest-municipality-note-title">{latestMunicipalityNotice.title ?? "Municipality update"}</h2>
+                <p className={styles.latestNoticeBody}>{latestMunicipalityNotice.body}</p>
               </div>
               <p className={styles.latestNoticeMeta}>{latestMunicipalityNotice.authorName} · Published {formatDate(latestMunicipalityNotice.createdAt)}</p>
             </section> : null}
             {latestWardNotice ? <section className={styles.latestNotice} aria-labelledby="latest-ward-note-title">
               <div>
-                <p className={styles.kicker}>In your ward</p>
-                <h2 id="latest-ward-note-title">{latestWardNotice.body}</h2>
+                <p className={styles.kicker}>Latest ward note</p>
+                <h2 id="latest-ward-note-title">{latestWardNotice.title ?? "Ward update"}</h2>
+                <p className={styles.latestNoticeBody}>{latestWardNotice.body}</p>
               </div>
               <p className={styles.latestNoticeMeta}>{latestWardNotice.authorName} · Published {formatDate(latestWardNotice.createdAt)}</p>
             </section> : null}
@@ -719,10 +730,11 @@ function IssueDetail({ issue, onClose }: { issue: Issue; onClose: () => void }) 
   return <div className={styles.detailContent}>
     <div className={styles.detailTop}><button type="button" onClick={onClose} aria-label="Close issue detail"><X size={19} aria-hidden="true" /></button></div>
     <StatusMark status={issue.status} />
+    {issue.escalated && <div className={styles.escalationNotice} role="status"><strong>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated to corporation"}</strong><span>Corporation follow-up is recorded on this report.</span></div>}
     <h3>{issue.title}</h3>
     <p className={styles.detailDescription}>{issue.description}</p>
     {issue.status === "rejected" ? <section className={styles.rejectionNotice} aria-label="Rejection history"><p className={styles.kicker}>Rejection history</p><p><strong>Reason:</strong> {issue.rejectionReason ?? "The ward office marked this report as rejected."}</p><dl className={styles.rejectionFacts}><div><dt>Decision by</dt><dd>{issue.rejectionActorName ?? "Ward representative"}</dd></div><div><dt>Rejected on</dt><dd>{issue.rejectionAt ? formatTimestamp(issue.rejectionAt) : formatDate(issue.updatedAt)}</dd></div></dl></section> : null}
-    <dl className={styles.recordFacts}><div><dt>Reported by</dt><dd>{issue.reporterName}</dd></div><div><dt>First recorded</dt><dd>{formatDate(issue.createdAt)}</dd></div><div><dt>Last public update</dt><dd>{formatDate(issue.updatedAt)}</dd></div>{issue.escalated && <div><dt>Escalation</dt><dd>Sent to ward office</dd></div>}</dl>
+    <dl className={styles.recordFacts}><div><dt>Reported by</dt><dd>{issue.reporterName}</dd></div><div><dt>First recorded</dt><dd>{formatDate(issue.createdAt)}</dd></div><div><dt>Last public update</dt><dd>{formatDate(issue.updatedAt)}</dd></div>{issue.escalated && <div><dt>Escalation</dt><dd>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated to corporation"}</dd></div>}</dl>
     <section className={styles.evidence}><h4>Evidence</h4>{resolvedMedia.length ? <div className={styles.evidenceList}>{resolvedMedia.map((media, index) => <EvidencePreview key={media.id} media={media} index={index} onOpen={() => setActiveMediaId(media.id)} />)}</div> : <p>No photo or video was added to this report.</p>}</section>
     <p className={styles.privacyNote}>Only the reporter’s public name is shown here. Contact details remain private.</p>
     <MediaLightbox media={activeMedia} onClose={() => setActiveMediaId(null)} />

@@ -5,6 +5,7 @@ import type {
   Alert,
   DemoSession,
   Escalation,
+  EscalationStatus,
   Expenditure,
   Issue,
   IssueMedia,
@@ -81,7 +82,7 @@ type IssueStatusEventRow = {
 };
 type IssueMediaRow = { id: string; issue_id: string; kind: string; storage_path: string; alt_text: string | null; sort_order: number };
 type IssueVoteRow = { issue_id: string; value: number };
-type NoticeRow = { id: string; municipality_id: string; ward_id: string | null; author_id: string; body: string; created_at: string };
+type NoticeRow = { id: string; municipality_id: string; ward_id: string | null; author_id: string; title: string; body: string; created_at: string };
 type AlertRow = {
   id: string;
   municipality_id: string;
@@ -127,6 +128,10 @@ const isRole = (value: string): value is UserRole => (
 
 const isIssueStatus = (value: string): value is IssueStatus => (
   value === "requested" || value === "in_progress" || value === "completed" || value === "rejected"
+);
+
+const isEscalationStatus = (value: string): value is EscalationStatus => (
+  value === "open" || value === "acknowledged" || value === "resolved"
 );
 
 const asNumber = (value: number | string | null | undefined) => {
@@ -177,7 +182,7 @@ function mapIssueRows(
   }
 
   const voteByIssue = new Map(voteRows.map((vote) => [vote.issue_id, vote.value]));
-  const escalatedIssueIds = new Set(escalationRows.map((escalation) => escalation.issue_id));
+  const escalationByIssue = new Map(escalationRows.map((escalation) => [escalation.issue_id, escalation]));
   const rejectionByIssue = new Map(
     statusEventRows
       .filter((event) => event.to_status === "rejected")
@@ -187,6 +192,8 @@ function mapIssueRows(
 
   return issueRows.map((issue) => {
     const rejection = rejectionByIssue.get(issue.id);
+    const escalation = escalationByIssue.get(issue.id);
+    const escalationStatus = escalation && isEscalationStatus(escalation.status) ? escalation.status : undefined;
     return {
       id: issue.id,
       municipalityId: issue.municipality_id,
@@ -206,7 +213,8 @@ function mapIssueRows(
       media: mediaByIssue.get(issue.id) ?? [],
       createdAt: issue.created_at,
       updatedAt: issue.updated_at,
-      escalated: escalatedIssueIds.has(issue.id),
+      escalated: Boolean(escalation),
+      escalationStatus,
     };
   });
 }
@@ -359,7 +367,7 @@ export async function loadLiveData(
     supabase.from("officials").select("id, municipality_id, name, role_label, department").eq("municipality_id", viewer.municipality_id).limit(LIMITS.officials),
     supabase.from("official_terms").select("id, official_id, ward_id, role_label, won_by_votes, is_current").limit(LIMITS.officialTerms),
     issuesQuery.order("created_at", { ascending: false }).limit(LIMITS.issues),
-    supabase.from("notices").select("id, municipality_id, ward_id, author_id, body, created_at").eq("municipality_id", viewer.municipality_id).order("created_at", { ascending: false }).limit(LIMITS.notices),
+    supabase.from("notices").select("id, municipality_id, ward_id, author_id, title, body, created_at").eq("municipality_id", viewer.municipality_id).order("created_at", { ascending: false }).limit(LIMITS.notices),
     supabase.from("alerts").select("id, municipality_id, title, description, due_at, targets_all_wards, created_at").eq("municipality_id", viewer.municipality_id).order("created_at", { ascending: false }).limit(LIMITS.alerts),
     supabase.from("alert_ward_targets").select("alert_id, ward_id").limit(LIMITS.alertTargets),
     supabase.from("alert_completions").select("alert_id").eq("profile_id", viewer.id).limit(LIMITS.alerts),
@@ -478,6 +486,7 @@ export async function loadLiveData(
     municipalityId: notice.municipality_id,
     wardId: notice.ward_id,
     authorName: nameByProfile.get(notice.author_id) ?? "Municipal office",
+    title: notice.title,
     body: notice.body,
     createdAt: notice.created_at,
   }));
