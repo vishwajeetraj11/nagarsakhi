@@ -470,14 +470,14 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
           <>
             {latestMunicipalityNotice ? <section className={styles.municipalityNotice} aria-labelledby="latest-municipality-note-title">
               <div>
-                <p className={styles.kicker}>Latest municipality note</p>
+                <p className={styles.kicker}>In your municipality</p>
                 <h2 id="latest-municipality-note-title">{latestMunicipalityNotice.body}</h2>
               </div>
               <p className={styles.latestNoticeMeta}>{latestMunicipalityNotice.authorName} · Published {formatDate(latestMunicipalityNotice.createdAt)}</p>
             </section> : null}
             {latestWardNotice ? <section className={styles.latestNotice} aria-labelledby="latest-ward-note-title">
               <div>
-                <p className={styles.kicker}>Latest ward note</p>
+                <p className={styles.kicker}>In your ward</p>
                 <h2 id="latest-ward-note-title">{latestWardNotice.body}</h2>
               </div>
               <p className={styles.latestNoticeMeta}>{latestWardNotice.authorName} · Published {formatDate(latestWardNotice.createdAt)}</p>

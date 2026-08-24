@@ -95,7 +95,6 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   const requestedCount = issues.filter((item) => item.status === "requested").length;
   const completedCount = issues.filter((item) => item.status === "completed").length;
   const residents = data.publicProfiles.filter((person) => person.wardId === ward?.id).length;
-  const wardEscalations = data.escalations.filter((item) => item.wardId === ward?.id);
 
   function recordAudit(message: string, tone: "success" | "error" = "success") {
     setAuditMessage(message);
@@ -206,7 +205,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
     <section id="ward-workflow" className={styles.section} aria-labelledby="workflow-title">
       <div className={styles.sectionHeading}>
         <div><p className={styles.kicker}>Issue register</p><h2 id="workflow-title">Decide the next clear step</h2></div>
-        <p>{issues.length} reports · status changes are recorded in the audit note below.</p>
+        <p>{issues.length} reports</p>
       </div>
       <div className={styles.issueLayout}>
         <div className={styles.issueList} aria-label={`Ward ${ward.number} issue list`}>
@@ -220,7 +219,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
           <div className={styles.detailTop}><span className={styles.recordNumber}>Public report</span><StatusPill status={selectedIssue.status} /></div>
           <h3>{selectedIssue.title}</h3>
           <p className={styles.issueDescription}>{selectedIssue.description}</p>
-          <dl className={styles.detailMeta}><div><dt>Reporter</dt><dd>{selectedIssue.reporterName}</dd></div><div><dt>Language</dt><dd>{selectedIssue.originalLanguage === "hi" ? "Hindi / हिन्दी" : "English"}</dd></div><div><dt>Last record</dt><dd>{formatDate(selectedIssue.updatedAt)}</dd></div></dl>
+          <dl className={styles.detailMeta}><div><dt>Reporter</dt><dd>{selectedIssue.reporterName}</dd></div><div><dt>Recorded on</dt><dd>{formatDate(selectedIssue.updatedAt)}</dd></div></dl>
           {selectedIssue.media.length > 0 && <div className={styles.evidence}><p className={styles.kicker}>Attached evidence</p><div className={styles.evidenceStrip}>{selectedIssue.media.map((media) => <figure key={media.id}>{media.kind === "video" ? <video src={media.url} controls preload="metadata" width={144} height={104} aria-label={media.alt ?? "Issue video evidence"} /> : <Image src={media.url} alt={media.alt ?? "Issue evidence"} width={144} height={104} unoptimized={dataMode === "supabase"} />}<figcaption>{media.kind === "photo" ? "Photo evidence" : media.kind === "video" ? "Video evidence" : "Audio statement"}</figcaption></figure>)}</div></div>}
           {selectedIssue.status === "rejected" ? <div className={styles.rejectionNotice}><b>Rejected report. This decision is terminal.</b><span>Reason: {selectedIssue.rejectionReason ?? "No reason recorded."}</span></div> : selectedNextStatus ? <fieldset className={styles.statusField}><legend>Record a status update</legend><p>{selectedNextStatus === "in_progress" ? "New reports move to In progress first. Mark them completed only after work is underway and verified." : "This report is in progress. Mark it completed once the work is verified."}</p><div className={styles.statusActions}><button type="button" onClick={() => void changeStatus(selectedIssue.id, selectedNextStatus)}>{selectedNextStatus === "in_progress" ? "Move to In progress / कार्य जारी" : "Mark completed / पूर्ण"}</button></div></fieldset> : null}
           {selectedIssue.status === "requested" ? <form className={styles.rejectionField} onSubmit={(event) => { event.preventDefault(); void rejectIssue(selectedIssue.id); }}><label htmlFor="rejection-reason">Reject this report <span>Reason required</span></label><textarea id="rejection-reason" value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} maxLength={500} rows={3} placeholder="Explain why the ward office cannot accept this report." disabled={rejectingIssueId === selectedIssue.id} /><div><small>{rejectionReason.length}/500</small><button type="submit" className={styles.rejectButton} disabled={rejectingIssueId === selectedIssue.id || rejectionReason.trim().length < 8}>{rejectingIssueId === selectedIssue.id ? "Rejecting…" : "Reject issue"}</button></div></form> : null}
@@ -239,7 +238,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
         <ol className={styles.noticeList}>{notices.map((notice) => <li key={notice.id}><p>{notice.body}</p><small>{notice.authorName} · {formatDate(notice.createdAt)}</small></li>)}</ol>
       </section>
     </div>
-    <section className={`${styles.section} ${styles.compliance}`} aria-labelledby="compliance-title"><p className={styles.kicker}>Compliance & privacy</p><h2 id="compliance-title">Ward record boundaries</h2><div><AuditLine>Public register displays names and report content only; household and phone details stay outside this view.</AuditLine><AuditLine>{wardEscalations.length} Ward {ward.number} escalation{wardEscalations.length === 1 ? " is" : "s are"} visible to the corporation queue.</AuditLine><AuditLine>Budget figures are synthetic and shown for ward-level transparency.</AuditLine></div></section>
+    <section className={`${styles.section} ${styles.compliance}`} aria-labelledby="compliance-title"><p className={styles.kicker}>Compliance & privacy</p><h2 id="compliance-title">Ward record boundaries</h2><div><AuditLine>Public register displays names and report content only; household and phone details stay outside this view.</AuditLine><AuditLine>Budget figures are synthetic and shown for ward-level transparency.</AuditLine></div></section>
   </main>;
 }
 
