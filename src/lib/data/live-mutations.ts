@@ -88,69 +88,6 @@ export async function createLiveIssue(input: CreateLiveIssueInput, client?: Muta
   return error || !data ? requestFailure("Your issue could not be submitted.", error?.message) : { ok: true, data: { id: data.id as string } };
 }
 
-/** Removes a reporter's issue while it is still in the requested state. Media
- * objects are deleted through Supabase Storage before the row is removed; the
- * database policy independently enforces the same ownership and status rules.
- */
-export async function deleteLiveIssue(issueId: string, client?: MutationClient): Promise<LiveMutationResult> {
-  if (!issueId) return { ok: false, error: { code: "VALIDATION", message: "Choose an issue before deleting it." } };
-  const configured = getClient(client);
-  if (!configured.ok) return configured;
-  const user = await requireUser(configured.data);
-  if (!user.ok) return user;
-
-  const { data: issue, error: issueQueryError } = await configured.data
-    .from("issues")
-    .select("id, reporter_id, status")
-    .eq("id", issueId)
-    .maybeSingle();
-  if (issueQueryError) return requestFailure("Your report could not be deleted.", issueQueryError.message);
-  // DELETE is intentionally idempotent. A previous request may have removed the
-  // row even when PostgREST returned no representation to the browser.
-  if (!issue) return { ok: true, data: undefined };
-  if (issue.reporter_id !== user.data.id || issue.status !== "requested") {
-    return requestFailure("Only your own reports that have not been picked up can be deleted.");
-  }
-
-  const { data: mediaRows, error: mediaQueryError } = await configured.data
-    .from("issue_media")
-    .select("storage_path")
-    .eq("issue_id", issueId);
-  if (mediaQueryError) return requestFailure("Your report could not be deleted.", mediaQueryError.message);
-
-  const paths = (mediaRows ?? [])
-    .map((row) => row.storage_path as string)
-    .filter(Boolean);
-  if (paths.length > 0) {
-    const mediaDeleteResponse = await fetch("/api/media/delete", {
-      method: "POST",
-      headers: { "content-type": "application/json", ...(await getFirebaseAuthorizationHeader()) },
-      body: JSON.stringify({ issueId }),
-    });
-    const mediaDeleteBody = (await mediaDeleteResponse.json().catch(() => null)) as { error?: string } | null;
-    if (!mediaDeleteResponse.ok) return requestFailure("Your report could not be deleted because its attachments could not be removed.", mediaDeleteBody?.error);
-  }
-
-  const { error } = await configured.data
-    .from("issues")
-    .delete()
-    .eq("id", issueId)
-    .eq("reporter_id", user.data.id)
-    .eq("status", "requested");
-  if (error) return requestFailure("Your report could not be deleted.", error.message);
-
-  const { data: remainingIssue, error: verificationError } = await configured.data
-    .from("issues")
-    .select("id")
-    .eq("id", issueId)
-    .maybeSingle();
-  if (verificationError) return requestFailure("Your report deletion could not be verified.", verificationError.message);
-  if (remainingIssue) {
-    return requestFailure("Your report is eligible for deletion, but the live database permission is not active yet.");
-  }
-  return { ok: true, data: undefined };
-}
-
 /** Uploads up to three photo/video files after the issue row exists. */
 export async function uploadLiveIssueMedia(
   issueId: string,
@@ -212,7 +149,7 @@ export async function uploadLiveIssueMedia(
 
 export async function transitionLiveIssue(
   issueId: string,
-  status: Exclude<IssueStatus, "requested">,
+  status: Exclude<IssueStatus, "requested" | "rejected">,
   note?: string,
   client?: MutationClient,
 ): Promise<LiveMutationResult<IssueStatus>> {
@@ -230,6 +167,24 @@ export async function transitionLiveIssue(
     transition_note: note?.trim() || null,
   });
   return error ? requestFailure("The issue status could not be updated.", error.message) : { ok: true, data: data as IssueStatus };
+}
+
+export async function rejectLiveIssue(issueId: string, reason: string, client?: MutationClient): Promise<LiveMutationResult<IssueStatus>> {
+  const normalizedReason = reason.trim();
+  if (!issueId || normalizedReason.length < 8 || normalizedReason.length > 500) {
+    return { ok: false, error: { code: "VALIDATION", message: "Add a clear rejection reason between 8 and 500 characters." } };
+  }
+  const configured = getClient(client);
+  if (!configured.ok) return configured;
+  const user = await requireUser(configured.data);
+  if (!user.ok) return user;
+
+  const { data, error } = await configured.data.rpc("transition_issue_status", {
+    target_issue_id: issueId,
+    target_status: "rejected",
+    transition_note: normalizedReason,
+  });
+  return error ? requestFailure("The issue could not be rejected.", error.message) : { ok: true, data: data as IssueStatus };
 }
 
 export type PublishNoticeInput = { municipalityId: string; wardId?: string | null; body: string };

@@ -1,8 +1,5 @@
--- Civic bootstrap only: no synthetic users, officials, issues, budgets, or files.
--- Phusro Nagar Parishad has 28 numbered wards.
--- Sources:
--- https://bokaro.nic.in/municipality-general-election-2026/
--- https://censusindia.gov.in/nada/index.php/catalog/9653/study-description
+-- Forward migration for projects where the historical demo seed was already applied.
+-- It creates only the real Phusro civic directory and is safe to run repeatedly.
 
 do $$
 declare

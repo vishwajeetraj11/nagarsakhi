@@ -2,9 +2,10 @@ const colors =
   "[--paper:oklch(98%_.006_240)] [--ink:oklch(23%_.03_255)] [--muted:oklch(45%_.028_252)] [--line:oklch(84%_.016_242)] [--indigo:oklch(45%_.16_250)] [--green:oklch(45%_.09_175)] [--saffron:oklch(72%_.14_78)] [--red:oklch(47%_.18_25)]";
 
 const styles: Record<string, string> = {
-  workspace: `mx-auto max-w-[1180px] bg-[var(--paper)] p-4 text-[var(--ink)] font-sans antialiased ${colors} [&_*]:box-border [&_button]:font-inherit [&_select]:font-inherit [&_textarea]:font-inherit [&_input]:font-inherit [&_button:focus-visible]:outline-3 [&_button:focus-visible]:outline-[var(--saffron)] [&_select:focus-visible]:outline-3 [&_select:focus-visible]:outline-[var(--saffron)] [&_textarea:focus-visible]:outline-3 [&_textarea:focus-visible]:outline-[var(--saffron)] [&_input:focus-visible]:outline-3 [&_input:focus-visible]:outline-[var(--saffron)] sm:p-8 lg:p-12`,
-  roleSwitchBar: `mx-auto flex max-w-[1180px] items-center justify-between gap-4 border-b border-[var(--line)] px-5 py-[.7rem] text-[.82rem] text-[var(--muted)] [&_button]:min-h-10 [&_button]:cursor-pointer [&_button]:border [&_button]:border-[var(--indigo)] [&_button]:bg-transparent [&_button]:px-3 [&_button]:py-[.45rem] [&_button]:font-bold [&_button]:text-[var(--indigo)]`,
-  viewSwitchBar: "mx-auto flex max-w-[1180px] items-center justify-between gap-4 border-b border-[var(--line)] px-5 py-[.7rem] text-[.82rem] text-[var(--muted)] [&_button]:min-h-10 [&_button]:cursor-pointer [&_button]:border [&_button]:border-[var(--indigo)] [&_button]:bg-transparent [&_button]:px-3 [&_button]:py-[.45rem] [&_button]:font-bold [&_button]:text-[var(--indigo)]",
+  workspace: `mx-auto w-full max-w-[var(--content-max,76rem)] bg-[var(--paper)] p-4 text-[var(--ink)] font-sans antialiased ${colors} [&_*]:box-border [&_button]:font-inherit [&_select]:font-inherit [&_textarea]:font-inherit [&_input]:font-inherit [&_button:focus-visible]:outline-3 [&_button:focus-visible]:outline-[var(--saffron)] [&_select:focus-visible]:outline-3 [&_select:focus-visible]:outline-[var(--saffron)] [&_textarea:focus-visible]:outline-3 [&_textarea:focus-visible]:outline-[var(--saffron)] [&_input:focus-visible]:outline-3 [&_input:focus-visible]:outline-[var(--saffron)] sm:p-8 lg:p-12`,
+  roleSwitchBar: `flex w-full items-center justify-between gap-4 border-b border-[var(--line)] py-[.7rem] text-[.82rem] text-[var(--muted)] [&_button]:min-h-10 [&_button]:cursor-pointer [&_button]:border [&_button]:border-[var(--indigo)] [&_button]:bg-transparent [&_button]:px-3 [&_button]:py-[.45rem] [&_button]:font-bold [&_button]:text-[var(--indigo)]`,
+  viewSwitchBand: "w-full border-b border-[var(--line)]",
+  viewSwitchBar: "mx-auto flex w-full max-w-[var(--content-max,76rem)] items-center justify-between gap-4 px-[clamp(1.25rem,4vw,2rem)] py-[.7rem] text-[.82rem] text-[var(--muted)] [&_button]:min-h-10 [&_button]:cursor-pointer [&_button]:border [&_button]:border-[var(--indigo)] [&_button]:bg-transparent [&_button]:px-3 [&_button]:py-[.45rem] [&_button]:font-bold [&_button]:text-[var(--indigo)]",
   skipLink: "fixed left-4 -top-20 z-[5] bg-[var(--indigo)] px-4 py-3 text-[var(--paper)] focus:top-4",
   masthead: "flex items-start justify-between gap-4 border-b-[3px] border-[var(--ink)] pb-6 pt-[clamp(1rem,4vw,3rem)]",
   eyebrow: "mb-[.35rem] mt-0 text-[.78rem] font-semibold uppercase tracking-[.1em] text-[var(--indigo)]",
@@ -26,6 +27,7 @@ const styles: Record<string, string> = {
   requested: "text-[oklch(32%_.07_69)] bg-[oklch(88%_.07_80)]",
   inProgress: "text-[oklch(32%_.11_250)] bg-[oklch(91%_.04_244)]",
   completed: "text-[oklch(28%_.07_175)] bg-[oklch(90%_.05_175)]",
+  rejected: "text-[oklch(36%_.12_25)] bg-[oklch(92%_.045_25)]",
   issueDetail: "p-5 max-[720px]:px-0",
   detailTop: "flex items-center justify-between gap-3",
   issueDescription: "m-0 max-w-[62ch] leading-[1.55]",
@@ -35,6 +37,9 @@ const styles: Record<string, string> = {
   statusField: "my-6 mt-6 border border-[var(--line)] p-4 [&_legend]:px-1 [&_legend]:font-semibold [&_p]:my-1 [&_p]:mb-4 [&_p]:max-w-[60ch] [&_p]:text-[.87rem] [&_p]:leading-[1.4] [&_p]:text-[var(--muted)]",
   statusActions: "flex flex-wrap gap-2 [&_button]:min-h-11 [&_button]:cursor-pointer [&_button]:border [&_button]:border-current [&_button]:bg-transparent [&_button]:px-3 [&_button]:py-[.6rem] [&_button]:font-semibold [&_button]:text-[var(--indigo)] [&_button]:active:translate-y-px",
   currentStatus: "!bg-[var(--indigo)] !text-[var(--paper)]",
+  rejectionField: "my-5 border-l-[3px] border-[var(--red)] bg-[oklch(96%_.025_27)] p-4 [&_label]:block [&_label]:font-semibold [&_label_span]:ml-1 [&_label_span]:font-normal [&_label_span]:text-[var(--muted)] [&_textarea]:mt-2 [&_textarea]:min-h-24 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:border [&_textarea]:border-[var(--line)] [&_textarea]:bg-[var(--paper)] [&_textarea]:p-3 [&_textarea]:leading-[1.45] [&>div]:mt-2 [&>div]:flex [&>div]:items-center [&>div]:justify-between [&>div]:gap-3 [&_small]:text-[var(--muted)]",
+  rejectButton: "min-h-11 cursor-pointer border border-[var(--red)] bg-[var(--red)] px-3 py-[.6rem] font-semibold text-[var(--paper)] disabled:cursor-not-allowed disabled:opacity-50",
+  rejectionNotice: "my-5 flex gap-3 border-l-[3px] border-[var(--red)] bg-[oklch(96%_.025_27)] px-4 py-3 text-[.86rem] leading-[1.4] [&_b]:text-[var(--red)] [&_span]:text-[var(--muted)]",
   escalationBand: "mt-4 flex gap-3 border-b border-[var(--line)] border-t-2 border-[var(--red)] py-3 text-[.85rem] leading-[1.4] [&_b]:whitespace-nowrap [&_b]:text-[var(--red)]",
   auditFeedback: "flex gap-4 bg-[oklch(92%_.04_175)] px-4 py-[.9rem] text-[.86rem] text-[oklch(29%_.055_175)] [&>b]:shrink-0 max-[720px]:flex-col",
   auditLine: "m-0 flex gap-[.55rem] leading-[1.45] [&_span]:font-bold [&_span]:text-[var(--green)]",

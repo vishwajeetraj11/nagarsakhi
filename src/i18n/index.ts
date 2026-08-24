@@ -55,6 +55,7 @@ const english = {
   statusRequested: "Requested",
   statusInProgress: "In progress",
   statusCompleted: "Completed",
+  statusRejected: "Rejected",
 } as const;
 
 export type TranslationKey = keyof typeof english;
@@ -113,6 +114,7 @@ const hindi: Dictionary = {
   statusRequested: "अनुरोध प्राप्त",
   statusInProgress: "काम जारी है",
   statusCompleted: "काम पूरा",
+  statusRejected: "अस्वीकृत",
 };
 
 export const en = english;
@@ -134,6 +136,7 @@ const statusKeys: Record<IssueStatus, TranslationKey> = {
   requested: "statusRequested",
   in_progress: "statusInProgress",
   completed: "statusCompleted",
+  rejected: "statusRejected",
 };
 
 export function getStatusLabel(status: IssueStatus, language: Language = "en"): string {

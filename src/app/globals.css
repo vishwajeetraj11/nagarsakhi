@@ -96,7 +96,7 @@
   }
 
   body {
-    min-width: 20rem;
+    min-width: 320px;
     min-height: 100svh;
     background: var(--paper);
     color: var(--ink);

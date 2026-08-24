@@ -1,6 +1,6 @@
 export type UserRole = "citizen" | "parshad" | "corporation_admin";
 
-export type IssueStatus = "requested" | "in_progress" | "completed";
+export type IssueStatus = "requested" | "in_progress" | "completed" | "rejected";
 
 export type JobStatus = "queued" | "processing" | "completed" | "failed";
 
@@ -62,6 +62,7 @@ export type Issue = {
   description: string;
   originalLanguage: "en" | "hi";
   status: IssueStatus;
+  rejectionReason?: string;
   upvotes: number;
   downvotes: number;
   viewerVote: -1 | 0 | 1;

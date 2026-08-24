@@ -67,6 +67,7 @@ type IssueRow = {
   description: string;
   original_language: string;
   status: string;
+  rejection_reason: string | null;
   upvote_count: number;
   downvote_count: number;
   created_at: string;
@@ -119,7 +120,7 @@ const isRole = (value: string): value is UserRole => (
 );
 
 const isIssueStatus = (value: string): value is IssueStatus => (
-  value === "requested" || value === "in_progress" || value === "completed"
+  value === "requested" || value === "in_progress" || value === "completed" || value === "rejected"
 );
 
 const asNumber = (value: number | string | null | undefined) => {
@@ -181,6 +182,7 @@ function mapIssueRows(
     description: issue.description,
     originalLanguage: issue.original_language === "hi" ? "hi" : "en",
     status: isIssueStatus(issue.status) ? issue.status : "requested",
+    rejectionReason: issue.rejection_reason ?? undefined,
     upvotes: issue.upvote_count,
     downvotes: issue.downvote_count,
     viewerVote: voteByIssue.get(issue.id) === 1 ? 1 : voteByIssue.get(issue.id) === -1 ? -1 : 0,
@@ -197,7 +199,7 @@ export async function loadWardIssues(
 ): Promise<WardIssuesResult> {
   const issuesResult = await supabase
     .from("issues")
-    .select("id, municipality_id, ward_id, reporter_id, title, description, original_language, status, upvote_count, downvote_count, created_at, updated_at")
+    .select("id, municipality_id, ward_id, reporter_id, title, description, original_language, status, rejection_reason, upvote_count, downvote_count, created_at, updated_at")
     .eq("municipality_id", input.municipalityId)
     .eq("ward_id", input.wardId)
     .order("created_at", { ascending: false })
@@ -301,7 +303,7 @@ export async function loadLiveData(
 
   let issuesQuery = supabase
     .from("issues")
-    .select("id, municipality_id, ward_id, reporter_id, title, description, original_language, status, upvote_count, downvote_count, created_at, updated_at")
+    .select("id, municipality_id, ward_id, reporter_id, title, description, original_language, status, rejection_reason, upvote_count, downvote_count, created_at, updated_at")
     .eq("municipality_id", viewer.municipality_id);
 
   if (viewer.role !== "corporation_admin") {

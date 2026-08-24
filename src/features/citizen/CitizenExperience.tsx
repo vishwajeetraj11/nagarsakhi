@@ -18,7 +18,6 @@ import {
   MapPin,
   Play,
   Plus,
-  Trash2,
   ThumbsDown,
   ThumbsUp,
   Volume2,
@@ -27,7 +26,7 @@ import {
 import { AiJobStatus } from "@/components/ai";
 import type { PublicDemoData } from "@/data/demo";
 import type { WardIssuesResult } from "@/lib/data/live";
-import { createLiveIssue, deleteIssueVote, deleteLiveIssue, setIssueVote, uploadLiveIssueMedia } from "@/lib/data/live-mutations";
+import { createLiveIssue, deleteIssueVote, setIssueVote, uploadLiveIssueMedia } from "@/lib/data/live-mutations";
 import type { DemoSession, Issue, IssueMedia, IssueStatus } from "@/lib/domain/types";
 import { getFirebaseAuthorizationHeader } from "@/lib/firebase";
 import styles from "./citizenStyles";
@@ -69,12 +68,14 @@ const statusCopy: Record<IssueStatus, string> = {
   requested: "Reported",
   in_progress: "In progress",
   completed: "Completed",
+  rejected: "Rejected",
 };
 
 const statusHindi: Record<IssueStatus, string> = {
   requested: "दर्ज किया गया",
   in_progress: "काम जारी है",
   completed: "पूरा हुआ",
+  rejected: "अस्वीकृत",
 };
 
 const formatDate = (value: string) =>
@@ -104,21 +105,21 @@ function StatusMark({ status }: { status: IssueStatus }) {
   );
 }
 
-function IssueRecord({ issue, onOpen, onVote, canDelete, isDeleting, onDelete }: {
+function IssueRecord({ issue, onOpen, onVote, canVote, viewerId }: {
   issue: Issue;
   onOpen: () => void;
   onVote: (direction: -1 | 1) => void;
-  canDelete: boolean;
-  isDeleting: boolean;
-  onDelete: () => void;
+  canVote: boolean;
+  viewerId?: string;
 }) {
   const mediaCount = issue.media.length;
+  const isOwnReport = Boolean(viewerId && issue.reporterId === viewerId);
 
   return (
     <article className={styles.issueRecord}>
       <button type="button" className={styles.issueOpen} onClick={onOpen} aria-label={`Open issue: ${issue.title}`}>
         <div className={styles.issueEyebrow}>
-          <span>REF. {issue.id.replace("issue-", "W12-")}</span>
+          <span>Public report</span>
           <StatusMark status={issue.status} />
         </div>
         <h3>{issue.title}</h3>
@@ -130,29 +131,30 @@ function IssueRecord({ issue, onOpen, onVote, canDelete, isDeleting, onDelete }:
           {issue.escalated && <span className={styles.escalated}>Escalated</span>}
         </div>
       </button>
-      <div className={styles.voteRow} aria-label={`Community support for ${issue.title}`}>
-        <button
-          type="button"
-          className={`${styles.voteButton} ${issue.viewerVote === 1 ? styles.votedUp : ""}`}
-          onClick={() => onVote(1)}
-          aria-pressed={issue.viewerVote === 1}
-        >
-          <ThumbsUp aria-hidden="true" size={17} />
-          <span>Support</span>
-          <strong>{issue.upvotes}</strong>
-        </button>
-        <button
-          type="button"
-          className={`${styles.voteButton} ${issue.viewerVote === -1 ? styles.votedDown : ""}`}
-          onClick={() => onVote(-1)}
-          aria-pressed={issue.viewerVote === -1}
-        >
-          <ThumbsDown aria-hidden="true" size={17} />
-          <span className={styles.srOnly}>Do not support</span>
-          <strong>{issue.downvotes}</strong>
-        </button>
-        {canDelete ? <DeleteIssueAction inline isDeleting={isDeleting} onDelete={onDelete} /> : null}
-      </div>
+      {isOwnReport ? <div className={styles.voteRow}><span className={styles.voteNotice}>You cannot support or downvote your own report.</span></div> : canVote ? (
+        <div className={styles.voteRow} aria-label={`Community support for ${issue.title}`}>
+          <button
+            type="button"
+            className={`${styles.voteButton} ${issue.viewerVote === 1 ? styles.votedUp : ""}`}
+            onClick={() => onVote(1)}
+            aria-pressed={issue.viewerVote === 1}
+          >
+            <ThumbsUp aria-hidden="true" size={17} />
+            <span>Support</span>
+            <strong>{issue.upvotes}</strong>
+          </button>
+          <button
+            type="button"
+            className={`${styles.voteButton} ${issue.viewerVote === -1 ? styles.votedDown : ""}`}
+            onClick={() => onVote(-1)}
+            aria-pressed={issue.viewerVote === -1}
+          >
+            <ThumbsDown aria-hidden="true" size={17} />
+            <span className={styles.srOnly}>Do not support</span>
+            <strong>{issue.downvotes}</strong>
+          </button>
+        </div>
+      ) : <div className={styles.voteRow}><span className={styles.voteNotice}>Community support is available to residents only.</span></div>}
     </article>
   );
 }
@@ -180,8 +182,8 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
   const [submittedTitle, setSubmittedTitle] = useState("");
   const [submittedDescription, setSubmittedDescription] = useState("");
   const [formError, setFormError] = useState("");
+  const [duplicateDraft, setDuplicateDraft] = useState<{ title: string; description: string; matches: Issue[] } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [deletingIssueId, setDeletingIssueId] = useState<string | null>(null);
   const [loadingWardId, setLoadingWardId] = useState<string | null>(null);
   const [aiJobId, setAiJobId] = useState<string | null>(null);
   const loadedWardIds = useRef(new Set([
@@ -198,7 +200,9 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
   const ward = data.wards.find((item) => item.number === selectedWardNumber) ?? data.wards[0];
   const wardId = ward?.id ?? "";
   const canReportInWard = Boolean(ward && !readOnly && (dataMode === "demo" || ward.id === session?.wardId));
+  const canVote = session?.role === "citizen";
   const wardIssues = useMemo(() => issues.filter((item) => item.wardId === wardId), [issues, wardId]);
+  const openWardIssues = useMemo(() => wardIssues.filter((item) => item.status === "in_progress"), [wardIssues]);
 
   const requestedView = routing ? viewForPath(pathname) : localView;
   const view = requestedView === "report" && !canReportInWard ? "home" : requestedView;
@@ -213,17 +217,19 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
   if (!ward) return <p role="alert">No ward record is available for this municipality.</p>;
   const filteredIssues = filter === "all" ? wardIssues : wardIssues.filter((item) => item.status === filter);
   const selectedIssue = issues.find((item) => item.id === selectedIssueId) ?? null;
-  const canDeleteIssue = (issue: Issue) => Boolean(!readOnly && session?.profileId && issue.reporterId === session.profileId && issue.status === "requested");
   const wardOfficial = data.officials.find((item) => item.wardId === ward.id && item.current);
   const profileOfficial = profileOfficialId ? data.officials.find((item) => item.id === profileOfficialId) : null;
   const displayedOfficial = profileOfficialId ? profileOfficial : wardOfficial;
   const displayedOfficialWard = displayedOfficial?.wardId ? data.wards.find((item) => item.id === displayedOfficial.wardId) : null;
-  const notices = data.notices.filter((item) => item.wardId === null || item.wardId === ward.id);
+  const wardNotices = data.notices.filter((item) => item.wardId === ward.id);
+  const municipalityNotices = data.notices.filter((item) => item.wardId === null);
+  const latestWardNotice = wardNotices.reduce((latest, notice) => !latest || new Date(notice.createdAt).getTime() > new Date(latest.createdAt).getTime() ? notice : latest, wardNotices[0]);
+  const latestMunicipalityNotice = municipalityNotices.reduce((latest, notice) => !latest || new Date(notice.createdAt).getTime() > new Date(latest.createdAt).getTime() ? notice : latest, municipalityNotices[0]);
   const tasks = data.alerts.filter((item) => item.wardIds.includes(ward.id));
   const expenditures = data.expenditures.filter((item) => item.wardId === ward.id);
   const counts = wardIssues.reduce<Record<IssueStatus, number>>(
     (result, item) => ({ ...result, [item.status]: result[item.status] + 1 }),
-    { requested: 0, in_progress: 0, completed: 0 },
+    { requested: 0, in_progress: 0, completed: 0, rejected: 0 },
   );
 
   const moveTo = (next: View, destination = viewRoutes[next]) => {
@@ -298,35 +304,8 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
     }
   };
 
-  const handleDeleteIssue = async (issueId: string) => {
-    const issue = issues.find((item) => item.id === issueId);
-    if (!issue || !canDeleteIssue(issue) || deletingIssueId) {
-      showToast("Only your own reports that have not been picked up can be deleted.", "error");
-      return;
-    }
-
-    setDeletingIssueId(issueId);
-    try {
-      if (dataMode === "supabase") {
-        const result = await deleteLiveIssue(issueId);
-        if (!result.ok) {
-          showToast(result.error.message, "error");
-          return;
-        }
-      }
-      issue.media.forEach((media) => {
-        if (media.url.startsWith("blob:")) URL.revokeObjectURL(media.url);
-      });
-      setIssues((current) => current.filter((item) => item.id !== issueId));
-      setSelectedIssueId(null);
-      showToast("Your report was deleted.");
-    } finally {
-      setDeletingIssueId(null);
-    }
-  };
-
   const findSimilarIssues = (title: string, description: string) => wardIssues
-    .filter((issue) => issue.status !== "completed")
+    .filter((issue) => issue.status !== "completed" && issue.status !== "rejected")
     .map((issue) => ({ issue, score: issueSimilarity(`${title} ${description}`, `${issue.title} ${issue.description}`) }))
     .filter(({ score }) => score >= 0.25)
     .sort((left, right) => right.score - left.score)
@@ -365,9 +344,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
           mediaResult = { ok: false as const, error: { code: "REQUEST_FAILED" as const, message: "The issue could not be submitted because its media upload failed." } };
         }
         if (!mediaResult.ok) {
-          const rollback = await deleteLiveIssue(issueId);
-          if (!rollback.ok) showToast("The media upload failed and the draft report could not be cleaned up. You can delete it from the issue details.", "error");
-          setFormError("We couldn’t upload that evidence, so the report was not submitted. Check your connection and try again.");
+          setFormError("The report was saved, but its evidence could not be uploaded. Please try again without attachments.");
           return;
         }
       }
@@ -428,14 +405,30 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
     const matches = findSimilarIssues(title, description);
     if (matches.length > 0) {
       const names = matches.slice(0, 2).map((issue) => `“${issue.title}”`).join(" and ");
-      showToast(`A similar report already exists: ${names}. Open the Issues section to support it.`, "info");
+      setDuplicateDraft({ title, description, matches });
+      showToast(`We found a similar report: ${names}. Review it before continuing.`, "info");
       setFormError("");
       return;
     }
 
+    setDuplicateDraft(null);
     setIsSubmitting(true);
     try {
       await publishNewReport(title, description);
+    } catch {
+      setFormError("We could not submit your report. Check your connection and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const reportAsSeparateIssue = async () => {
+    if (!duplicateDraft || isSubmitting) return;
+    const draft = duplicateDraft;
+    setDuplicateDraft(null);
+    setIsSubmitting(true);
+    try {
+      await publishNewReport(draft.title, draft.description);
     } catch {
       setFormError("We could not submit your report. Check your connection and try again.");
     } finally {
@@ -466,6 +459,20 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
       <main id="citizen-main" className={styles.main}>
         {view === "home" && (
           <>
+            {latestMunicipalityNotice ? <section className={styles.municipalityNotice} aria-labelledby="latest-municipality-note-title">
+              <div>
+                <p className={styles.kicker}>Latest municipality note</p>
+                <h2 id="latest-municipality-note-title">{latestMunicipalityNotice.body}</h2>
+              </div>
+              <p className={styles.latestNoticeMeta}>{latestMunicipalityNotice.authorName} · Published {formatDate(latestMunicipalityNotice.createdAt)}</p>
+            </section> : null}
+            {latestWardNotice ? <section className={styles.latestNotice} aria-labelledby="latest-ward-note-title">
+              <div>
+                <p className={styles.kicker}>Latest ward note</p>
+                <h2 id="latest-ward-note-title">{latestWardNotice.body}</h2>
+              </div>
+              <p className={styles.latestNoticeMeta}>{latestWardNotice.authorName} · Published {formatDate(latestWardNotice.createdAt)}</p>
+            </section> : null}
             <section className={styles.homeLead} aria-labelledby="overview-title">
               <div>
                 <h2 id="overview-title">What’s happening in your ward</h2>
@@ -478,6 +485,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
               <button type="button" onClick={() => { setFilter("requested"); moveTo("issues"); }}><strong>{counts.requested}</strong><span>Reported</span></button>
               <button type="button" onClick={() => { setFilter("in_progress"); moveTo("issues"); }}><strong>{counts.in_progress}</strong><span>In progress</span></button>
               <button type="button" onClick={() => { setFilter("completed"); moveTo("issues"); }}><strong>{counts.completed}</strong><span>Completed</span></button>
+              <button type="button" onClick={() => { setFilter("rejected"); moveTo("issues"); }}><strong>{counts.rejected}</strong><span>Rejected</span></button>
             </section>
 
             <div className={styles.homeGrid}>
@@ -486,7 +494,17 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
                   <div><p className={styles.kicker}>Open record</p><h2 id="watching-title">Worth watching</h2></div>
                   <button type="button" className={styles.textAction} onClick={() => moveTo("issues")}>View all issues <ArrowUpRight size={16} aria-hidden="true" /></button>
                 </div>
-                {wardIssues.slice(0, 2).map((issue) => <IssueRecord key={issue.id} issue={issue} canDelete={canDeleteIssue(issue)} isDeleting={deletingIssueId === issue.id} onDelete={() => handleDeleteIssue(issue.id)} onOpen={() => { setSelectedIssueId(issue.id); moveTo("issues"); }} onVote={(direction) => handleVote(issue.id, direction)} />)}
+                {openWardIssues.length > 0 ? openWardIssues.slice(0, 2).map((issue) => <IssueRecord key={issue.id} issue={issue} canVote={canVote} viewerId={session?.profileId} onOpen={() => { setSelectedIssueId(issue.id); moveTo("issues"); }} onVote={(direction) => handleVote(issue.id, direction)} />) : (
+                  <div className={styles.homeEmpty} role="status">
+                    <p className={styles.kicker}>No work in progress</p>
+                    <h3>No issues are currently in progress in Ward {ward.number}.</h3>
+                    <p className={styles.homeEmptyCopy}>Reported, completed, and rejected records remain available in the full issue board.</p>
+                    <div className={styles.homeEmptyActions}>
+                      {canReportInWard ? <button type="button" className={styles.secondaryAction} onClick={() => moveTo("report")}><Plus size={17} aria-hidden="true" /> Report an issue</button> : null}
+                      <button type="button" className={styles.textAction} onClick={() => moveTo("issues")}>Browse the issue record <ArrowUpRight size={16} aria-hidden="true" /></button>
+                    </div>
+                  </div>
+                )}
               </section>
 
               <aside className={styles.sideLedger} aria-label="Ward notices and information">
@@ -498,11 +516,6 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
                   </button>
                   <p>{wardOfficial?.roleLabel ?? "Ward administration"} · Current term</p>
                 </section>
-                <section className={styles.miniSection}>
-                  <p className={styles.kicker}>Latest notice</p>
-                  <p className={styles.noticeBody}>{notices[0]?.body}</p>
-                  <span className={styles.finePrint}>Published {notices[0] ? formatDate(notices[0].createdAt) : "recently"}</span>
-                </section>
               </aside>
             </div>
 
@@ -511,7 +524,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
                 <div><p className={styles.kicker}>Public work account</p><h2 id="public-work-title">Ward funds & commitments</h2></div>
                 <p className={styles.budgetNumber}>{formatRupees(ward.spentBudget)} <span>of {formatRupees(ward.allocatedBudget)}</span></p>
               </div>
-              <div className={styles.budgetTrack} aria-label={`${formatRupees(ward.spentBudget)} of ${formatRupees(ward.allocatedBudget)} spent`}><span style={{ width: `${Math.min(100, (ward.spentBudget / ward.allocatedBudget) * 100)}%` }} /></div>
+              <div className={styles.budgetTrack} aria-label={`${formatRupees(ward.spentBudget)} of ${formatRupees(ward.allocatedBudget)} spent`}><span style={{ width: `${ward.allocatedBudget > 0 ? Math.min(100, (ward.spentBudget / ward.allocatedBudget) * 100) : 0}%` }} /></div>
               <div className={styles.workGrid}>
                 <div><h3>Recent spending</h3>{expenditures.length ? expenditures.map((expense) => <p key={expense.id}><span>{expense.description}</span><strong>{formatRupees(expense.amount)}</strong></p>) : <p>No ward expenditure is listed in this demo.</p>}</div>
                 <div><h3>Ward tasks</h3>{tasks.length ? tasks.map((task) => <p key={task.id}><span className={task.completed ? styles.doneTask : ""}>{task.completed ? "Completed" : "Due"}: {task.title}</span><strong>{formatDate(task.dueAt)}</strong></p>) : <p>No tasks are currently published.</p>}</div>
@@ -527,12 +540,12 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
               {canReportInWard ? <button type="button" className={styles.primaryAction} onClick={() => moveTo("report")}><Plus size={19} aria-hidden="true" /> Report issue</button> : null}
             </div>
             <div className={styles.filterBar} role="group" aria-label="Filter issues by status">
-              {(["all", "requested", "in_progress", "completed"] as const).map((item) => <button key={item} type="button" className={filter === item ? styles.filterActive : ""} aria-pressed={filter === item} onClick={() => setFilter(item)}>{item === "all" ? "All reports" : statusCopy[item]}</button>)}
+              {(["all", "requested", "in_progress", "completed", "rejected"] as const).map((item) => <button key={item} type="button" className={filter === item ? styles.filterActive : ""} aria-pressed={filter === item} onClick={() => setFilter(item)}>{item === "all" ? "All reports" : statusCopy[item]}</button>)}
             </div>
             <div className={styles.boardLayout}>
-              <div className={styles.issueList}>{filteredIssues.length ? filteredIssues.map((issue) => <IssueRecord key={issue.id} issue={issue} canDelete={canDeleteIssue(issue)} isDeleting={deletingIssueId === issue.id} onDelete={() => handleDeleteIssue(issue.id)} onOpen={() => setSelectedIssueId(issue.id)} onVote={(direction) => handleVote(issue.id, direction)} />) : <p className={styles.emptyState}>No reports match this status in Ward {ward.number}. Try another filter or report a new concern.</p>}</div>
+              <div className={styles.issueList}>{filteredIssues.length ? filteredIssues.map((issue) => <IssueRecord key={issue.id} issue={issue} canVote={canVote} viewerId={session?.profileId} onOpen={() => setSelectedIssueId(issue.id)} onVote={(direction) => handleVote(issue.id, direction)} />) : <p className={styles.emptyState}>No reports match this status in Ward {ward.number}. Try another filter or report a new concern.</p>}</div>
               <aside className={styles.detailPanel} aria-live="polite">
-                {selectedIssue ? <IssueDetail key={selectedIssue.id} issue={selectedIssue} onClose={() => setSelectedIssueId(null)} canDelete={canDeleteIssue(selectedIssue)} isDeleting={deletingIssueId === selectedIssue.id} onDelete={() => handleDeleteIssue(selectedIssue.id)} /> : <div className={styles.detailEmpty}><FileText size={28} aria-hidden="true" /><h3>Open a report</h3><p>Select any issue to read its evidence and public record.</p></div>}
+                {selectedIssue ? <IssueDetail key={selectedIssue.id} issue={selectedIssue} onClose={() => setSelectedIssueId(null)} /> : <div className={styles.detailEmpty}><FileText size={28} aria-hidden="true" /><h3>Open a report</h3><p>Select any issue to read its evidence and public record.</p></div>}
               </aside>
             </div>
           </section>
@@ -545,9 +558,10 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
             <h2 id="report-title">Report a ward issue</h2>
             <p className={styles.leadCopy}>Your phone number and house details stay private. Your report shows your name only.</p>
             {reportStage === "form" && <form className={styles.reportForm} onSubmit={handleReportSubmit} noValidate aria-busy={isSubmitting}>
-              <div className={styles.formField}><label htmlFor="issue-title">What needs attention?</label><input id="issue-title" name="title" type="text" maxLength={100} placeholder="Example: Streetlight near Nehru Park is off" aria-describedby={formError ? "report-error" : undefined} disabled={isSubmitting} /></div>
-              <div className={styles.formField}><label htmlFor="issue-description">Describe the place and problem</label><textarea id="issue-description" name="description" rows={5} placeholder="Include a nearby landmark so the ward team can find it." aria-describedby="report-help" disabled={isSubmitting} /><p id="report-help">Use the language that is most comfortable for you. We will keep the original text with the report.</p></div>
+              <div className={styles.formField}><label htmlFor="issue-title">What needs attention?</label><input id="issue-title" name="title" type="text" maxLength={100} placeholder="Example: Streetlight near Nehru Park is off" aria-describedby={formError ? "report-error" : undefined} disabled={isSubmitting} onInput={() => setDuplicateDraft(null)} /></div>
+              <div className={styles.formField}><label htmlFor="issue-description">Describe the place and problem</label><textarea id="issue-description" name="description" rows={5} placeholder="Include a nearby landmark so the ward team can find it." aria-describedby="report-help" disabled={isSubmitting} onInput={() => setDuplicateDraft(null)} /><p id="report-help">Use the language that is most comfortable for you. We will keep the original text with the report.</p></div>
               <fieldset className={styles.attachments} disabled={isSubmitting}><legend>Photo or video evidence <span>(optional)</span></legend><input aria-label="Add photo or video evidence" accept="image/*,video/*" multiple onChange={(event) => setEvidenceFiles(Array.from(event.target.files ?? []).slice(0, 3))} type="file" />{evidenceFiles.length > 0 ? <p>{evidenceFiles.map((file) => file.name).join(", ")}</p> : <p>Add up to three photos or videos so the ward team can verify the location.</p>}</fieldset>
+              {duplicateDraft && <aside className={styles.duplicateNotice} role="alert"><p className={styles.kicker}>Possible duplicate</p><p>We found a similar public report. If this is a different problem, you can still create a separate record.</p><ul>{duplicateDraft.matches.map((issue) => <li key={issue.id}>{issue.title}</li>)}</ul><button type="button" className={styles.secondaryAction} onClick={() => void reportAsSeparateIssue()} disabled={isSubmitting}>{isSubmitting ? <><span className={styles.submitSpinner} aria-hidden="true" /> Saving…</> : "Report as a separate issue"}</button></aside>}
               {formError && <p id="report-error" className={styles.formError} role="alert">{formError}</p>}
               <button type="submit" className={`${styles.primaryAction} inline-flex items-center gap-2 transition-transform duration-150 hover:-translate-y-px`} disabled={isSubmitting} aria-busy={isSubmitting}>{isSubmitting ? <><span className={styles.submitSpinner} aria-hidden="true" /> Submitting…</> : <>Submit report <ChevronRight size={19} aria-hidden="true" /></>}</button>
             </form>}
@@ -581,42 +595,6 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
       <footer className={styles.footer}>{dataMode === "demo" ? "NagarSakhi uses synthetic people, records, media and budgets for this demonstration." : "NagarSakhi keeps resident phone and household details outside the public record."}</footer>
     </section>
   );
-}
-
-function DeleteIssueAction({ inline = false, isDeleting, onDelete }: { inline?: boolean; isDeleting: boolean; onDelete: () => void }) {
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const action = <button type="button" className={styles.deleteTrigger} onClick={() => setConfirmingDelete(true)} aria-label="Delete your report" title="Delete your report"><Trash2 size={19} aria-hidden="true" /></button>;
-
-  return <>{inline ? <div className={styles.deleteInlineActions} aria-label="Your report actions">{action}</div> : <section className={styles.ownerActions} aria-label="Your report actions">{action}</section>}{confirmingDelete ? <DeleteConfirmModal isDeleting={isDeleting} onCancel={() => setConfirmingDelete(false)} onConfirm={onDelete} /> : null}</>;
-}
-
-function DeleteConfirmModal({ isDeleting, onCancel, onConfirm }: { isDeleting: boolean; onCancel: () => void; onConfirm: () => void }) {
-  const cancelRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isDeleting) onCancel();
-    };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.addEventListener("keydown", handleKeyDown);
-    cancelRef.current?.focus();
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isDeleting, onCancel]);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(<div className={styles.deleteModal} role="dialog" aria-modal="true" aria-labelledby="delete-report-title" aria-describedby="delete-report-description" onMouseDown={(event) => { if (event.target === event.currentTarget && !isDeleting) onCancel(); }}>
-    <section className={styles.deleteModalPanel}>
-      <div className={styles.deleteModalTop}><span className={styles.deleteModalIcon}><Trash2 size={22} aria-hidden="true" /></span><button type="button" className={styles.deleteModalClose} onClick={onCancel} disabled={isDeleting} aria-label="Close delete confirmation"><X size={21} aria-hidden="true" /></button></div>
-      <h2 id="delete-report-title">Delete this report?</h2>
-      <p id="delete-report-description">Its public record and attachments will be removed. This cannot be undone.</p>
-      <div className={styles.deleteModalActions}><button ref={cancelRef} type="button" className={styles.deleteModalCancel} onClick={onCancel} disabled={isDeleting}>Keep report</button><button type="button" className={styles.deleteAction} onClick={onConfirm} disabled={isDeleting}>{isDeleting ? <><span className={styles.submitSpinner} aria-hidden="true" /> Deleting…</> : <><Trash2 size={17} aria-hidden="true" /> Delete report</>}</button></div>
-    </section>
-  </div>, document.body);
 }
 
 type ResolvedIssueMedia = IssueMedia & {
@@ -722,19 +700,19 @@ function MediaLightbox({ media, onClose }: { media: ResolvedIssueMedia | null; o
   </div>, document.body);
 }
 
-function IssueDetail({ issue, onClose, canDelete, isDeleting, onDelete }: { issue: Issue; onClose: () => void; canDelete: boolean; isDeleting: boolean; onDelete: () => void }) {
+function IssueDetail({ issue, onClose }: { issue: Issue; onClose: () => void }) {
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const resolvedMedia = useResolvedIssueMedia(issue.media);
   const activeMedia = resolvedMedia.find((media) => media.id === activeMediaId && media.resolvedUrl) ?? null;
 
   return <div className={styles.detailContent}>
-    <div className={styles.detailTop}><p>REPORT {issue.id.replace("issue-", "W12-")}</p><button type="button" onClick={onClose} aria-label="Close issue detail"><X size={19} aria-hidden="true" /></button></div>
+    <div className={styles.detailTop}><p>Public report</p><button type="button" onClick={onClose} aria-label="Close issue detail"><X size={19} aria-hidden="true" /></button></div>
     <StatusMark status={issue.status} />
     <h3>{issue.title}</h3>
     <p className={styles.detailDescription}>{issue.description}</p>
+    {issue.status === "rejected" ? <section className={styles.rejectionNotice} aria-label="Reason for rejection"><p className={styles.kicker}>Reason for rejection</p><p>{issue.rejectionReason ?? "The ward office marked this report as rejected."}</p></section> : null}
     <dl className={styles.recordFacts}><div><dt>Reported by</dt><dd>{issue.reporterName}</dd></div><div><dt>First recorded</dt><dd>{formatDate(issue.createdAt)}</dd></div><div><dt>Last public update</dt><dd>{formatDate(issue.updatedAt)}</dd></div>{issue.escalated && <div><dt>Escalation</dt><dd>Sent to ward office</dd></div>}</dl>
     <section className={styles.evidence}><h4>Evidence</h4>{resolvedMedia.length ? <div className={styles.evidenceList}>{resolvedMedia.map((media, index) => <EvidencePreview key={media.id} media={media} index={index} onOpen={() => setActiveMediaId(media.id)} />)}</div> : <p>No photo or video was added to this report.</p>}</section>
-    {canDelete ? <DeleteIssueAction isDeleting={isDeleting} onDelete={onDelete} /> : null}
     <p className={styles.privacyNote}>Only the reporter’s public name is shown here. Contact details remain private.</p>
     <MediaLightbox media={activeMedia} onClose={() => setActiveMediaId(null)} />
   </div>;
