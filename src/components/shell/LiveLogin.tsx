@@ -42,9 +42,27 @@ export function LiveLogin() {
     return () => window.clearInterval(timer);
   }, [resendSeconds]);
 
-  const resetRecaptcha = () => {
-    recaptcha.current?.clear();
+  useEffect(() => () => {
+    const verifier = recaptcha.current;
     recaptcha.current = null;
+    try {
+      verifier?.clear();
+    } catch {
+      // Firebase can race React's DOM cleanup after a solved challenge.
+    }
+  }, []);
+
+  const resetRecaptcha = () => {
+    const verifier = recaptcha.current;
+    recaptcha.current = null;
+    try {
+      verifier?.clear();
+    } catch {
+      // The verifier may already have been detached by the reCAPTCHA iframe.
+    }
+
+    // Ensure the next verifier starts with the empty container Firebase requires.
+    document.getElementById("firebase-recaptcha")?.replaceChildren();
   };
 
   async function requestOtp() {
@@ -79,6 +97,9 @@ export function LiveLogin() {
         await recaptcha.current.render();
       }
       confirmation.current = await signInWithPhoneNumber(auth, `+91${phone}`, recaptcha.current);
+      // The verifier is only needed to request the SMS. Clear it before moving
+      // to OTP so a Google iframe cannot outlive this login step.
+      resetRecaptcha();
       setOtpDigits(Array.from({ length: 6 }, () => ""));
       setStage("code");
       setResendSeconds(30);
@@ -87,7 +108,7 @@ export function LiveLogin() {
       window.setTimeout(() => otpRefs.current[0]?.focus(), 0);
     } catch (error) {
       resetRecaptcha();
-      if (stage === "code") setStage("phone");
+      setStage("phone");
       setMessageTone("error");
       setMessage(friendlyAuthError(error));
     } finally {

@@ -25,8 +25,20 @@ export type EmbeddingRequest = {
   signal?: AbortSignal;
 };
 
+export type EmbeddingBatchRequest = {
+  input: string[];
+  model?: string;
+  dimensions?: number;
+  signal?: AbortSignal;
+};
+
 export type EmbeddingResult = ProviderMetadata & {
   embedding: number[];
+  dimensions: number;
+};
+
+export type EmbeddingBatchResult = ProviderMetadata & {
+  embeddings: number[][];
   dimensions: number;
 };
 
@@ -69,6 +81,7 @@ export type TranscriptionResult = ProviderMetadata & {
 
 export interface EmbeddingProvider {
   embed(request: EmbeddingRequest): Promise<EmbeddingResult>;
+  embedMany(request: EmbeddingBatchRequest): Promise<EmbeddingBatchResult>;
 }
 
 export interface TranslationProvider {

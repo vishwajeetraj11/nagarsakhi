@@ -4,6 +4,8 @@ import { ExternalServiceError, fetchWithTimeout, readJson, type FetchLike } from
 import type {
   AiServices,
   EmbeddingProvider,
+  EmbeddingBatchRequest,
+  EmbeddingBatchResult,
   EmbeddingRequest,
   EmbeddingResult,
   SummarizationProvider,
@@ -78,6 +80,17 @@ export class DemoEmbeddingProvider implements EmbeddingProvider {
       mode: "demo",
       embedding: demoEmbedding(request.input, dimensions),
       dimensions,
+    };
+  }
+
+  async embedMany(request: EmbeddingBatchRequest): Promise<EmbeddingBatchResult> {
+    const results = await Promise.all(request.input.map((input) => this.embed({ ...request, input })));
+    return {
+      provider: "demo",
+      model: "deterministic-local-embedding-v1",
+      mode: "demo",
+      embeddings: results.map((result) => result.embedding),
+      dimensions: results[0]?.dimensions ?? request.dimensions ?? 1536,
     };
   }
 }
@@ -215,6 +228,50 @@ export class OpenAiEmbeddingProvider implements EmbeddingProvider {
       mode: "live",
       embedding: embedding as number[],
       dimensions: embedding.length,
+      requestId: requestId(response),
+    };
+  }
+
+  async embedMany(request: EmbeddingBatchRequest): Promise<EmbeddingBatchResult> {
+    const model = request.model ?? EMBEDDING_MODEL;
+    if (request.input.length === 0) {
+      throw new ExternalServiceError("Embedding input cannot be empty", undefined, false);
+    }
+    const response = await fetchWithTimeout(
+      `${this.baseUrl}/embeddings`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          input: request.input,
+          ...(request.dimensions ? { dimensions: request.dimensions } : {}),
+          encoding_format: "float",
+        }),
+        signal: request.signal,
+      },
+      this.options,
+    );
+    const body = await readJson<unknown>(response);
+    const data = isRecord(body) && Array.isArray(body.data) ? body.data : [];
+    const ordered = data
+      .filter((item): item is JsonObject => isRecord(item) && typeof item.index === "number" && Array.isArray(item.embedding))
+      .sort((left, right) => Number(left.index) - Number(right.index));
+    const embeddings = ordered.map((item) => item.embedding as unknown[]);
+
+    if (embeddings.length !== request.input.length || !embeddings.every((embedding) => embedding.every((value) => typeof value === "number" && Number.isFinite(value)))) {
+      throw new ExternalServiceError("OpenAI response did not include valid embeddings", response.status, false);
+    }
+
+    return {
+      provider: "openai",
+      model,
+      mode: "live",
+      embeddings: embeddings as number[][],
+      dimensions: embeddings[0]?.length ?? request.dimensions ?? 1536,
       requestId: requestId(response),
     };
   }

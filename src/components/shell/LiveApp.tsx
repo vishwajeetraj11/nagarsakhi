@@ -180,5 +180,5 @@ export function LiveApp() {
       corporation_admin: <CorporationExperience data={state.data} dataMode="supabase" session={state.session} />,
     }[state.session.role];
 
-  return <AppShell dataMode="supabase" session={state.session}>{experience}</AppShell>;
+  return <AppShell session={state.session}>{experience}</AppShell>;
 }

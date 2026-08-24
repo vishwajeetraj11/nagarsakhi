@@ -73,6 +73,12 @@ type IssueRow = {
   created_at: string;
   updated_at: string;
 };
+type IssueStatusEventRow = {
+  issue_id: string;
+  to_status: string;
+  changed_by: string;
+  created_at: string;
+};
 type IssueMediaRow = { id: string; issue_id: string; kind: string; storage_path: string; alt_text: string | null; sort_order: number };
 type IssueVoteRow = { issue_id: string; value: number };
 type NoticeRow = { id: string; municipality_id: string; ward_id: string | null; author_id: string; body: string; created_at: string };
@@ -159,6 +165,7 @@ function mapIssueRows(
   mediaRows: IssueMediaRow[],
   voteRows: IssueVoteRow[],
   escalationRows: EscalationRow[],
+  statusEventRows: IssueStatusEventRow[],
   nameByProfile: Map<string, string>,
   mediaUrlByPath: Map<string, string> = new Map(),
 ): Issue[] {
@@ -171,26 +178,37 @@ function mapIssueRows(
 
   const voteByIssue = new Map(voteRows.map((vote) => [vote.issue_id, vote.value]));
   const escalatedIssueIds = new Set(escalationRows.map((escalation) => escalation.issue_id));
+  const rejectionByIssue = new Map(
+    statusEventRows
+      .filter((event) => event.to_status === "rejected")
+      .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
+      .map((event) => [event.issue_id, event]),
+  );
 
-  return issueRows.map((issue) => ({
-    id: issue.id,
-    municipalityId: issue.municipality_id,
-    wardId: issue.ward_id,
-    reporterId: issue.reporter_id,
-    reporterName: nameByProfile.get(issue.reporter_id) ?? "Community reporter",
-    title: issue.title,
-    description: issue.description,
-    originalLanguage: issue.original_language === "hi" ? "hi" : "en",
-    status: isIssueStatus(issue.status) ? issue.status : "requested",
-    rejectionReason: issue.rejection_reason ?? undefined,
-    upvotes: issue.upvote_count,
-    downvotes: issue.downvote_count,
-    viewerVote: voteByIssue.get(issue.id) === 1 ? 1 : voteByIssue.get(issue.id) === -1 ? -1 : 0,
-    media: mediaByIssue.get(issue.id) ?? [],
-    createdAt: issue.created_at,
-    updatedAt: issue.updated_at,
-    escalated: escalatedIssueIds.has(issue.id),
-  }));
+  return issueRows.map((issue) => {
+    const rejection = rejectionByIssue.get(issue.id);
+    return {
+      id: issue.id,
+      municipalityId: issue.municipality_id,
+      wardId: issue.ward_id,
+      reporterId: issue.reporter_id,
+      reporterName: nameByProfile.get(issue.reporter_id) ?? "Community reporter",
+      title: issue.title,
+      description: issue.description,
+      originalLanguage: issue.original_language === "hi" ? "hi" : "en",
+      status: isIssueStatus(issue.status) ? issue.status : "requested",
+      rejectionReason: issue.rejection_reason ?? undefined,
+      rejectionActorName: rejection ? nameByProfile.get(rejection.changed_by) ?? "Ward representative" : undefined,
+      rejectionAt: rejection?.created_at,
+      upvotes: issue.upvote_count,
+      downvotes: issue.downvote_count,
+      viewerVote: voteByIssue.get(issue.id) === 1 ? 1 : voteByIssue.get(issue.id) === -1 ? -1 : 0,
+      media: mediaByIssue.get(issue.id) ?? [],
+      createdAt: issue.created_at,
+      updatedAt: issue.updated_at,
+      escalated: escalatedIssueIds.has(issue.id),
+    };
+  });
 }
 
 export async function loadWardIssues(
@@ -214,17 +232,24 @@ export async function loadWardIssues(
 
   const issueIds = issueRows.map((issue) => issue.id);
   const reporterIds = [...new Set(issueRows.map((issue) => issue.reporter_id))];
-  const [mediaResult, votesResult, escalationsResult, profilesResult] = await Promise.all([
+  const [mediaResult, votesResult, escalationsResult, statusEventsResult] = await Promise.all([
     supabase.from("issue_media").select("id, issue_id, kind, storage_path, alt_text, sort_order").in("issue_id", issueIds).order("sort_order").limit(LIMITS.media),
     supabase.from("issue_votes").select("issue_id, value").eq("voter_id", input.viewerId).in("issue_id", issueIds).limit(LIMITS.votes),
     supabase.from("escalations").select("id, issue_id, reason, status, created_at").in("issue_id", issueIds).order("created_at", { ascending: false }).limit(LIMITS.escalations),
-    supabase.from("public_profiles").select("id, name").in("id", reporterIds).limit(LIMITS.profiles),
+    supabase.from("issue_status_events").select("issue_id, to_status, changed_by, created_at").in("issue_id", issueIds).eq("to_status", "rejected").order("created_at", { ascending: false }).limit(LIMITS.issues),
   ]) as unknown as [
-    QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>, QueryResult<PublicProfileRow[]>,
+    QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>, QueryResult<IssueStatusEventRow[]>,
   ];
 
+  const actorIds = rows(statusEventsResult).map((event) => event.changed_by);
+  const profilesResult = await supabase
+    .from("public_profiles")
+    .select("id, name")
+    .in("id", [...new Set([...reporterIds, ...actorIds])])
+    .limit(LIMITS.profiles) as unknown as QueryResult<PublicProfileRow[]>;
+
   const failure = queryFailure([
-    ["issue media", mediaResult], ["votes", votesResult], ["escalations", escalationsResult], ["reporters", profilesResult],
+    ["issue media", mediaResult], ["votes", votesResult], ["escalations", escalationsResult], ["issue history", statusEventsResult], ["reporters", profilesResult],
   ]);
   if (failure) return failure;
 
@@ -236,7 +261,7 @@ export async function loadWardIssues(
 
   return {
     ok: true,
-    data: mapIssueRows(issueRows, visibleMediaRows, rows(votesResult), rows(escalationsResult), nameByProfile, signedMediaUrls),
+    data: mapIssueRows(issueRows, visibleMediaRows, rows(votesResult), rows(escalationsResult), rows(statusEventsResult), nameByProfile, signedMediaUrls),
   };
 }
 
@@ -356,16 +381,17 @@ export async function loadLiveData(
   const issueIds = new Set(issueRows.map((issue) => issue.id));
   const issueIdList = [...issueIds];
   const emptyRows = { data: [], error: null };
-  const [mediaResult, votesResult, escalationsResult] = issueIdList.length > 0
+  const [mediaResult, votesResult, escalationsResult, statusEventsResult] = issueIdList.length > 0
     ? await Promise.all([
       supabase.from("issue_media").select("id, issue_id, kind, storage_path, alt_text, sort_order").in("issue_id", issueIdList).order("sort_order").limit(LIMITS.media),
       supabase.from("issue_votes").select("issue_id, value").eq("voter_id", viewer.id).in("issue_id", issueIdList).limit(LIMITS.votes),
       supabase.from("escalations").select("id, issue_id, reason, status, created_at").in("issue_id", issueIdList).order("created_at", { ascending: false }).limit(LIMITS.escalations),
-    ]) as unknown as [QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>]
-    : [emptyRows, emptyRows, emptyRows] as [QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>];
+      supabase.from("issue_status_events").select("issue_id, to_status, changed_by, created_at").in("issue_id", issueIdList).eq("to_status", "rejected").order("created_at", { ascending: false }).limit(LIMITS.issues),
+    ]) as unknown as [QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>, QueryResult<IssueStatusEventRow[]>]
+    : [emptyRows, emptyRows, emptyRows, emptyRows] as [QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>, QueryResult<IssueStatusEventRow[]>];
 
   const issueDetailFailure = queryFailure([
-    ["issue media", mediaResult], ["votes", votesResult], ["escalations", escalationsResult],
+    ["issue media", mediaResult], ["votes", votesResult], ["escalations", escalationsResult], ["issue history", statusEventsResult],
   ]);
   if (issueDetailFailure) return issueDetailFailure;
 
@@ -423,7 +449,7 @@ export async function loadLiveData(
   }
 
   const escalationRows = rows(escalationsResult).filter((escalation) => issueIds.has(escalation.issue_id));
-  const issues = mapIssueRows(issueRows, visibleMediaRows, rows(votesResult), escalationRows, nameByProfile, signedMediaUrls);
+  const issues = mapIssueRows(issueRows, visibleMediaRows, rows(votesResult), escalationRows, rows(statusEventsResult), nameByProfile, signedMediaUrls);
 
   const officialById = new Map(rows(officialsResult).map((official) => [official.id, official]));
   const officials: Official[] = rows(termsResult)

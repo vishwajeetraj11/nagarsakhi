@@ -63,6 +63,8 @@ export type Issue = {
   originalLanguage: "en" | "hi";
   status: IssueStatus;
   rejectionReason?: string;
+  rejectionActorName?: string;
+  rejectionAt?: string;
   upvotes: number;
   downvotes: number;
   viewerVote: -1 | 0 | 1;

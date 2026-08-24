@@ -12,11 +12,10 @@ const roleLabel = {
 
 type AppShellProps = {
   children: ReactNode;
-  dataMode: "demo" | "supabase";
   session: DemoSession;
 };
 
-export function AppShell({ children, dataMode, session }: AppShellProps) {
+export function AppShell({ children, session }: AppShellProps) {
   return (
     <div className="app-frame">
       <a className="skip-link" href="#main-content">Skip to main content</a>
@@ -29,7 +28,7 @@ export function AppShell({ children, dataMode, session }: AppShellProps) {
           <div className="session-context">
             <span className="role-chip">{roleLabel[session.role]}</span>
             <span className="session-name">{session.name}</span>
-            <SignOutButton dataMode={dataMode} />
+            <SignOutButton />
           </div>
         </div>
       </header>
