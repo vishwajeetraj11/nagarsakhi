@@ -32,6 +32,10 @@ const statusClass: Record<IssueStatus, string> = {
   rejected: styles.rejected,
 };
 
+const nextIssueStatus = (status: IssueStatus): Exclude<IssueStatus, "requested" | "rejected"> | null => (
+  status === "requested" ? "in_progress" : status === "in_progress" ? "completed" : null
+);
+
 const escalationCopy: Record<Escalation["status"], string> = {
   open: "Open / खुला",
   acknowledged: "Acknowledged / संज्ञान में",
@@ -79,6 +83,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   const [issues, setIssues] = useState(() => data.issues.filter((item) => item.wardId === ward?.id));
   const [selectedIssueId, setSelectedIssueId] = useState(issues[0]?.id ?? "");
   const [auditMessage, setAuditMessage] = useState(dataMode === "demo" ? "No pending official action in this demo session." : "No pending official action in this session.");
+  const [auditTone, setAuditTone] = useState<"success" | "error">("success");
   const [completedTasks, setCompletedTasks] = useState<string[]>(data.alerts.filter((alert) => alert.completed).map((alert) => alert.id));
   const [noticeText, setNoticeText] = useState("");
   const [notices, setNotices] = useState(() => data.notices.filter((notice) => notice.wardId === ward?.id));
@@ -91,6 +96,11 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   const completedCount = issues.filter((item) => item.status === "completed").length;
   const residents = data.publicProfiles.filter((person) => person.wardId === ward?.id).length;
   const wardEscalations = data.escalations.filter((item) => item.wardId === ward?.id);
+
+  function recordAudit(message: string, tone: "success" | "error" = "success") {
+    setAuditMessage(message);
+    setAuditTone(tone);
+  }
 
   if (citizenView) {
     return <>
@@ -107,19 +117,19 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   async function changeStatus(issueId: string, status: IssueStatus) {
     const target = issues.find((item) => item.id === issueId);
     if (!target || target.status === status) return;
+    if (nextIssueStatus(target.status) !== status) {
+      recordAudit("Issue status must move from Reported to In progress, then to Completed.", "error");
+      return;
+    }
     if (dataMode === "supabase") {
-      if (status === "requested" || status === "rejected") {
-        setAuditMessage("Live issue status can only move forward; rejection uses the reasoned rejection action below.");
-        return;
-      }
       const result = await transitionLiveIssue(issueId, status, `Updated from the Ward ${ward?.number ?? ""} official workspace.`);
       if (!result.ok) {
-        setAuditMessage(result.error.message);
+        recordAudit(result.error.message, "error");
         return;
       }
     }
     setIssues((current) => current.map((item) => item.id === issueId ? { ...item, status, updatedAt: new Date().toISOString() } : item));
-    setAuditMessage(`${target.title} marked “${statusCopy[status]}” by ${official?.name ?? "Ward official"}. ${dataMode === "demo" ? "Demo change recorded locally." : "The live audit trail records this transition."}`);
+    recordAudit(`${target.title} marked “${statusCopy[status]}” by ${official?.name ?? "Ward official"}. ${dataMode === "demo" ? "Demo change recorded locally." : "The live audit trail records this transition."}`);
   }
 
   async function rejectIssue(issueId: string) {
@@ -127,7 +137,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
     const reason = rejectionReason.trim();
     if (!target || target.status !== "requested" || rejectingIssueId) return;
     if (reason.length < 8 || reason.length > 500) {
-      setAuditMessage("Add a clear rejection reason between 8 and 500 characters.");
+      recordAudit("Add a clear rejection reason between 8 and 500 characters.", "error");
       return;
     }
     setRejectingIssueId(issueId);
@@ -135,13 +145,13 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
       if (dataMode === "supabase") {
         const result = await rejectLiveIssue(issueId, reason);
         if (!result.ok) {
-          setAuditMessage(result.error.message);
+          recordAudit(result.error.message, "error");
           return;
         }
       }
       setIssues((current) => current.map((item) => item.id === issueId ? { ...item, status: "rejected", rejectionReason: reason, updatedAt: new Date().toISOString() } : item));
       setRejectionReason("");
-      setAuditMessage(`${target.title} was rejected by ${official?.name ?? "Ward official"}. The reason is now part of the public record.`);
+      recordAudit(`${target.title} was rejected by ${official?.name ?? "Ward official"}. The reason is now part of the public record.`);
     } finally {
       setRejectingIssueId(null);
     }
@@ -155,7 +165,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
     if (dataMode === "supabase") {
       const result = await publishLiveNotice({ municipalityId: data.municipality.id, wardId: ward.id, body });
       if (!result.ok) {
-        setAuditMessage(result.error.message);
+        recordAudit(result.error.message, "error");
         return;
       }
       noticeId = result.data.id;
@@ -164,11 +174,12 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
     const notice: Notice = { id: noticeId, municipalityId: data.municipality.id, wardId: ward.id, authorName: official?.name ?? "Ward Parshad", body, createdAt: new Date().toISOString() };
     setNotices((current) => [notice, ...current]);
     setNoticeText("");
-    setAuditMessage(dataMode === "demo" ? `Draft notice published locally by ${notice.authorName}. It remains demo data.` : `Public ward notice published by ${notice.authorName}.`);
+    recordAudit(dataMode === "demo" ? `Draft notice published locally by ${notice.authorName}. It remains demo data.` : `Public ward notice published by ${notice.authorName}.`);
   }
 
   if (!ward) return null;
   const wardLocality = wardLocalityName(ward.name);
+  const selectedNextStatus = selectedIssue ? nextIssueStatus(selectedIssue.status) : null;
 
   return <main className={styles.workspace} aria-label={`Ward ${ward.number} Parshad workspace`}>
     <header className={styles.masthead}>
@@ -211,17 +222,17 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
           <p className={styles.issueDescription}>{selectedIssue.description}</p>
           <dl className={styles.detailMeta}><div><dt>Reporter</dt><dd>{selectedIssue.reporterName}</dd></div><div><dt>Language</dt><dd>{selectedIssue.originalLanguage === "hi" ? "Hindi / हिन्दी" : "English"}</dd></div><div><dt>Last record</dt><dd>{formatDate(selectedIssue.updatedAt)}</dd></div></dl>
           {selectedIssue.media.length > 0 && <div className={styles.evidence}><p className={styles.kicker}>Attached evidence</p><div className={styles.evidenceStrip}>{selectedIssue.media.map((media) => <figure key={media.id}>{media.kind === "video" ? <video src={media.url} controls preload="metadata" width={144} height={104} aria-label={media.alt ?? "Issue video evidence"} /> : <Image src={media.url} alt={media.alt ?? "Issue evidence"} width={144} height={104} unoptimized={dataMode === "supabase"} />}<figcaption>{media.kind === "photo" ? "Photo evidence" : media.kind === "video" ? "Video evidence" : "Audio statement"}</figcaption></figure>)}</div></div>}
-          {selectedIssue.status !== "rejected" ? <fieldset className={styles.statusField}><legend>Record a status update</legend><p>{dataMode === "demo" ? "Choose an explicit status. This demo records the change locally; it does not publish an official decision." : "Choose the next explicit status. Live transitions are role-checked and audited."}</p><div className={styles.statusActions}>{(["requested", "in_progress", "completed"] as const).map((status) => <button type="button" key={status} onClick={() => changeStatus(selectedIssue.id, status)} className={selectedIssue.status === status ? styles.currentStatus : ""} aria-pressed={selectedIssue.status === status}>{statusCopy[status]}</button>)}</div></fieldset> : <div className={styles.rejectionNotice}><b>Rejected report. This decision is terminal.</b><span>Reason: {selectedIssue.rejectionReason ?? "No reason recorded."}</span></div>}
+          {selectedIssue.status === "rejected" ? <div className={styles.rejectionNotice}><b>Rejected report. This decision is terminal.</b><span>Reason: {selectedIssue.rejectionReason ?? "No reason recorded."}</span></div> : selectedNextStatus ? <fieldset className={styles.statusField}><legend>Record a status update</legend><p>{selectedNextStatus === "in_progress" ? "New reports move to In progress first. Mark them completed only after work is underway and verified." : "This report is in progress. Mark it completed once the work is verified."}</p><div className={styles.statusActions}><button type="button" onClick={() => void changeStatus(selectedIssue.id, selectedNextStatus)}>{selectedNextStatus === "in_progress" ? "Move to In progress / कार्य जारी" : "Mark completed / पूर्ण"}</button></div></fieldset> : null}
           {selectedIssue.status === "requested" ? <form className={styles.rejectionField} onSubmit={(event) => { event.preventDefault(); void rejectIssue(selectedIssue.id); }}><label htmlFor="rejection-reason">Reject this report <span>Reason required</span></label><textarea id="rejection-reason" value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} maxLength={500} rows={3} placeholder="Explain why the ward office cannot accept this report." disabled={rejectingIssueId === selectedIssue.id} /><div><small>{rejectionReason.length}/500</small><button type="submit" className={styles.rejectButton} disabled={rejectingIssueId === selectedIssue.id || rejectionReason.trim().length < 8}>{rejectingIssueId === selectedIssue.id ? "Rejecting…" : "Reject issue"}</button></div></form> : null}
           {selectedIssue.escalated && <div className={styles.escalationBand}><b>Escalated / प्रेषित</b><span>This report has a corporation follow-up record. Keep the resident update specific.</span></div>}
         </article>}
       </div>
-      <div className={styles.auditFeedback} role="status"><b>Audited feedback</b><AuditLine>{auditMessage}</AuditLine></div>
+      <div className={`${styles.auditFeedback} ${auditTone === "error" ? styles.auditError : ""}`} role={auditTone === "error" ? "alert" : "status"}><b>{auditTone === "error" ? "Action could not be completed" : "Audited feedback"}</b><AuditLine>{auditMessage}</AuditLine></div>
     </section>
 
     <div className={styles.secondaryColumns}>
       <section className={styles.section} aria-labelledby="tasks-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Ward calendar</p><h2 id="tasks-title">Required follow-ups</h2></div></div>
-        <ul className={styles.taskList}>{activeTasks.map((task) => { const done = completedTasks.includes(task.id); return <li key={task.id}><label><input type="checkbox" checked={done} onChange={async () => { const nextDone = !done; if (dataMode === "supabase") { const result = await setLiveAlertCompletion(task.id, nextDone); if (!result.ok) { setAuditMessage(result.error.message); return; } } setCompletedTasks((current) => done ? current.filter((id) => id !== task.id) : [...current, task.id]); setAuditMessage(`${task.title} marked ${nextDone ? "complete" : "open"}${dataMode === "demo" ? " in this local demo session" : ""}.`); }} /><span><b>{task.title}</b><small>Due {formatDate(task.dueAt)} · {task.description}</small></span></label><span className={done ? styles.doneMark : styles.openMark}>{done ? "Complete" : "Open"}</span></li>; })}</ul>
+        <ul className={styles.taskList}>{activeTasks.map((task) => { const done = completedTasks.includes(task.id); return <li key={task.id}><label><input type="checkbox" checked={done} onChange={async () => { const nextDone = !done; if (dataMode === "supabase") { const result = await setLiveAlertCompletion(task.id, nextDone); if (!result.ok) { recordAudit(result.error.message, "error"); return; } } setCompletedTasks((current) => done ? current.filter((id) => id !== task.id) : [...current, task.id]); recordAudit(`${task.title} marked ${nextDone ? "complete" : "open"}${dataMode === "demo" ? " in this local demo session" : ""}.`); }} /><span><b>{task.title}</b><small>Due {formatDate(task.dueAt)} · {task.description}</small></span></label><span className={done ? styles.doneMark : styles.openMark}>{done ? "Complete" : "Open"}</span></li>; })}</ul>
       </section>
       <section className={styles.section} aria-labelledby="notice-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Resident notice</p><h2 id="notice-title">Share a ward update</h2></div></div>
         <form className={styles.noticeForm} onSubmit={publishWardNotice}><label htmlFor="ward-notice">Notice text <span>(public)</span></label><textarea id="ward-notice" value={noticeText} onChange={(event) => setNoticeText(event.target.value)} placeholder="Example: Drain cleaning will begin on…" maxLength={280} /><div><small>{noticeText.length}/280</small><button type="submit" disabled={!noticeText.trim()}>{dataMode === "demo" ? "Publish local draft" : "Publish ward notice"}</button></div></form>
@@ -249,7 +260,20 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
     ? Math.round((allIssues.filter((issue) => issue.status !== "requested").length / allIssues.length) * 100)
     : 0;
 
-  const issuesByWard = data.wards.map((ward) => ({ ward, issues: allIssues.filter((issue) => issue.wardId === ward.id), escalations: escalations.filter((item) => item.wardId === ward.id) }));
+  const wardRows = data.wards.map((ward) => {
+    const issues = allIssues.filter((issue) => issue.wardId === ward.id);
+    const wardEscalations = escalations.filter((item) => item.wardId === ward.id);
+    const official = data.officials.find((person) => person.wardId === ward.id && person.current);
+    return {
+      ward,
+      issues,
+      escalations: wardEscalations,
+      official,
+      inFlight: issues.filter((issue) => issue.status !== "completed" && issue.status !== "rejected").length,
+      completed: issues.filter((issue) => issue.status === "completed").length,
+      used: ward.allocatedBudget > 0 ? Math.round((ward.spentBudget / ward.allocatedBudget) * 100) : 0,
+    };
+  });
   const selectedWard = data.wards.find((ward) => ward.id === selectedWardId);
 
   function openWard(wardId: string) {
@@ -360,11 +384,12 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
     <section className={styles.ledgerSummary} aria-label="Corporation indicators"><div><span>Total reports</span><strong>{allIssues.length}</strong><small>{unresolved} still active</small></div><div><span>Escalations</span><strong>{activeEscalations.length}</strong><small>Require tracking</small></div><div><span>Ward coverage</span><button type="button" className={styles.metricButton} onClick={() => document.getElementById("ward-overview")?.scrollIntoView({ behavior: "smooth" })}><strong>{coveredWardIds.size}/{data.wards.length}</strong><small>Open ward register ↓</small></button></div><div><span>Compliance signal</span><strong>{compliancePercent}%</strong><small>Status updated or closed</small></div></section>
 
     <section id="ward-overview" className={styles.section} aria-labelledby="ward-overview-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Cross-ward register</p><h2 id="ward-overview-title">Where intervention is needed</h2></div><p>Compact records become labelled entries on small screens.</p></div>
-      <div className={styles.tableWrap}><table className={styles.wardTable}><thead><tr><th>Ward</th><th>Parshad & term</th><th>Issues</th><th>Escalation</th><th>Budget used</th><th>Review</th></tr></thead><tbody>{issuesByWard.map(({ ward, issues, escalations: wardEscalations }) => { const official = data.officials.find((person) => person.wardId === ward.id && person.current); const inFlight = issues.filter((issue) => issue.status !== "completed" && issue.status !== "rejected").length; const used = ward.allocatedBudget > 0 ? Math.round((ward.spentBudget / ward.allocatedBudget) * 100) : 0; return <tr key={ward.id}><td data-label="Ward"><button type="button" className={styles.wardLink} onClick={() => openWard(ward.id)}><b>{ward.number}</b><span>{wardLocalityName(ward.name) ?? `Ward ${ward.number}`}</span></button></td><td data-label="Parshad & term"><b>{official?.name ?? "Unassigned"}</b><span>{official?.current ? "Current term · Active" : "Term record pending"}</span></td><td data-label="Issues"><b>{inFlight} active</b><span>{issues.filter((issue) => issue.status === "completed").length} completed</span></td><td data-label="Escalation"><b>{wardEscalations.length ? escalationCopy[wardEscalations[0].status] : "None"}</b><span>{wardEscalations[0] ? `${wardEscalations.length} follow-up record${wardEscalations.length === 1 ? "" : "s"}` : "No record"}</span></td><td data-label="Budget used"><b>{formatRupees(ward.spentBudget)}</b><span>{used}% of {formatRupees(ward.allocatedBudget)}</span></td><td data-label="Review"><button type="button" className={styles.tableAction} onClick={() => openWard(ward.id)}>Open ward →</button></td></tr>; })}</tbody></table></div>
+      <div className={`${styles.tableWrap} ${styles.wardOverviewTable}`}><table className={styles.wardTable}><thead><tr><th>Ward</th><th>Parshad & term</th><th>Issues</th><th>Escalation</th><th>Budget used</th><th>Review</th></tr></thead><tbody>{wardRows.map(({ ward, escalations: wardEscalations, official, inFlight, completed, used }) => <tr key={ward.id}><td data-label="Ward"><div><b>{ward.number}</b><span>{wardLocalityName(ward.name) ?? `Ward ${ward.number}`}</span></div></td><td data-label="Parshad & term"><b>{official?.name ?? "Unassigned"}</b><span>{official?.current ? "Current term · Active" : "Term record pending"}</span></td><td data-label="Issues"><b>{inFlight} active</b><span>{completed} completed</span></td><td data-label="Escalation"><b>{wardEscalations.length ? escalationCopy[wardEscalations[0].status] : "None"}</b><span>{wardEscalations[0] ? `${wardEscalations.length} follow-up record${wardEscalations.length === 1 ? "" : "s"}` : "No record"}</span></td><td data-label="Budget used"><b>{formatRupees(ward.spentBudget)}</b><span>{used}% of {formatRupees(ward.allocatedBudget)}</span></td><td data-label="Review"><button type="button" className={styles.tableAction} onClick={() => openWard(ward.id)}>Open ward →</button></td></tr>)}</tbody></table></div>
+      <div className={styles.mobileWardAccordion} aria-label="Mobile ward register">{wardRows.map(({ ward, escalations: wardEscalations, official, inFlight, completed, used }) => <details className={styles.mobileWardItem} key={ward.id}><summary className={styles.mobileWardSummary}><span><b>Ward {ward.number}</b><small>{wardLocalityName(ward.name) ?? "Ward register"}</small></span><span aria-hidden="true">⌄</span></summary><div className={styles.mobileWardDetails}><dl className={styles.mobileWardFacts}><div><dt>Parshad & term</dt><dd><b>{official?.name ?? "Unassigned"}</b><small>{official?.current ? "Current term · Active" : "Term record pending"}</small></dd></div><div><dt>Issues</dt><dd><b>{inFlight} active</b><small>{completed} completed</small></dd></div><div><dt>Escalation</dt><dd><b>{wardEscalations.length ? escalationCopy[wardEscalations[0].status] : "None"}</b><small>{wardEscalations[0] ? `${wardEscalations.length} follow-up record${wardEscalations.length === 1 ? "" : "s"}` : "No record"}</small></dd></div><div><dt>Budget used</dt><dd><b>{formatRupees(ward.spentBudget)}</b><small>{used}% of {formatRupees(ward.allocatedBudget)}</small></dd></div></dl><button type="button" className={styles.tableAction} onClick={() => openWard(ward.id)}>Open ward →</button></div></details>)}</div>
     </section>
 
     <section className={styles.section} aria-labelledby="escalation-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Escalated issues</p><h2 id="escalation-title">Corporation follow-up register</h2></div><p>Open a ward to read its full issue and activity record.</p></div>
-      {escalations.length > 0 ? <div className={styles.tableWrap}><table className={`${styles.wardTable} ${styles.escalationTable}`}><thead><tr><th>Ward</th><th>Parshad</th><th>Issue</th><th>Budget</th><th>Requested</th><th>Status</th><th>Ward record</th></tr></thead><tbody>{escalations.map((item) => { const ward = data.wards.find((candidate) => candidate.id === item.wardId); const used = ward && ward.allocatedBudget > 0 ? Math.round((ward.spentBudget / ward.allocatedBudget) * 100) : 0; return <tr key={item.id}><td data-label="Ward"><button type="button" className={styles.wardLink} onClick={() => openWard(item.wardId)}><b>{item.wardNumber}</b><span>{ward ? wardLocalityName(ward.name) ?? `Ward ${item.wardNumber}` : "Ward record"}</span></button></td><td data-label="Parshad"><b>{item.parshadName}</b><span>Current representative</span></td><td data-label="Issue"><b>{item.issueTitle}</b><span>{item.reason}</span></td><td data-label="Budget"><b>{formatRupees(ward?.spentBudget ?? 0)}</b><span>{used}% used</span></td><td data-label="Requested"><b>{formatDate(item.createdAt)}</b><span>Corporation follow-up</span></td><td data-label="Status"><label className={styles.statusSelect}><span>Corporation status</span><select value={item.status} onChange={(event) => updateEscalation(item.id, event.target.value as Escalation["status"])}><option value="open">Open / खुला</option><option value="acknowledged">Acknowledged / संज्ञान में</option><option value="resolved">Resolved / समाधान</option></select></label></td><td data-label="Ward record"><button type="button" className={styles.tableAction} onClick={() => openWard(item.wardId)}>Open ward →</button></td></tr>; })}</tbody></table></div> : <div className={styles.emptyState}><b>No escalated issues</b><p>New ward escalations will appear here with their request date, budget context, and responsible Parshad.</p></div>}
+      {escalations.length > 0 ? <div className={styles.tableWrap}><table className={`${styles.wardTable} ${styles.escalationTable}`}><thead><tr><th>Ward</th><th>Parshad</th><th>Issue</th><th>Budget</th><th>Requested</th><th>Status</th><th>Ward record</th></tr></thead><tbody>{escalations.map((item) => { const ward = data.wards.find((candidate) => candidate.id === item.wardId); const used = ward && ward.allocatedBudget > 0 ? Math.round((ward.spentBudget / ward.allocatedBudget) * 100) : 0; return <tr key={item.id}><td data-label="Ward"><div><b>{item.wardNumber}</b><span>{ward ? wardLocalityName(ward.name) ?? `Ward ${item.wardNumber}` : "Ward record"}</span></div></td><td data-label="Parshad"><b>{item.parshadName}</b><span>Current representative</span></td><td data-label="Issue"><b>{item.issueTitle}</b><span>{item.reason}</span></td><td data-label="Budget"><b>{formatRupees(ward?.spentBudget ?? 0)}</b><span>{used}% used</span></td><td data-label="Requested"><b>{formatDate(item.createdAt)}</b><span>Corporation follow-up</span></td><td data-label="Status"><label className={styles.statusSelect}><span>Corporation status</span><select value={item.status} onChange={(event) => updateEscalation(item.id, event.target.value as Escalation["status"])}><option value="open">Open / खुला</option><option value="acknowledged">Acknowledged / संज्ञान में</option><option value="resolved">Resolved / समाधान</option></select></label></td><td data-label="Ward record"><button type="button" className={styles.tableAction} onClick={() => openWard(item.wardId)}>Open ward →</button></td></tr>; })}</tbody></table></div> : <div className={styles.emptyState}><b>No escalated issues</b><p>New ward escalations will appear here with their request date, budget context, and responsible Parshad.</p></div>}
     </section>
 
     <section className={styles.section} aria-labelledby="budget-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Public spending</p><h2 id="budget-title">Municipality budget & expenditure</h2></div></div><div className={styles.budgetTotal}><span>All wards in this register</span><strong>{formatRupees(spent)}</strong><small>of {formatRupees(allocated)} allocated</small></div><ol className={styles.expenditureList}>{data.expenditures.map((item) => { const ward = data.wards.find((candidate) => candidate.id === item.wardId); return <li key={item.id}><div><b>Ward {ward?.number} · {item.description}</b><small>{formatDate(item.spentAt)}</small></div><strong>{formatRupees(item.amount)}</strong></li>; })}</ol></section>
