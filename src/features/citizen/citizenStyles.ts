@@ -38,6 +38,8 @@ const styles: Record<string, string> = {
   issueMeta: "mt-3 flex min-w-0 flex-wrap gap-x-3 gap-y-[.4rem] text-[.78rem] text-[var(--muted)]",
   rejectionSummary: "mt-4 border-l-2 border-[var(--red)] bg-[oklch(96%_.025_27)] px-3 py-2 text-[.82rem] leading-[1.45] text-[var(--ink)] [&_strong]:text-[var(--red)] [&_small]:mt-1 [&_small]:block [&_small]:text-[var(--muted)]",
   escalated: "font-bold text-[var(--red)]",
+  escalationStatus: "font-bold text-[var(--red)]",
+  escalationStatusDot: "!bg-[var(--red)]",
   escalationNotice: "my-5 grid gap-1 border-l-[3px] border-[var(--red)] bg-[oklch(96%_.025_27)] px-4 py-3 text-[.86rem] leading-[1.4] [&_strong]:text-[var(--red)] [&_span]:text-[var(--muted)]",
   status: "inline-flex items-center gap-[.33rem] whitespace-nowrap text-[.72rem] font-bold text-[var(--ink)]",
   statusDot: "h-2 w-2 rounded-full bg-[var(--marigold)]",

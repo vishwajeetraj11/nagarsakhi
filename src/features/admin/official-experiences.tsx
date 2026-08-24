@@ -42,6 +42,12 @@ const escalationCopy: Record<Escalation["status"], string> = {
   resolved: "Resolved / समाधान",
 };
 
+const escalationStateCopy: Record<Escalation["status"], string> = {
+  open: "Escalated / प्रेषित",
+  acknowledged: "Escalated · Acknowledged / प्रेषित · संज्ञान में",
+  resolved: "Escalated · Resolved / प्रेषित · समाधान",
+};
+
 const formatDate = (value: string) => new Intl.DateTimeFormat("en-IN", {
   day: "numeric", month: "short", year: "numeric",
 }).format(new Date(value));
@@ -52,6 +58,12 @@ const formatRupees = (value: number) => new Intl.NumberFormat("en-IN", {
 
 function StatusPill({ status }: { status: IssueStatus }) {
   return <span className={`${styles.statusPill} ${statusClass[status]}`}>{statusCopy[status]}</span>;
+}
+
+function IssueStatePill({ issue }: { issue: Issue }) {
+  return issue.escalated
+    ? <span className={styles.escalatedPill}>{issue.escalationStatus ? escalationStateCopy[issue.escalationStatus] : "Escalated / प्रेषित"}</span>
+    : <StatusPill status={issue.status} />;
 }
 
 function WorkspaceNotice({ dataMode }: { dataMode: "demo" | "supabase" }) {
@@ -85,7 +97,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
     return escalation ? { ...issue, escalated: true, escalationStatus: escalation.status } : issue;
   }));
   const [selectedIssueId, setSelectedIssueId] = useState(issues[0]?.id ?? "");
-  const [auditMessage, setAuditMessage] = useState(dataMode === "demo" ? "No pending official action in this demo session." : "No pending official action in this session.");
+  const [auditMessage, setAuditMessage] = useState("");
   const [auditTone, setAuditTone] = useState<"success" | "error">("success");
   const [completedTasks, setCompletedTasks] = useState<string[]>(data.alerts.filter((alert) => alert.completed).map((alert) => alert.id));
   const [noticeText, setNoticeText] = useState("");
@@ -221,9 +233,9 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
       <div>
         <p className={styles.eyebrow}>Parshad desk / पार्षद डेस्क</p>
         <h1>Ward {ward.number}{wardLocality ? <><span> · </span>{wardLocality}</> : null}</h1>
-        <p className={styles.roleLine}>{official?.name ?? "Ward Parshad"} <b>Ward Parshad</b> · {data.municipality.name}</p>
+        <p className={styles.roleLine}>{official?.name ?? "Parshad not assigned"} · {data.municipality.name}</p>
       </div>
-      <div className={styles.wardStamp} aria-label={`Ward ${ward.number} context`}><b>{ward.number}</b><span>ward<br />register</span></div>
+      <div className={styles.wardStamp} aria-label={`${completedCount} fixed issues`}><b>{completedCount}</b><span>fixed<br />issues</span></div>
     </header>
     <div className={styles.roleSwitchBar} role="group" aria-label="Role view">
       <span>Viewing as <b>Parshad</b></span>
@@ -234,7 +246,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
     <section className={styles.ledgerSummary} aria-label={`Ward ${ward.number} summary`}>
       <div><span>Residents listed</span><strong>{residents}</strong><small>Public names only</small></div>
       <div><span>Needs action</span><strong>{requestedCount}</strong><small>Resident reports</small></div>
-      <div><span>Closed</span><strong>{completedCount}</strong><small>Verified updates</small></div>
+      <div><span>Fixed</span><strong>{completedCount}</strong><small>Fixed issues</small></div>
       <div><span>Ward balance</span><strong>{formatRupees(ward.allocatedBudget - ward.spentBudget)}</strong><small>of {formatRupees(ward.allocatedBudget)}</small></div>
     </section>
 
@@ -248,14 +260,13 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
           {issues.map((issue, index) => <button key={issue.id} className={`${styles.issueRow} ${selectedIssue?.id === issue.id ? styles.activeIssue : ""}`} onClick={() => { setSelectedIssueId(issue.id); setEscalationReason(""); }} aria-pressed={selectedIssue?.id === issue.id}>
             <span className={styles.issueNumber}>{String(index + 1).padStart(2, "0")}</span>
             <span className={styles.issueWords}><b>{issue.title}</b><small>{formatDate(issue.createdAt)} · {issue.upvotes} supports</small></span>
-            <span className={styles.issueBadges} aria-label={`${statusCopy[issue.status]}${issue.escalated ? ", escalated" : ""}`}>
-              <StatusPill status={issue.status} />
-              {issue.escalated && <span className={styles.escalatedPill}>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated / प्रेषित"}</span>}
+            <span className={styles.issueBadges} aria-label={issue.escalated && issue.escalationStatus ? escalationStateCopy[issue.escalationStatus] : statusCopy[issue.status]}>
+              <IssueStatePill issue={issue} />
             </span>
           </button>)}
         </div>
         {selectedIssue && <article className={styles.issueDetail} aria-live="polite">
-          <div className={styles.detailTop}><StatusPill status={selectedIssue.status} /></div>
+          <div className={styles.detailTop}><IssueStatePill issue={selectedIssue} /></div>
           <h3>{selectedIssue.title}</h3>
           <p className={styles.issueDescription}>{selectedIssue.description}</p>
           <dl className={styles.detailMeta}><div><dt>Reporter</dt><dd>{selectedIssue.reporterName}</dd></div><div><dt>Recorded on</dt><dd>{formatDate(selectedIssue.updatedAt)}</dd></div></dl>
@@ -266,7 +277,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
           {selectedIssue.escalated && <div className={styles.escalationBand}><b>{selectedIssue.escalationStatus ? escalationCopy[selectedIssue.escalationStatus] : "Escalated / प्रेषित"}</b><span>This report has a corporation follow-up record. Keep the resident update specific.</span></div>}
         </article>}
       </div>
-      <div className={`${styles.auditFeedback} ${auditTone === "error" ? styles.auditError : ""}`} role={auditTone === "error" ? "alert" : "status"}><b>{auditTone === "error" ? "Action could not be completed" : "Audited feedback"}</b><AuditLine>{auditMessage}</AuditLine></div>
+      {auditMessage ? <div className={`${styles.auditFeedback} ${auditTone === "error" ? styles.auditError : ""}`} role={auditTone === "error" ? "alert" : "status"}><b>{auditTone === "error" ? "Action could not be completed" : "Audited feedback"}</b><AuditLine>{auditMessage}</AuditLine></div> : null}
     </section>
 
     <div className={styles.secondaryColumns}>

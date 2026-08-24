@@ -85,6 +85,12 @@ const escalationCopy: Record<EscalationStatus, string> = {
   resolved: "Resolved by corporation",
 };
 
+const escalationStateCopy: Record<EscalationStatus, string> = {
+  open: "Escalated to corporation",
+  acknowledged: "Escalated · Acknowledged by corporation",
+  resolved: "Escalated · Resolved by corporation",
+};
+
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 
@@ -110,6 +116,14 @@ function StatusMark({ status }: { status: IssueStatus }) {
   );
 }
 
+function IssueStateMark({ issue }: { issue: Issue }) {
+  if (!issue.escalated) return <StatusMark status={issue.status} />;
+  return <span className={`${styles.status} ${styles.escalationStatus}`}>
+    <span aria-hidden="true" className={`${styles.statusDot} ${styles.escalationStatusDot}`} />
+    {issue.escalationStatus ? escalationStateCopy[issue.escalationStatus] : "Escalated to corporation"}
+  </span>;
+}
+
 function IssueRecord({ issue, onOpen, onVote, canVote, viewerId }: {
   issue: Issue;
   onOpen: () => void;
@@ -124,7 +138,7 @@ function IssueRecord({ issue, onOpen, onVote, canVote, viewerId }: {
     <article className={styles.issueRecord}>
       <button type="button" className={styles.issueOpen} onClick={onOpen} aria-label={`Open issue: ${issue.title}`}>
         <div className={styles.issueEyebrow}>
-          <StatusMark status={issue.status} />
+          <IssueStateMark issue={issue} />
         </div>
         <h3>{issue.title}</h3>
         <p>{issue.description}</p>
@@ -132,7 +146,6 @@ function IssueRecord({ issue, onOpen, onVote, canVote, viewerId }: {
           <span>By {issue.reporterName}</span>
           <span>{formatDate(issue.createdAt)}</span>
           {mediaCount > 0 && <span>{mediaCount} attachment{mediaCount > 1 ? "s" : ""}</span>}
-          {issue.escalated && <span className={styles.escalated}>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated"}</span>}
         </div>
         {issue.status === "rejected" && <div className={styles.rejectionSummary}><strong>Rejected: </strong>{issue.rejectionReason ?? "The ward office did not accept this report."}<small>Decision by {issue.rejectionActorName ?? "Ward representative"} · {issue.rejectionAt ? formatTimestamp(issue.rejectionAt) : formatDate(issue.updatedAt)}</small></div>}
       </button>
@@ -729,7 +742,7 @@ function IssueDetail({ issue, onClose }: { issue: Issue; onClose: () => void }) 
 
   return <div className={styles.detailContent}>
     <div className={styles.detailTop}><button type="button" onClick={onClose} aria-label="Close issue detail"><X size={19} aria-hidden="true" /></button></div>
-    <StatusMark status={issue.status} />
+    <IssueStateMark issue={issue} />
     {issue.escalated && <div className={styles.escalationNotice} role="status"><strong>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated to corporation"}</strong><span>Corporation follow-up is recorded on this report.</span></div>}
     <h3>{issue.title}</h3>
     <p className={styles.detailDescription}>{issue.description}</p>
