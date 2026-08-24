@@ -73,7 +73,7 @@ const styles: Record<string, string> = {
   detailPanel: "min-h-[19rem] border border-[var(--rule)] bg-[oklch(99%_.004_240)] min-[60rem]:sticky min-[60rem]:top-4",
   detailEmpty: "grid min-h-[19rem] place-items-center p-8 text-center text-[var(--muted)] [&_h3]:mt-3 [&_h3]:text-[var(--ink)] [&_p]:max-w-[25ch] [&_p]:leading-[1.5]",
   detailContent: "p-5 [&_h3]:mb-3 [&_h3]:mt-3 [&_h3]:text-[1.55rem] [&_h3]:leading-[1.18] [&_h3]:tracking-[-.035em]",
-  detailTop: "mb-4 flex items-center justify-between [&_p]:m-0 [&_p]:text-[.75rem] [&_p]:font-bold [&_p]:tracking-[.06em] [&_p]:text-[var(--muted)] [&_button]:h-11 [&_button]:w-11 [&_button]:border-0 [&_button]:bg-transparent",
+  detailTop: "mb-4 flex items-center justify-end [&_button]:h-11 [&_button]:w-11 [&_button]:border-0 [&_button]:bg-transparent",
   detailDescription: "m-0 leading-[1.6] text-[var(--muted)]",
   rejectionNotice: "my-5 border-l-[3px] border-[var(--red)] bg-[color-mix(in_oklch,var(--red)_8%,var(--paper))] px-4 py-3 [&_.kicker]:mb-1 [&>p:not(.kicker)]:m-0 [&>p:not(.kicker)]:leading-[1.5]",
   rejectionFacts: "mt-3 grid gap-2 border-t border-[color-mix(in_oklch,var(--red)_22%,var(--rule))] pt-3 text-[.82rem] [&_div]:flex [&_div]:justify-between [&_div]:gap-3 [&_dt]:text-[var(--muted)] [&_dd]:m-0 [&_dd]:text-right [&_dd]:font-semibold",

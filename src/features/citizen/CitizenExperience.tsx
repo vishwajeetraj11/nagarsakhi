@@ -68,14 +68,14 @@ const viewForPath = (pathname: string | null): View => {
 const statusCopy: Record<IssueStatus, string> = {
   requested: "Reported",
   in_progress: "In progress",
-  completed: "Completed",
+  completed: "Fixed",
   rejected: "Rejected",
 };
 
 const statusHindi: Record<IssueStatus, string> = {
   requested: "दर्ज किया गया",
   in_progress: "काम जारी है",
-  completed: "पूरा हुआ",
+  completed: "ठीक हुआ",
   rejected: "अस्वीकृत",
 };
 
@@ -118,7 +118,6 @@ function IssueRecord({ issue, onOpen, onVote, canVote, viewerId }: {
     <article className={styles.issueRecord}>
       <button type="button" className={styles.issueOpen} onClick={onOpen} aria-label={`Open issue: ${issue.title}`}>
         <div className={styles.issueEyebrow}>
-          <span>Public report</span>
           <StatusMark status={issue.status} />
         </div>
         <h3>{issue.title}</h3>
@@ -493,7 +492,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
             <section className={styles.pulse} aria-label="Issue status summary">
               <button type="button" onClick={() => { setFilter("requested"); moveTo("issues"); }}><strong>{counts.requested}</strong><span>Reported</span></button>
               <button type="button" onClick={() => { setFilter("in_progress"); moveTo("issues"); }}><strong>{counts.in_progress}</strong><span>In progress</span></button>
-              <button type="button" onClick={() => { setFilter("completed"); moveTo("issues"); }}><strong>{counts.completed}</strong><span>Completed</span></button>
+              <button type="button" onClick={() => { setFilter("completed"); moveTo("issues"); }}><strong>{counts.completed}</strong><span>Fixed</span></button>
               <button type="button" onClick={() => { setFilter("rejected"); moveTo("issues"); }}><strong>{counts.rejected}</strong><span>Rejected</span></button>
             </section>
 
@@ -507,7 +506,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
                   <div className={styles.homeEmpty} role="status">
                     <p className={styles.kicker}>No work in progress</p>
                     <h3>No issues are currently in progress in Ward {ward.number}.</h3>
-                    <p className={styles.homeEmptyCopy}>Reported, completed, and rejected records remain available in the full issue board.</p>
+                    <p className={styles.homeEmptyCopy}>Reported, fixed, and rejected records remain available in the full issue board.</p>
                     <div className={styles.homeEmptyActions}>
                       {canReportInWard ? <button type="button" className={styles.secondaryAction} onClick={() => moveTo("report")}><Plus size={17} aria-hidden="true" /> Report an issue</button> : null}
                       <button type="button" className={styles.textAction} onClick={() => moveTo("issues")}>Browse the issue record <ArrowUpRight size={16} aria-hidden="true" /></button>
@@ -591,7 +590,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
             <div className={styles.profileGrid}>
               <section><p className={styles.kicker}>Public responsibility</p><h3>Keep the civic record moving.</h3><p>{displayedOfficialWard ? `Residents can follow reported issues, public notices, and progress updates for Ward ${displayedOfficialWard.number}.` : "This public official is part of the municipality’s civic record."}</p></section>
               <section><p className={styles.kicker}>Current term</p><h3>{displayedOfficial.current ? "Active representative" : "Term record"}</h3><p>{displayedOfficial.wonByVotes ? `${displayedOfficial.wonByVotes.toLocaleString("en-IN")} votes recorded` : "Current term information is maintained by the municipality."}</p></section>
-              <section><p className={styles.kicker}>Completed public issues</p><h3 className={styles.profileMetric}>{completedOfficialIssueCount}</h3><p>{displayedOfficialWard ? `Issues marked completed in Ward ${displayedOfficialWard.number}.` : "Completed issues recorded by the municipality."}</p></section>
+            <section><p className={styles.kicker}>Fixed public issues</p><h3 className={styles.profileMetric}>{completedOfficialIssueCount}</h3><p>{displayedOfficialWard ? `Issues fixed in Ward ${displayedOfficialWard.number}.` : "Fixed issues recorded by the municipality."}</p></section>
             </div>
             <p className={styles.finePrint}>Only public role and term information is shown here. Private contact details are not part of the public record.</p>
             <button type="button" className={styles.primaryAction} onClick={() => moveTo("home")}>Return to citizen view</button>
@@ -718,7 +717,7 @@ function IssueDetail({ issue, onClose }: { issue: Issue; onClose: () => void }) 
   const activeMedia = resolvedMedia.find((media) => media.id === activeMediaId && media.resolvedUrl) ?? null;
 
   return <div className={styles.detailContent}>
-    <div className={styles.detailTop}><p>Public report</p><button type="button" onClick={onClose} aria-label="Close issue detail"><X size={19} aria-hidden="true" /></button></div>
+    <div className={styles.detailTop}><button type="button" onClick={onClose} aria-label="Close issue detail"><X size={19} aria-hidden="true" /></button></div>
     <StatusMark status={issue.status} />
     <h3>{issue.title}</h3>
     <p className={styles.detailDescription}>{issue.description}</p>

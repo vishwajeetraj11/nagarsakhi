@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import type { PublicDemoData } from "@/data/demo";
 import { CitizenExperience } from "@/features/citizen/CitizenExperience";
 import type { WardIssuesResult } from "@/lib/data/live";
-import { publishLiveNotice, rejectLiveIssue, setLiveAlertCompletion, transitionLiveEscalation, transitionLiveIssue } from "@/lib/data/live-mutations";
+import { createLiveEscalation, publishLiveNotice, rejectLiveIssue, setLiveAlertCompletion, transitionLiveEscalation, transitionLiveIssue } from "@/lib/data/live-mutations";
 import type { DemoSession, Escalation, Issue, IssueStatus, Notice } from "@/lib/domain/types";
 import { wardLocalityName } from "@/lib/domain/ward-label";
 import styles from "./adminStyles";
@@ -21,7 +21,7 @@ type ExperienceProps = {
 const statusCopy: Record<IssueStatus, string> = {
   requested: "Requested / प्राप्त",
   in_progress: "In progress / कार्य जारी",
-  completed: "Completed / पूर्ण",
+  completed: "Fixed / ठीक",
   rejected: "Rejected / अस्वीकृत",
 };
 
@@ -90,6 +90,8 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   const noticeSequence = useRef(0);
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectingIssueId, setRejectingIssueId] = useState<string | null>(null);
+  const [escalationReason, setEscalationReason] = useState("");
+  const [escalatingIssueId, setEscalatingIssueId] = useState<string | null>(null);
   const selectedIssue = issues.find((item) => item.id === selectedIssueId) ?? issues[0];
   const activeTasks = data.alerts.filter((alert) => alert.wardIds.includes(ward?.id ?? ""));
   const requestedCount = issues.filter((item) => item.status === "requested").length;
@@ -117,7 +119,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
     const target = issues.find((item) => item.id === issueId);
     if (!target || target.status === status) return;
     if (nextIssueStatus(target.status) !== status) {
-      recordAudit("Issue status must move from Reported to In progress, then to Completed.", "error");
+      recordAudit("Issue status must move from Reported to In progress, then to Fixed.", "error");
       return;
     }
     if (dataMode === "supabase") {
@@ -156,6 +158,36 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
     }
   }
 
+  async function escalateIssue(issueId: string) {
+    const target = issues.find((item) => item.id === issueId);
+    const reason = escalationReason.trim();
+    const canEscalate = target && (target.status === "requested" || target.status === "in_progress") && !target.escalated;
+    if (session?.role !== "parshad") {
+      recordAudit("Only a ward Parshad can escalate an issue to the corporation.", "error");
+      return;
+    }
+    if (!canEscalate || escalatingIssueId) return;
+    if (reason.length < 3 || reason.length > 1000) {
+      recordAudit("Add an escalation reason between 3 and 1,000 characters.", "error");
+      return;
+    }
+    setEscalatingIssueId(issueId);
+    try {
+      if (dataMode === "supabase") {
+        const result = await createLiveEscalation(issueId, reason);
+        if (!result.ok) {
+          recordAudit(result.error.message, "error");
+          return;
+        }
+      }
+      setIssues((current) => current.map((item) => item.id === issueId ? { ...item, escalated: true, updatedAt: new Date().toISOString() } : item));
+      setEscalationReason("");
+      recordAudit(`${target.title} was escalated to the corporation follow-up queue by ${official?.name ?? "Ward Parshad"}. ${dataMode === "demo" ? "Demo escalation recorded locally." : "The corporation view will show this follow-up."}`);
+    } finally {
+      setEscalatingIssueId(null);
+    }
+  }
+
   async function publishWardNotice(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const body = noticeText.trim();
@@ -179,6 +211,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   if (!ward) return null;
   const wardLocality = wardLocalityName(ward.name);
   const selectedNextStatus = selectedIssue ? nextIssueStatus(selectedIssue.status) : null;
+  const canEscalateIssue = Boolean(session?.role === "parshad" && selectedIssue && (selectedIssue.status === "requested" || selectedIssue.status === "in_progress") && !selectedIssue.escalated);
 
   return <main className={styles.workspace} aria-label={`Ward ${ward.number} Parshad workspace`}>
     <header className={styles.masthead}>
@@ -209,20 +242,21 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
       </div>
       <div className={styles.issueLayout}>
         <div className={styles.issueList} aria-label={`Ward ${ward.number} issue list`}>
-          {issues.map((issue, index) => <button key={issue.id} className={`${styles.issueRow} ${selectedIssue?.id === issue.id ? styles.activeIssue : ""}`} onClick={() => setSelectedIssueId(issue.id)} aria-pressed={selectedIssue?.id === issue.id}>
+          {issues.map((issue, index) => <button key={issue.id} className={`${styles.issueRow} ${selectedIssue?.id === issue.id ? styles.activeIssue : ""}`} onClick={() => { setSelectedIssueId(issue.id); setEscalationReason(""); }} aria-pressed={selectedIssue?.id === issue.id}>
             <span className={styles.issueNumber}>{String(index + 1).padStart(2, "0")}</span>
             <span className={styles.issueWords}><b>{issue.title}</b><small>{formatDate(issue.createdAt)} · {issue.upvotes} supports</small></span>
             <StatusPill status={issue.status} />
           </button>)}
         </div>
         {selectedIssue && <article className={styles.issueDetail} aria-live="polite">
-          <div className={styles.detailTop}><span className={styles.recordNumber}>Public report</span><StatusPill status={selectedIssue.status} /></div>
+          <div className={styles.detailTop}><StatusPill status={selectedIssue.status} /></div>
           <h3>{selectedIssue.title}</h3>
           <p className={styles.issueDescription}>{selectedIssue.description}</p>
           <dl className={styles.detailMeta}><div><dt>Reporter</dt><dd>{selectedIssue.reporterName}</dd></div><div><dt>Recorded on</dt><dd>{formatDate(selectedIssue.updatedAt)}</dd></div></dl>
           {selectedIssue.media.length > 0 && <div className={styles.evidence}><p className={styles.kicker}>Attached evidence</p><div className={styles.evidenceStrip}>{selectedIssue.media.map((media) => <figure key={media.id}>{media.kind === "video" ? <video src={media.url} controls preload="metadata" width={144} height={104} aria-label={media.alt ?? "Issue video evidence"} /> : <Image src={media.url} alt={media.alt ?? "Issue evidence"} width={144} height={104} unoptimized={dataMode === "supabase"} />}<figcaption>{media.kind === "photo" ? "Photo evidence" : media.kind === "video" ? "Video evidence" : "Audio statement"}</figcaption></figure>)}</div></div>}
-          {selectedIssue.status === "rejected" ? <div className={styles.rejectionNotice}><b>Rejected report. This decision is terminal.</b><span>Reason: {selectedIssue.rejectionReason ?? "No reason recorded."}</span></div> : selectedNextStatus ? <fieldset className={styles.statusField}><legend>Record a status update</legend><p>{selectedNextStatus === "in_progress" ? "New reports move to In progress first. Mark them completed only after work is underway and verified." : "This report is in progress. Mark it completed once the work is verified."}</p><div className={styles.statusActions}><button type="button" onClick={() => void changeStatus(selectedIssue.id, selectedNextStatus)}>{selectedNextStatus === "in_progress" ? "Move to In progress / कार्य जारी" : "Mark completed / पूर्ण"}</button></div></fieldset> : null}
+          {selectedIssue.status === "rejected" ? <div className={styles.rejectionNotice}><b>Rejected report. This decision is terminal.</b><span>Reason: {selectedIssue.rejectionReason ?? "No reason recorded."}</span></div> : selectedNextStatus ? <fieldset className={styles.statusField}><legend>Record a status update</legend><p>{selectedNextStatus === "in_progress" ? "New reports move to In progress first. Mark them fixed only after work is underway and verified." : "This report is in progress. Mark it fixed once the work is verified."}</p><div className={styles.statusActions}><button type="button" onClick={() => void changeStatus(selectedIssue.id, selectedNextStatus)}>{selectedNextStatus === "in_progress" ? "Move to In progress / कार्य जारी" : "Mark fixed / ठीक"}</button></div></fieldset> : null}
           {selectedIssue.status === "requested" ? <form className={styles.rejectionField} onSubmit={(event) => { event.preventDefault(); void rejectIssue(selectedIssue.id); }}><label htmlFor="rejection-reason">Reject this report <span>Reason required</span></label><textarea id="rejection-reason" value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} maxLength={500} rows={3} placeholder="Explain why the ward office cannot accept this report." disabled={rejectingIssueId === selectedIssue.id} /><div><small>{rejectionReason.length}/500</small><button type="submit" className={styles.rejectButton} disabled={rejectingIssueId === selectedIssue.id || rejectionReason.trim().length < 8}>{rejectingIssueId === selectedIssue.id ? "Rejecting…" : "Reject issue"}</button></div></form> : null}
+          {canEscalateIssue ? <form className={styles.escalationField} onSubmit={(event) => { event.preventDefault(); void escalateIssue(selectedIssue.id); }}><label htmlFor="escalation-reason">Escalate to corporation <span>Reason required</span></label><textarea id="escalation-reason" value={escalationReason} onChange={(event) => setEscalationReason(event.target.value)} maxLength={1000} rows={3} placeholder="Explain why corporation follow-up is needed." disabled={escalatingIssueId === selectedIssue.id} /><div><small>{escalationReason.length}/1000</small><button type="submit" className={styles.escalateButton} disabled={escalatingIssueId === selectedIssue.id || escalationReason.trim().length < 3}>{escalatingIssueId === selectedIssue.id ? "Escalating…" : "Escalate issue"}</button></div></form> : null}
           {selectedIssue.escalated && <div className={styles.escalationBand}><b>Escalated / प्रेषित</b><span>This report has a corporation follow-up record. Keep the resident update specific.</span></div>}
         </article>}
       </div>
@@ -259,20 +293,6 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
     ? Math.round((allIssues.filter((issue) => issue.status !== "requested").length / allIssues.length) * 100)
     : 0;
 
-  const wardRows = data.wards.map((ward) => {
-    const issues = allIssues.filter((issue) => issue.wardId === ward.id);
-    const wardEscalations = escalations.filter((item) => item.wardId === ward.id);
-    const official = data.officials.find((person) => person.wardId === ward.id && person.current);
-    return {
-      ward,
-      issues,
-      escalations: wardEscalations,
-      official,
-      inFlight: issues.filter((issue) => issue.status !== "completed" && issue.status !== "rejected").length,
-      completed: issues.filter((issue) => issue.status === "completed").length,
-      used: ward.allocatedBudget > 0 ? Math.round((ward.spentBudget / ward.allocatedBudget) * 100) : 0,
-    };
-  });
   const selectedWard = data.wards.find((ward) => ward.id === selectedWardId);
 
   function openWard(wardId: string) {
@@ -339,14 +359,14 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
       <div className={styles.drillNav}><button type="button" className={styles.drillBack} onClick={returnToOverview}><ArrowLeft size={16} strokeWidth={2.5} aria-hidden="true" /> Corporation overview</button><span>Ward drill-down / वार्ड समीक्षा</span></div>
       <header className={styles.masthead}>
         <div><p className={styles.eyebrow}>Corporation desk · Ward review</p><h1>Ward {selectedWard.number}{wardLocality ? <><span> · </span>{wardLocality}</> : null}</h1><p className={styles.roleLine}><b>{currentParshad?.name ?? "Parshad not assigned"}</b> · {currentParshad ? "Current ward representative" : "Term record requires review"}</p></div>
-        <div className={styles.wardStamp} aria-label={`Ward ${selectedWard.number}`}><b>{selectedWard.number}</b><span>ward<br />review</span></div>
+        <div className={styles.wardStamp} aria-label={`${completedIssues.length} fixed issues`}><b>{completedIssues.length}</b><span>fixed<br />issues</span></div>
       </header>
       <WorkspaceNotice dataMode={dataMode} />
 
       <section className={styles.ledgerSummary} aria-label={`Ward ${selectedWard.number} indicators`}>
         <div><span>Requested</span><strong>{requestedIssues.length}</strong><small>Awaiting ward action</small></div>
         <div><span>In progress</span><strong>{inProgressIssues.length}</strong><small>Work recorded</small></div>
-        <div><span>Completed</span><strong>{completedIssues.length}</strong><small>Closed public reports</small></div>
+        <div><span>Fixed</span><strong>{completedIssues.length}</strong><small>Fixed public reports</small></div>
         <div><span>Open escalations</span><strong>{wardEscalations.filter((item) => item.status !== "resolved").length}</strong><small>Corporation follow-ups</small></div>
       </section>
 
@@ -355,7 +375,7 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
         <div className={styles.drillIssueGrid}>
           <WardIssueSection title="Requested" hint="Needs a decision" issues={requestedIssues} />
           <WardIssueSection title="In progress" hint="Work underway" issues={inProgressIssues} />
-          <WardIssueSection title="Completed" hint="Public record" issues={completedIssues} />
+          <WardIssueSection title="Fixed" hint="Public record" issues={completedIssues} />
         </div>
       </section>
 
@@ -382,9 +402,8 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
     <WorkspaceNotice dataMode={dataMode} />
     <section className={styles.ledgerSummary} aria-label="Corporation indicators"><div><span>Total reports</span><strong>{allIssues.length}</strong><small>{unresolved} still active</small></div><div><span>Escalations</span><strong>{activeEscalations.length}</strong><small>Require tracking</small></div><div><span>Ward coverage</span><button type="button" className={styles.metricButton} onClick={() => document.getElementById("ward-overview")?.scrollIntoView({ behavior: "smooth" })}><strong>{coveredWardIds.size}/{data.wards.length}</strong><small>Open ward register ↓</small></button></div><div><span>Compliance signal</span><strong>{compliancePercent}%</strong><small>Status updated or closed</small></div></section>
 
-    <section id="ward-overview" className={styles.section} aria-labelledby="ward-overview-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Cross-ward register</p><h2 id="ward-overview-title">Where intervention is needed</h2></div><p>Compact records become labelled entries on small screens.</p></div>
-      <div className={`${styles.tableWrap} ${styles.wardOverviewTable}`}><table className={styles.wardTable}><thead><tr><th>Ward</th><th>Parshad & term</th><th>Issues</th><th>Escalation</th><th>Budget used</th><th>Review</th></tr></thead><tbody>{wardRows.map(({ ward, escalations: wardEscalations, official, inFlight, completed, used }) => <tr key={ward.id}><td data-label="Ward"><div><b>{ward.number}</b><span>{wardLocalityName(ward.name) ?? `Ward ${ward.number}`}</span></div></td><td data-label="Parshad & term"><b>{official?.name ?? "Unassigned"}</b><span>{official?.current ? "Current term · Active" : "Term record pending"}</span></td><td data-label="Issues"><b>{inFlight} active</b><span>{completed} completed</span></td><td data-label="Escalation"><b>{wardEscalations.length ? escalationCopy[wardEscalations[0].status] : "None"}</b><span>{wardEscalations[0] ? `${wardEscalations.length} follow-up record${wardEscalations.length === 1 ? "" : "s"}` : "No record"}</span></td><td data-label="Budget used"><b>{formatRupees(ward.spentBudget)}</b><span>{used}% of {formatRupees(ward.allocatedBudget)}</span></td><td data-label="Review"><button type="button" className={styles.tableAction} onClick={() => openWard(ward.id)}>Open ward →</button></td></tr>)}</tbody></table></div>
-      <div className={styles.mobileWardAccordion} aria-label="Mobile ward register">{wardRows.map(({ ward, escalations: wardEscalations, official, inFlight, completed, used }) => <details className={styles.mobileWardItem} key={ward.id}><summary className={styles.mobileWardSummary}><span><b>Ward {ward.number}</b><small>{wardLocalityName(ward.name) ?? "Ward register"}</small></span><span aria-hidden="true">⌄</span></summary><div className={styles.mobileWardDetails}><dl className={styles.mobileWardFacts}><div><dt>Parshad & term</dt><dd><b>{official?.name ?? "Unassigned"}</b><small>{official?.current ? "Current term · Active" : "Term record pending"}</small></dd></div><div><dt>Issues</dt><dd><b>{inFlight} active</b><small>{completed} completed</small></dd></div><div><dt>Escalation</dt><dd><b>{wardEscalations.length ? escalationCopy[wardEscalations[0].status] : "None"}</b><small>{wardEscalations[0] ? `${wardEscalations.length} follow-up record${wardEscalations.length === 1 ? "" : "s"}` : "No record"}</small></dd></div><div><dt>Budget used</dt><dd><b>{formatRupees(ward.spentBudget)}</b><small>{used}% of {formatRupees(ward.allocatedBudget)}</small></dd></div></dl><button type="button" className={styles.tableAction} onClick={() => openWard(ward.id)}>Open ward →</button></div></details>)}</div>
+    <section id="ward-overview" className={styles.section} aria-labelledby="ward-overview-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Ward register</p><h2 id="ward-overview-title">Choose a ward</h2></div><p>Select a ward number to open its full review.</p></div>
+      <div className={styles.wardPicker}><label htmlFor="corporation-ward-select">Ward number</label><select id="corporation-ward-select" defaultValue="" onChange={(event) => { if (event.target.value) openWard(event.target.value); }}><option value="">Select a ward</option>{data.wards.map((ward) => <option key={ward.id} value={ward.id}>Ward {ward.number}</option>)}</select></div>
     </section>
 
     <section className={styles.section} aria-labelledby="escalation-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Escalated issues</p><h2 id="escalation-title">Corporation follow-up register</h2></div><p>Open a ward to read its full issue and activity record.</p></div>

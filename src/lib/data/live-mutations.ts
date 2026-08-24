@@ -187,6 +187,29 @@ export async function rejectLiveIssue(issueId: string, reason: string, client?: 
   return error ? requestFailure("The issue could not be rejected.", error.message) : { ok: true, data: data as IssueStatus };
 }
 
+export async function createLiveEscalation(
+  issueId: string,
+  reason: string,
+  client?: MutationClient,
+): Promise<LiveMutationResult<{ id: string }>> {
+  const normalizedReason = reason.trim();
+  if (!issueId || normalizedReason.length < 3 || normalizedReason.length > 1000) {
+    return { ok: false, error: { code: "VALIDATION", message: "Add an escalation reason between 3 and 1,000 characters." } };
+  }
+  const configured = getClient(client);
+  if (!configured.ok) return configured;
+  const user = await requireUser(configured.data);
+  if (!user.ok) return user;
+
+  const { data, error } = await configured.data.from("escalations").insert({
+    issue_id: issueId,
+    escalated_by: user.data.id,
+    reason: normalizedReason,
+    status: "open",
+  }).select("id").single();
+  return error || !data ? requestFailure("The issue could not be escalated.", error?.message) : { ok: true, data: { id: data.id as string } };
+}
+
 export type PublishNoticeInput = { municipalityId: string; wardId?: string | null; body: string };
 
 export async function publishLiveNotice(input: PublishNoticeInput, client?: MutationClient): Promise<LiveMutationResult<{ id: string }>> {
