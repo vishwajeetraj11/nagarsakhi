@@ -29,9 +29,9 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Luna `luna_01_citizen_flow` | LUNA-01 / BUG-LUNA-01-2 | FIXING BUG-LUNA-01-2 | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Terra found demo mode still permits reporting in another ward; Luna is removing that contract breach | `Skip <task ID>` |
+| 1 | Terra `terra_reverify_citizen_2` | LUNA-01 / P1-01 through P1-04, P2-01, P2-02 | TERRA REVIEW | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Luna fixed BUG-LUNA-01-2 in `1ccd1dc`; final Terra review is active | `Skip <task ID>` |
 | 2 | Terra `terra_review_municipality` | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | MANUAL VERIFICATION BLOCKED | `codex/v3-municipality-page` / `/private/tmp/nagarsakhi-v3-municipality-page` | Static contract review PASS at `980cc59`; desktop/narrow runtime inspection was blocked when Chrome was taken over | `Skip <task ID>` |
-| 3 | Sol orchestrator | LUNA-03 / P3-05 through P3-07, P3-09, P3-10, P4-01, P4-03 | DONE | `codex/v3-review-kanban` | Terra-reviewed `2d32e4c` integrated as `3bcc0b3`; rendered verification limitation remains recorded | — |
+| 3 | Luna `luna_04_corporation_desk` | LUNA-04 / P5-01 through P5-07, P6-01 through P6-03 | IN PROGRESS | `codex/v3-corporation-desk` / `/private/tmp/nagarsakhi-v3-corporation-desk` | Dispatched after LUNA-03 integration; Public Spending must derive from the persisted ₹49,305,000 allocation total | `Skip <task ID>` |
 
 ### Live-state vocabulary
 
@@ -219,7 +219,7 @@ You can approve work by saying, for example:
 
 ### LUNA-01 - Citizen flow changes
 
-- **Status:** TERRA REVIEW at commits `be758c0` and bug fix `a57ed81`
+- **Status:** TERRA REVIEW at commits `be758c0`, `a57ed81`, and `1ccd1dc`
 - **Conflict key:** `citizen-ui`
 - **Branch:** `codex/v3-citizen-flow`
 - **Worktree:** `../nagarsakhi-wt-v3-citizen-flow`
@@ -272,7 +272,7 @@ You can approve work by saying, for example:
 
 ### LUNA-04 - Corporation Desk changes
 
-- **Status:** APPROVED; depends on integrated LUNA-00 and LUNA-03
+- **Status:** IN PROGRESS; dependencies LUNA-00 and LUNA-03 are integrated
 - **Conflict key:** `official-ui`
 - **Branch:** `codex/v3-corporation-desk`
 - **Worktree:** `../nagarsakhi-wt-v3-corporation-desk`
@@ -326,7 +326,7 @@ You can approve work by saying, for example:
 
 ## In progress
 
-LUNA-01 is fixing BUG-LUNA-01-2 while the Municipality and Parshad Terra reviews continue.
+LUNA-04 Corporation Desk implementation is active; LUNA-01 is in final Terra re-verification.
 
 ## Terra review queue
 
@@ -355,7 +355,8 @@ Terra handoff must contain:
 - **Reproduction:** In demo mode, browse a ward other than `session.wardId`; the reporting permission includes a `dataMode === "demo"` bypass.
 - **Expected:** Other wards are strictly view-only in every data mode: no reporting and no voting.
 - **Actual:** Voting is correctly own-ward-only, but reporting remains available in other wards under demo mode.
-- **State:** Assigned back to `luna_01_citizen_flow`; Terra re-verification required.
+- **Luna fix:** Commit `1ccd1dc` removes the demo-mode reporting bypass so reporting and voting are both own-ward-only.
+- **State:** Final Terra re-verification in progress.
 
 ### BUG-LUNA-01-1 - Vote removal reports a downvote
 
