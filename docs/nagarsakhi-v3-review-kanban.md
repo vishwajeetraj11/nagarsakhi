@@ -30,7 +30,7 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Sol orchestrator | LUNA-01 / P1-01 through P1-04, P2-01, P2-02 | DONE | `codex/v3-review-kanban` | Static Terra PASS through `1ccd1dc`; integrated as `5bc7a09`, `5c02b3c`, `395f28b`; authenticated UI remains blocked by OTP/CAPTCHA | — |
-| 2 | Terra `terra_review_municipality` | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | MANUAL VERIFICATION BLOCKED | `codex/v3-municipality-page` / `/private/tmp/nagarsakhi-v3-municipality-page` | Static contract review PASS at `980cc59`; desktop/narrow runtime inspection was blocked when Chrome was taken over | `Skip <task ID>` |
+| 2 | Sol orchestrator | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | DONE | `codex/v3-review-kanban` | Static Terra PASS `980cc59`, integrated as `b69b04f`; desktop/narrow runtime inspection remains manual-blocked | — |
 | 3 | Luna `luna_04_corporation_desk` | LUNA-04 / P5-01 through P5-07, P6-01 through P6-03 | IN PROGRESS | `codex/v3-corporation-desk` / `/private/tmp/nagarsakhi-v3-corporation-desk` | Dispatched after LUNA-03 integration; Public Spending must derive from the persisted ₹49,305,000 allocation total | `Skip <task ID>` |
 
 ### Live-state vocabulary
@@ -237,7 +237,7 @@ You can approve work by saying, for example:
 
 ### LUNA-02 - Shared municipality home page
 
-- **Status:** MANUAL VERIFICATION BLOCKED at commit `980cc59`; static contract review PASS
+- **Status:** DONE; source `980cc59` integrated as `b69b04f`; static Terra PASS, desktop/narrow runtime inspection remains manual-blocked
 - **Conflict key:** `municipality-page`
 - **Branch:** `codex/v3-municipality-page`
 - **Worktree:** `../nagarsakhi-wt-v3-municipality-page`
@@ -331,7 +331,7 @@ LUNA-04 Corporation Desk implementation is active.
 ## Terra review queue
 
 - LUNA-05 - narrow viewport verification remains pending due local Mac window-control limitation.
-- LUNA-02 / `980cc59` - static contract review PASS; Computer Use desktop/narrow inspection remains manual-blocked.
+- LUNA-02 / `b69b04f` - integrated after static Terra PASS; Computer Use desktop/narrow inspection remains manual-blocked.
 
 Terra handoff must contain:
 
@@ -408,5 +408,6 @@ No fully reviewed card is waiting for integration.
 
 - LUNA-00 - shared civic/finance contract and persistent database seed.
 - LUNA-01 - Citizen Flow approved work and both Terra fixes; integrated as `5bc7a09`, `5c02b3c`, `395f28b` (authenticated UI verification remains blocked by OTP/CAPTCHA).
+- LUNA-02 - shared Municipality Page; source `980cc59`, integrated as `b69b04f` (desktop/narrow runtime inspection remains manual-blocked).
 - LUNA-03 - Parshad Desk approved work, excluding held P3-08/P4-04; source `2d32e4c`, integrated as `3bcc0b3`.
 - LUNA-05 - page-7 sign-in, messaging, favicon, and visible CAPTCHA (desktop verified; narrow verification remains tracked).
