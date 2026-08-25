@@ -237,7 +237,7 @@ export function LiveLogin() {
       <section className="login-panel" aria-labelledby="live-signin-title">
         <div>
           <p className="section-kicker">Secure sign-in</p>
-          <h2 id="live-signin-title">{stage === "phone" ? "Enter your mobile number" : "Enter your verification code"}</h2>
+          <h2 id="live-signin-title">{stage === "phone" ? "Enter your registered mobile number" : "Enter your verification code"}</h2>
         </div>
         <div className="auth-stepper" aria-label="Sign-in progress">
           <span data-complete={stage === "code"} data-active={stage === "phone"}>{stage === "code" ? "✓ Mobile" : "Mobile"}</span>
@@ -260,7 +260,6 @@ export function LiveLogin() {
                 value={phone}
               />
             </div>
-            <p>Use the mobile number registered with your municipality.</p>
             <div className="recaptcha-wrap" id="firebase-recaptcha" />
             <button className="primary-action" disabled={busy} type="submit">
               <ShieldCheck aria-hidden="true" size={18} />
