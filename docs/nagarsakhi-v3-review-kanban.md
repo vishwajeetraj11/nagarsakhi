@@ -32,6 +32,7 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 | 1 | Sol orchestrator | LUNA-01 / P1-01 through P1-04, P2-01, P2-02 | DONE | `codex/v3-review-kanban` | Static Terra PASS through `1ccd1dc`; integrated as `5bc7a09`, `5c02b3c`, `395f28b`; authenticated UI remains blocked by OTP/CAPTCHA | — |
 | 2 | Sol orchestrator | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | DONE | `codex/v3-review-kanban` | Static Terra PASS `980cc59`, integrated as `b69b04f`; desktop/narrow runtime inspection remains manual-blocked | — |
 | 3 | Sol orchestrator | LUNA-04 / P5-01 through P5-07, P6-01 through P6-03 | DONE | `codex/v3-review-kanban` | Static Terra PASS `a841cee`, integrated as `55b971b`; Corporation-role runtime inspection remains manual-blocked | — |
+| 4 | Sol orchestrator | LUNA-06 / verified Parshad phone numbers | NEEDS INPUT | Not dispatched | Official government sources expose results and the municipal office number, but no public contact list for all 28 Parshads | Provide official contact sheet or authorize municipal-office verification |
 
 ### Live-state vocabulary
 
@@ -99,9 +100,12 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 ### CONTRACT-05 - Public Parshad phone-number source and placement
 
+- **Status:** NEEDS INPUT after authoritative-source audit, 25 Aug 2026
 - **Source:** USER request, 25 Aug 2026; not in the PDF
 - Add phone numbers for the Parshad of each ward as the final delivery task.
-- **Decision required later:** Provide or approve the authoritative source, confirm that each number is an official public contact number, and choose where it appears.
+- **Authoritative-source audit:** The [Bokaro municipal-election page](https://bokaro.nic.in/hi/%E0%A4%A8%E0%A4%97%E0%A4%B0%E0%A4%AA%E0%A4%BE%E0%A4%B2%E0%A4%BF%E0%A4%95%E0%A4%BE-%E0%A4%86%E0%A4%AE-%E0%A4%9A%E0%A5%81%E0%A4%A8%E0%A4%BE%E0%A4%B5-2026/) publishes official ward results but no official contact numbers. The [official Phusro utility page](https://bokaro.nic.in/hi/public-utility/%E0%A4%A8%E0%A4%97%E0%A4%B0-%E0%A4%AA%E0%A4%B0%E0%A4%BF%E0%A4%B7%E0%A4%A6-%E0%A4%AB%E0%A5%81%E0%A4%B8%E0%A4%B0%E0%A5%8B/) publishes only the municipal office number, not 28 Parshad numbers. The [Bokaro telephone directory](https://bokaro.nic.in/hi/%E0%A4%A6%E0%A5%82%E0%A4%B0%E0%A4%AD%E0%A4%BE%E0%A4%B7-%E0%A4%A8%E0%A4%BF%E0%A4%B0%E0%A5%8D%E0%A4%A6%E0%A5%87%E0%A4%B6%E0%A4%BF%E0%A4%95%E0%A4%BE/) contains district officers, not ward Parshads.
+- **Input required:** Provide an official municipal contact sheet/directory for all 28 current ward Parshads, or authorize a separate municipal-office verification workflow. Confirm that each number is intended as a public official contact.
+- **Proposed placement:** The Parshad's public profile and the matching row on the shared Municipality Page; no number is shown until verified.
 - Never invent, infer, or expose an unverified/private number.
 - **Blocks:** LUNA-06 only; it does not block PDF tasks.
 
@@ -304,7 +308,7 @@ You can approve work by saying, for example:
 
 ### LUNA-06 - Verified Parshad phone numbers for every ward
 
-- **Status:** Final task; blocked by CONTRACT-05 and completion of approved PDF tasks
+- **Status:** NEEDS INPUT; all approved PDF tasks are complete, but CONTRACT-05 has no authoritative 28-number source
 - **Conflict key:** `parshad-contact`
 - **Branch:** `codex/v3-parshad-phone-numbers`
 - **Worktree:** `../nagarsakhi-wt-v3-parshad-phone-numbers`
