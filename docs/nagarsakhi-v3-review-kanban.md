@@ -30,7 +30,7 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Terra `terra_review_civic_contracts` | LUNA-00 / P3-02, P3-03, P3-04, P4-01, P4-02, P4-03, P5-03, P6-01 | TERRA REVIEW | `codex/v3-civic-contracts` / `/private/tmp/nagarsakhi-v3-civic-contracts` | Commit `6d4fb38`; contract/migration review dispatched | `Skip <task ID>` |
-| 2 | Terra `terra_review_auth_brand` | LUNA-05 / P7-01 through P7-05 | TERRA REVIEW | `codex/v3-auth-brand` / `/private/tmp/nagarsakhi-v3-auth-brand` | Environment corrected; Computer Use verification rerunning | `Skip <task ID>` |
+| 2 | Luna `luna_05_auth_brand` | P7-04 / BUG-LUNA-05-1 | FIXING BUG-1 | `codex/v3-auth-brand` / `/private/tmp/nagarsakhi-v3-auth-brand` | Terra passed copy, desktop layout, OTP framing, and favicon; visible CAPTCHA defect returned to Luna | `Skip P7-04` |
 | 3 | - | - | Idle | - | No agent dispatched | Available |
 
 ### Live-state vocabulary
@@ -194,13 +194,13 @@ You can approve work by saying, for example:
 
 | Go ahead | ID | Task from page 7 | Agent/card | Contract dependency |
 | --- | --- | --- | --- | --- |
-| [x] | P7-01 | Apply the NagarSakhi identity and the source messages: `Your ward, in the open`, `See what's happening in your ward`, and `Make sure your voice counts`. | LUNA-05 | None |
-| [x] | P7-02 | Explain: file issues, vote on priorities, track ward work, and see where the budget goes. | LUNA-05 | None |
-| [x] | P7-03 | Use `Private sign-in. Public accountability.` | LUNA-05 | None |
-| [x] | P7-04 | Present secure registered-mobile sign-in with `+91`, CAPTCHA below the input, and `Get OTP`. | LUNA-05 | None |
-| [x] | P7-05 | Add a favicon. | LUNA-05 | None |
+| TERRA PASS | P7-01 | Apply the NagarSakhi identity and the source messages: `Your ward, in the open`, `See what's happening in your ward`, and `Make sure your voice counts`. | LUNA-05 | None |
+| TERRA PASS | P7-02 | Explain: file issues, vote on priorities, track ward work, and see where the budget goes. | LUNA-05 | None |
+| TERRA PASS | P7-03 | Use `Private sign-in. Public accountability.` | LUNA-05 | None |
+| FIXING BUG-1 | P7-04 | Present secure registered-mobile sign-in with `+91`, CAPTCHA below the input, and `Get OTP`. | LUNA-05 | None |
+| TERRA PASS | P7-05 | Add a favicon. | LUNA-05 | None |
 
-**Page status:** APPROVED
+**Page status:** BUG FIX IN PROGRESS; narrow Computer Use verification still pending
 
 ## Ready after contracts - delivery cards
 
@@ -291,7 +291,7 @@ You can approve work by saying, for example:
 
 ### LUNA-05 - Sign-in and UI/UX update
 
-- **Status:** TERRA REVIEW; Luna commit `61c9018`
+- **Status:** FIXING BUG-LUNA-05-1 on top of Luna commit `61c9018`
 - **Conflict key:** `auth-brand`
 - **Branch:** `codex/v3-auth-brand`
 - **Worktree:** `../nagarsakhi-wt-v3-auth-brand`
@@ -324,12 +324,12 @@ You can approve work by saying, for example:
 
 ## In progress
 
-No Luna implementation card is active; two completed branches are in Terra review.
+- LUNA-05 / BUG-LUNA-05-1 - visible CAPTCHA fix in progress.
 
 ## Terra review queue
 
 - LUNA-00 / shared civic and finance contract - `terra_review_civic_contracts` - migration/contract review in progress.
-- LUNA-05 / P7-01 through P7-05 - `terra_review_auth_brand` - Computer Use verification rerun in progress.
+- LUNA-05 / P7-04 - waiting for Luna fix, then Terra re-verification; narrow verification remains pending.
 
 Terra handoff must contain:
 
@@ -346,7 +346,14 @@ Terra handoff must contain:
 
 ## Luna bug-fix queue
 
-No bugs reported.
+### BUG-LUNA-05-1 - CAPTCHA is not visible below the mobile input
+
+- **Parent:** LUNA-05 / P7-04 / commit `61c9018`
+- **Severity:** P1
+- **Computer Use reproduction:** Open the configured signed-out app at desktop size; inspect the area between the mobile input and `Get OTP` without entering phone data.
+- **Expected:** A visible CAPTCHA directly below the mobile input.
+- **Actual:** The reserved area is blank; no CAPTCHA iframe/control is exposed.
+- **State:** Luna fix in progress; Terra re-verification required.
 
 ```md
 ### BUG-<parent>-<number> - <source requirement that failed>
