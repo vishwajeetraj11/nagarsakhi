@@ -60,6 +60,16 @@ begin
 end;
 $$;
 
+-- These two validation triggers require an authenticated corporation actor.
+-- The fixed import rows below are migration-owned, so suspend only those
+-- triggers for the duration of the seed statements. Migration execution is
+-- transactional; trigger state rolls back if any later statement fails.
+alter table public.ward_budgets
+  disable trigger ward_budgets_validate_tenancy;
+
+alter table public.expenditures
+  disable trigger expenditures_validate_tenancy;
+
 -- Persist the existing fixed 28-ward demo allocation dataset. Existing
 -- authoritative (is_demo = false) budgets are never overwritten.
 insert into public.ward_budgets (
@@ -128,3 +138,9 @@ join public.wards w
   on w.municipality_id = m.id
   and w.ward_number = seed.ward_number
 on conflict (id) do nothing;
+
+alter table public.ward_budgets
+  enable trigger ward_budgets_validate_tenancy;
+
+alter table public.expenditures
+  enable trigger expenditures_validate_tenancy;
