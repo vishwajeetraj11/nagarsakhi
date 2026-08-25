@@ -21,6 +21,37 @@ Source: `nagarsakhi_v3_review.pdf`, seven handwritten pages, visually re-verifie
 - Different conflict keys may run in parallel. The same conflict key runs serially.
 - Do not author or expand automated tests unless Sol explicitly requests it.
 - Typecheck, lint, and build are safety checks. Product verification happens in the running app through Computer Use.
+- The user may skip any page task before integration. Sol updates the page row, agent scope, dependencies, and live dashboard immediately.
+
+## Live agent control panel
+
+Sol updates this section whenever an agent starts, reports progress, requests input, hands off, finds a bug, or finishes. This is the place to watch work without reading individual worktrees.
+
+| Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | - | - | Idle | - | No agent dispatched | Available |
+| 2 | - | - | Idle | - | No agent dispatched | Available |
+| 3 | - | - | Idle | - | No agent dispatched | Available |
+
+### Live-state vocabulary
+
+- `AWAITING GO-AHEAD` - present in the PDF board but not approved.
+- `APPROVED` - approved by the user and waiting for dispatch/dependencies.
+- `IN PROGRESS` - Luna is implementing it.
+- `NEEDS INPUT` - an agent is paused on a contract question.
+- `TERRA REVIEW` - implementation is being verified through Computer Use.
+- `FIXING BUG-N` - Luna is fixing a Terra finding.
+- `READY TO INTEGRATE` - Terra passed it; Sol has not integrated it yet.
+- `DONE` - integrated by Sol.
+- `SKIPPED` - explicitly excluded by the user.
+
+### Skip and resume controls
+
+- Say `Skip P3-06` to skip one task, or `Skip page 3` to skip every unfinished task on that page.
+- Say `Resume P3-06` to return a skipped task to `AWAITING GO-AHEAD`.
+- If the task is active, Sol tells the agent to stop that exact scope and preserve other approved work in the packet.
+- If skipping breaks another approved task's dependency, Sol marks the dependent task `NEEDS INPUT` instead of inventing replacement behavior.
+- Skipped tasks are never silently reintroduced during bug fixing or integration.
 
 ## Contract gate - Sol must settle before dependent work
 
@@ -55,9 +86,19 @@ Source: `nagarsakhi_v3_review.pdf`, seven handwritten pages, visually re-verifie
 - **Decision required:** Either keep the page 3 calendar change or replace it with a separately defined Ward Tasks contract. Aadhaar verification is not approved by the PDF note alone.
 - **Blocks:** The calendar/task portion of LUNA-03
 
+### CONTRACT-05 - Public Parshad phone-number source and placement
+
+- **Source:** USER request, 25 Aug 2026; not in the PDF
+- Add phone numbers for the Parshad of each ward as the final delivery task.
+- **Decision required later:** Provide or approve the authoritative source, confirm that each number is an official public contact number, and choose where it appears.
+- Never invent, infer, or expose an unverified/private number.
+- **Blocks:** LUNA-06 only; it does not block PDF tasks.
+
 ## PDF page approval board
 
 This is the go-ahead surface. Every row maps one source note to its delivery agent. Sol changes `Awaiting go-ahead` only after the user approves the page or task ID.
+
+The `Go ahead` cell is also the task's live state: `[ ]` means awaiting approval, `[x]` means approved, and Sol replaces it with `IN PROGRESS`, `TERRA REVIEW`, `DONE`, or `SKIPPED` as work moves.
 
 You can approve work by saying, for example:
 
@@ -250,6 +291,17 @@ You can approve work by saying, for example:
 - **Do not add:** New authentication methods, new brand claims, or identity-verification requirements.
 - **Computer Use verification:** Signed-out UI at narrow and desktop sizes. CAPTCHA interaction remains a user handoff when required.
 
+### LUNA-06 - Verified Parshad phone numbers for every ward
+
+- **Status:** Final task; blocked by CONTRACT-05 and completion of approved PDF tasks
+- **Conflict key:** `parshad-contact`
+- **Branch:** `codex/v3-parshad-phone-numbers`
+- **Worktree:** `../nagarsakhi-wt-v3-parshad-phone-numbers`
+- **Source:** USER request, 25 Aug 2026; not in the PDF
+- **Scope:** Add the verified official public phone number for each ward's Parshad in the placement approved by CONTRACT-05.
+- **Do not add:** Invented numbers, private numbers, numbers without a ward/Parshad match, or additional contact fields.
+- **Computer Use verification:** Inspect every ward and compare the displayed Parshad-number pairing with the approved source.
+
 ## Parallel dispatch order - SOL
 
 1. Sol settles CONTRACT-01 through CONTRACT-04 and records the exact decisions here.
@@ -259,6 +311,7 @@ You can approve work by saying, for example:
 5. Send every completed Luna branch to a Terra agent for Computer Use verification.
 6. Terra reports one bug card per reproducible defect; Luna fixes it on the originating branch; Terra re-verifies.
 7. Sol integrates only Terra-approved work and updates this board.
+8. After all approved PDF tasks are integrated, settle CONTRACT-05 and run LUNA-06 last.
 
 ## In progress
 
