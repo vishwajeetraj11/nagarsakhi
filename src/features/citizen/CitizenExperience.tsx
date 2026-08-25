@@ -222,7 +222,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
   const wardId = ward?.id ?? "";
   const wardLocality = ward ? wardLocalityName(ward.name) : null;
   const residentWardLocality = residentWard ? wardLocalityName(residentWard.name) : null;
-  const canReportInWard = Boolean(ward && !readOnly && (dataMode === "demo" || ward.id === session?.wardId));
+  const canReportInWard = Boolean(ward && !readOnly && ward.id === session?.wardId);
   // Live RLS permits votes only for issues in the resident's own ward. Keep
   // the UI in lockstep so browsing another ward never offers a mutation.
   const canVote = session?.role === "citizen" && !readOnly && ward.id === session.wardId;
