@@ -29,8 +29,8 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | - | - | Idle | - | No agent dispatched | Available |
-| 2 | - | - | Idle | - | No agent dispatched | Available |
+| 1 | Luna `luna_00_civic_contracts` | LUNA-00 / P3-02, P3-03, P3-04, P4-01, P4-02, P4-03, P5-03, P6-01 | IN PROGRESS | `codex/v3-civic-contracts` / `/private/tmp/nagarsakhi-v3-civic-contracts` | Agent dispatched; contract/data inspection underway | `Skip <task ID>` |
+| 2 | Luna `luna_05_auth_brand` | LUNA-05 / P7-01 through P7-05 | IN PROGRESS | `codex/v3-auth-brand` / `/private/tmp/nagarsakhi-v3-auth-brand` | Agent dispatched; page-7 implementation underway | `Skip <task ID>` |
 | 3 | - | - | Idle | - | No agent dispatched | Available |
 
 ### Live-state vocabulary
@@ -119,94 +119,94 @@ You can approve work by saying, for example:
 
 | Go ahead | ID | Task from page 1 | Agent/card | Contract dependency |
 | --- | --- | --- | --- | --- |
-| [ ] | P1-01 | Remove issue reporting from Overview; Issues and Report remain the other two reporting paths. | LUNA-01 | None |
-| [ ] | P1-02 | Remove the duplicate ward-browsing control (`Wards` versus `Browse wards`). | LUNA-01 | None |
-| [ ] | P1-03 | Let citizens view other wards but make no updates there. | LUNA-01 | CONTRACT-02 |
-| [ ] | P1-04 | Give downvoting feedback different from support feedback; preserve `Your support was recorded` for support. | LUNA-01 | None |
+| [x] | P1-01 | Remove issue reporting from Overview; Issues and Report remain the other two reporting paths. | LUNA-01 | None |
+| [x] | P1-02 | Remove the duplicate ward-browsing control (`Wards` versus `Browse wards`). | LUNA-01 | None |
+| [x] | P1-03 | Let citizens view other wards but make no updates there. | LUNA-01 | CONTRACT-02 |
+| [x] | P1-04 | Give downvoting feedback different from support feedback; preserve `Your support was recorded` for support. | LUNA-01 | None |
 
-**Page status:** Awaiting go-ahead
+**Page status:** APPROVED
 
 ### PDF page 2 - Issues and common municipality page
 
 | Go ahead | ID | Task from page 2 | Agent/card | Contract dependency |
 | --- | --- | --- | --- | --- |
-| [ ] | P2-01 | Allow selection between issue progress statuses on the Issues page. | LUNA-01 | None |
-| [ ] | P2-02 | Open an issue's report when that issue is selected. | LUNA-01 | None |
-| [ ] | P2-03 | Add a common read-only municipality page for all roles. | LUNA-02 | CONTRACT-01 |
-| [ ] | P2-04 | Show municipality details on the common page. | LUNA-02 | CONTRACT-01 |
-| [ ] | P2-05 | Make NagarSakhi clickable and open the common municipality page. | LUNA-02 | CONTRACT-01 |
+| [x] | P2-01 | Allow selection between issue progress statuses on the Issues page. | LUNA-01 | None |
+| [x] | P2-02 | Open an issue's report when that issue is selected. | LUNA-01 | None |
+| [x] | P2-03 | Add a common read-only municipality page for all roles. | LUNA-02 | CONTRACT-01 |
+| [x] | P2-04 | Show municipality details on the common page. | LUNA-02 | CONTRACT-01 |
+| [x] | P2-05 | Make NagarSakhi clickable and open the common municipality page. | LUNA-02 | CONTRACT-01 |
 
-**Page status:** Awaiting go-ahead
+**Page status:** APPROVED
 
 ### PDF page 3 - Municipality and Parshad
 
 | Go ahead | ID | Task from page 3 | Agent/card | Contract dependency |
 | --- | --- | --- | --- | --- |
-| [ ] | P3-01 | Add the Phusro municipality home page. | LUNA-02 | CONTRACT-01 |
-| [ ] | P3-02 | Show names for all ward Parshads. | LUNA-00, LUNA-02 | None |
-| [ ] | P3-03 | Show approved temporary ward-fund and commitment numbers. | LUNA-00, LUNA-02 | CONTRACT-03 |
-| [ ] | P3-04 | Show a term number next to the ward representative. | LUNA-00, LUNA-02 | None |
-| [ ] | P3-05 | Keep Parshad login opening Parshad Desk and showing fixed issues. | LUNA-03 | None |
-| [ ] | P3-06 | Add filters to the cluttered Issue Register. | LUNA-03 | None |
-| [ ] | P3-07 | Remove `Required follow-ups` from Ward Calendar. | LUNA-03 | None |
+| [x] | P3-01 | Add the Phusro municipality home page. | LUNA-02 | CONTRACT-01 |
+| [x] | P3-02 | Show names for all ward Parshads. | LUNA-00, LUNA-02 | None |
+| [x] | P3-03 | Show approved temporary ward-fund and commitment numbers. | LUNA-00, LUNA-02 | CONTRACT-03 |
+| [x] | P3-04 | Show a term number next to the ward representative. | LUNA-00, LUNA-02 | None |
+| [x] | P3-05 | Keep Parshad login opening Parshad Desk and showing fixed issues. | LUNA-03 | None |
+| [x] | P3-06 | Add filters to the cluttered Issue Register. | LUNA-03 | None |
+| [x] | P3-07 | Remove `Required follow-ups` from Ward Calendar. | LUNA-03 | None |
 | ON HOLD | P3-08 | Change the order of Ward Calendar and Resident Notice, and add a real date-selectable calendar. | LUNA-03 | CONTRACT-04 |
-| [ ] | P3-09 | Add `View as Citizen` to the Parshad experience. | LUNA-03 | None |
-| [ ] | P3-10 | Show the missing municipality-wide notice at the top of the Parshad view. | LUNA-03 | None |
+| [x] | P3-09 | Add `View as Citizen` to the Parshad experience. | LUNA-03 | None |
+| [x] | P3-10 | Show the missing municipality-wide notice at the top of the Parshad view. | LUNA-03 | None |
 
-**Page status:** Awaiting go-ahead
+**Page status:** APPROVED EXCEPT P3-08 ON HOLD
 
 ### PDF page 4 - Parshad card and public work account
 
 | Go ahead | ID | Task from page 4 | Agent/card | Contract dependency |
 | --- | --- | --- | --- | --- |
-| [ ] | P4-01 | Use `Ward Parshad`, make the Parshad name the profile link, and show the actual term number; the sketch uses `2nd term`. | LUNA-00, LUNA-03 | None |
-| [ ] | P4-02 | Show ward funds and commitments in Public Work Account. | LUNA-00, LUNA-03 | CONTRACT-03 |
-| [ ] | P4-03 | Temporarily show a fixed issue with an approved cost in Recent Spending. | LUNA-00, LUNA-03 | CONTRACT-03 |
+| [x] | P4-01 | Use `Ward Parshad`, make the Parshad name the profile link, and show the actual term number; the sketch uses `2nd term`. | LUNA-00, LUNA-03 | None |
+| [x] | P4-02 | Show ward funds and commitments in Public Work Account. | LUNA-00, LUNA-03 | CONTRACT-03 |
+| [x] | P4-03 | Temporarily show a fixed issue with an approved cost in Recent Spending. | LUNA-00, LUNA-03 | CONTRACT-03 |
 | ON HOLD | P4-04 | Decide whether Ward Tasks replaces Ward Calendar; the PDF marks this for discussion and mentions Aadhaar verification only as an uncertain example. | Sol | CONTRACT-04 |
 
-**Page status:** Awaiting go-ahead
+**Page status:** APPROVED EXCEPT P4-04 ON HOLD
 
 ### PDF page 5 - Corporation Official
 
 | Go ahead | ID | Task from page 5 | Agent/card | Contract dependency |
 | --- | --- | --- | --- | --- |
-| [ ] | P5-01 | Keep Corporation Official login opening Corporation Desk; choosing a ward opens its ward view. | LUNA-04 | None |
-| [ ] | P5-02 | Show ward work by status. | LUNA-04 | None |
-| [ ] | P5-03 | Synchronize Ward Budget. | LUNA-00, LUNA-04 | CONTRACT-03 |
-| [ ] | P5-04 | Update Ward Activity with tags/color coding. | LUNA-04 | None |
-| [ ] | P5-05 | Rename `Corporation Overview` to `Municipal Overview`. | LUNA-04 | CONTRACT-01 |
-| [ ] | P5-06 | Show Escalated Issues information for Ward, Parshad, Issue, Request, Status, and Ward View. | LUNA-04 | None |
-| [ ] | P5-07 | Remove the redundant standalone `Ward 7` element shown in the sketch. | LUNA-04 | None |
+| [x] | P5-01 | Keep Corporation Official login opening Corporation Desk; choosing a ward opens its ward view. | LUNA-04 | None |
+| [x] | P5-02 | Show ward work by status. | LUNA-04 | None |
+| [x] | P5-03 | Synchronize Ward Budget. | LUNA-00, LUNA-04 | CONTRACT-03 |
+| [x] | P5-04 | Update Ward Activity with tags/color coding. | LUNA-04 | None |
+| [x] | P5-05 | Rename `Corporation Overview` to `Municipal Overview`. | LUNA-04 | CONTRACT-01 |
+| [x] | P5-06 | Show Escalated Issues information for Ward, Parshad, Issue, Request, Status, and Ward View. | LUNA-04 | None |
+| [x] | P5-07 | Remove the redundant standalone `Ward 7` element shown in the sketch. | LUNA-04 | None |
 
-**Page status:** Awaiting go-ahead
+**Page status:** APPROVED
 
 ### PDF page 6 - Corporation dashboard
 
 | Go ahead | ID | Task from page 6 | Agent/card | Contract dependency |
 | --- | --- | --- | --- | --- |
-| [ ] | P6-01 | Replace the zero Public Spending display with an approved temporary value between ₹3-5 crore. | LUNA-00, LUNA-04 | CONTRACT-03 |
-| [ ] | P6-02 | Remove Operational Alerts because they have no point right now. | LUNA-04 | None |
-| [ ] | P6-03 | Let Public Notices take the entire available width. | LUNA-04 | None |
+| [x] | P6-01 | Replace the zero Public Spending display with an approved temporary value between ₹3-5 crore. | LUNA-00, LUNA-04 | CONTRACT-03 |
+| [x] | P6-02 | Remove Operational Alerts because they have no point right now. | LUNA-04 | None |
+| [x] | P6-03 | Let Public Notices take the entire available width. | LUNA-04 | None |
 
-**Page status:** Awaiting go-ahead
+**Page status:** APPROVED
 
 ### PDF page 7 - UI/UX and sign-in
 
 | Go ahead | ID | Task from page 7 | Agent/card | Contract dependency |
 | --- | --- | --- | --- | --- |
-| [ ] | P7-01 | Apply the NagarSakhi identity and the source messages: `Your ward, in the open`, `See what's happening in your ward`, and `Make sure your voice counts`. | LUNA-05 | None |
-| [ ] | P7-02 | Explain: file issues, vote on priorities, track ward work, and see where the budget goes. | LUNA-05 | None |
-| [ ] | P7-03 | Use `Private sign-in. Public accountability.` | LUNA-05 | None |
-| [ ] | P7-04 | Present secure registered-mobile sign-in with `+91`, CAPTCHA below the input, and `Get OTP`. | LUNA-05 | None |
-| [ ] | P7-05 | Add a favicon. | LUNA-05 | None |
+| [x] | P7-01 | Apply the NagarSakhi identity and the source messages: `Your ward, in the open`, `See what's happening in your ward`, and `Make sure your voice counts`. | LUNA-05 | None |
+| [x] | P7-02 | Explain: file issues, vote on priorities, track ward work, and see where the budget goes. | LUNA-05 | None |
+| [x] | P7-03 | Use `Private sign-in. Public accountability.` | LUNA-05 | None |
+| [x] | P7-04 | Present secure registered-mobile sign-in with `+91`, CAPTCHA below the input, and `Get OTP`. | LUNA-05 | None |
+| [x] | P7-05 | Add a favicon. | LUNA-05 | None |
 
-**Page status:** Awaiting go-ahead
+**Page status:** APPROVED
 
 ## Ready after contracts - delivery cards
 
 ### LUNA-00 - Shared civic and finance contract implementation
 
-- **Status:** Awaiting user go-ahead; contracts resolved
+- **Status:** IN PROGRESS; contracts resolved
 - **Conflict key:** `data-contract`
 - **Branch:** `codex/v3-civic-contracts`
 - **Worktree:** `../nagarsakhi-wt-v3-civic-contracts`
@@ -217,7 +217,7 @@ You can approve work by saying, for example:
 
 ### LUNA-01 - Citizen flow changes
 
-- **Status:** Awaiting user go-ahead; contract resolved
+- **Status:** APPROVED; waiting for LUNA-00 integration
 - **Conflict key:** `citizen-ui`
 - **Branch:** `codex/v3-citizen-flow`
 - **Worktree:** `../nagarsakhi-wt-v3-citizen-flow`
@@ -235,7 +235,7 @@ You can approve work by saying, for example:
 
 ### LUNA-02 - Shared municipality home page
 
-- **Status:** Awaiting user go-ahead; depends on integrated LUNA-00
+- **Status:** APPROVED; depends on integrated LUNA-00
 - **Conflict key:** `municipality-page`
 - **Branch:** `codex/v3-municipality-page`
 - **Worktree:** `../nagarsakhi-wt-v3-municipality-page`
@@ -251,7 +251,7 @@ You can approve work by saying, for example:
 
 ### LUNA-03 - Parshad Desk changes
 
-- **Status:** Awaiting user go-ahead except P3-08; P3-08 is ON HOLD under CONTRACT-04
+- **Status:** APPROVED except P3-08; depends on integrated LUNA-00; P3-08 is ON HOLD
 - **Conflict key:** `official-ui`
 - **Branch:** `codex/v3-parshad-desk`
 - **Worktree:** `../nagarsakhi-wt-v3-parshad-desk`
@@ -270,7 +270,7 @@ You can approve work by saying, for example:
 
 ### LUNA-04 - Corporation Desk changes
 
-- **Status:** Awaiting user go-ahead; depends on integrated LUNA-00 and LUNA-03
+- **Status:** APPROVED; depends on integrated LUNA-00 and LUNA-03
 - **Conflict key:** `official-ui`
 - **Branch:** `codex/v3-corporation-desk`
 - **Worktree:** `../nagarsakhi-wt-v3-corporation-desk`
@@ -291,7 +291,7 @@ You can approve work by saying, for example:
 
 ### LUNA-05 - Sign-in and UI/UX update
 
-- **Status:** Awaiting user go-ahead
+- **Status:** IN PROGRESS
 - **Conflict key:** `auth-brand`
 - **Branch:** `codex/v3-auth-brand`
 - **Worktree:** `../nagarsakhi-wt-v3-auth-brand`
@@ -324,7 +324,8 @@ You can approve work by saying, for example:
 
 ## In progress
 
-No card is currently assigned.
+- LUNA-00 - `luna_00_civic_contracts` - civic/database contract foundation.
+- LUNA-05 - `luna_05_auth_brand` - sign-in, page-7 messaging, and favicon.
 
 ## Terra review queue
 
