@@ -29,8 +29,8 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Luna `luna_00_civic_contracts` | LUNA-00 / P3-02, P3-03, P3-04, P4-01, P4-02, P4-03, P5-03, P6-01 | IN PROGRESS | `codex/v3-civic-contracts` / `/private/tmp/nagarsakhi-v3-civic-contracts` | Agent dispatched; contract/data inspection underway | `Skip <task ID>` |
-| 2 | Luna `luna_05_auth_brand` | LUNA-05 / P7-01 through P7-05 | IN PROGRESS | `codex/v3-auth-brand` / `/private/tmp/nagarsakhi-v3-auth-brand` | Agent dispatched; page-7 implementation underway | `Skip <task ID>` |
+| 1 | Luna `luna_00_civic_contracts` | LUNA-00 / P3-02, P3-03, P3-04, P4-01, P4-02, P4-03, P5-03, P6-01 | IN PROGRESS | `codex/v3-civic-contracts` / `/private/tmp/nagarsakhi-v3-civic-contracts` | Initial scaffold passed typecheck/lint; persistent idempotent seed migration still being completed | `Skip <task ID>` |
+| 2 | Terra `terra_review_auth_brand` | LUNA-05 / P7-01 through P7-05 | TERRA REVIEW | `codex/v3-auth-brand` / `/private/tmp/nagarsakhi-v3-auth-brand` | Luna commit `61c9018`; Computer Use verification dispatched | `Skip <task ID>` |
 | 3 | - | - | Idle | - | No agent dispatched | Available |
 
 ### Live-state vocabulary
@@ -291,7 +291,7 @@ You can approve work by saying, for example:
 
 ### LUNA-05 - Sign-in and UI/UX update
 
-- **Status:** IN PROGRESS
+- **Status:** TERRA REVIEW; Luna commit `61c9018`
 - **Conflict key:** `auth-brand`
 - **Branch:** `codex/v3-auth-brand`
 - **Worktree:** `../nagarsakhi-wt-v3-auth-brand`
@@ -325,11 +325,11 @@ You can approve work by saying, for example:
 ## In progress
 
 - LUNA-00 - `luna_00_civic_contracts` - civic/database contract foundation.
-- LUNA-05 - `luna_05_auth_brand` - sign-in, page-7 messaging, and favicon.
+- LUNA-05 implementation complete at `61c9018`; now in Terra review.
 
 ## Terra review queue
 
-No card is awaiting review.
+- LUNA-05 / P7-01 through P7-05 - `terra_review_auth_brand` - Computer Use verification in progress.
 
 Terra handoff must contain:
 
