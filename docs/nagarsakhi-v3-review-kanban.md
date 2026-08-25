@@ -29,7 +29,7 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Terra `terra_reverify_citizen_2` | LUNA-01 / P1-01 through P1-04, P2-01, P2-02 | TERRA REVIEW | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Luna fixed BUG-LUNA-01-2 in `1ccd1dc`; final Terra review is active | `Skip <task ID>` |
+| 1 | Sol orchestrator | LUNA-01 / P1-01 through P1-04, P2-01, P2-02 | DONE | `codex/v3-review-kanban` | Static Terra PASS through `1ccd1dc`; integrated as `5bc7a09`, `5c02b3c`, `395f28b`; authenticated UI remains blocked by OTP/CAPTCHA | — |
 | 2 | Terra `terra_review_municipality` | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | MANUAL VERIFICATION BLOCKED | `codex/v3-municipality-page` / `/private/tmp/nagarsakhi-v3-municipality-page` | Static contract review PASS at `980cc59`; desktop/narrow runtime inspection was blocked when Chrome was taken over | `Skip <task ID>` |
 | 3 | Luna `luna_04_corporation_desk` | LUNA-04 / P5-01 through P5-07, P6-01 through P6-03 | IN PROGRESS | `codex/v3-corporation-desk` / `/private/tmp/nagarsakhi-v3-corporation-desk` | Dispatched after LUNA-03 integration; Public Spending must derive from the persisted ₹49,305,000 allocation total | `Skip <task ID>` |
 
@@ -219,7 +219,7 @@ You can approve work by saying, for example:
 
 ### LUNA-01 - Citizen flow changes
 
-- **Status:** TERRA REVIEW at commits `be758c0`, `a57ed81`, and `1ccd1dc`
+- **Status:** DONE; source commits `be758c0`, `a57ed81`, `1ccd1dc` integrated as `5bc7a09`, `5c02b3c`, `395f28b`
 - **Conflict key:** `citizen-ui`
 - **Branch:** `codex/v3-citizen-flow`
 - **Worktree:** `../nagarsakhi-wt-v3-citizen-flow`
@@ -326,7 +326,7 @@ You can approve work by saying, for example:
 
 ## In progress
 
-LUNA-04 Corporation Desk implementation is active; LUNA-01 is in final Terra re-verification.
+LUNA-04 Corporation Desk implementation is active.
 
 ## Terra review queue
 
@@ -356,7 +356,7 @@ Terra handoff must contain:
 - **Expected:** Other wards are strictly view-only in every data mode: no reporting and no voting.
 - **Actual:** Voting is correctly own-ward-only, but reporting remains available in other wards under demo mode.
 - **Luna fix:** Commit `1ccd1dc` removes the demo-mode reporting bypass so reporting and voting are both own-ward-only.
-- **State:** Final Terra re-verification in progress.
+- **State:** Resolved; Terra static PASS; integrated with LUNA-01. Authenticated UI verification remains blocked by OTP/CAPTCHA.
 
 ### BUG-LUNA-01-1 - Vote removal reports a downvote
 
@@ -366,7 +366,7 @@ Terra handoff must contain:
 - **Expected:** Removing an existing vote gives truthful removal feedback; newly cast support still says `Your support was recorded`, and a newly cast downvote uses distinct downvote feedback.
 - **Actual:** The vote is deleted, but every non-support result is labeled `Your downvote was recorded`.
 - **Luna fix:** Commit `a57ed81` adds truthful feedback for support/downvote removal while preserving the approved new-vote copy.
-- **State:** Terra re-verification in progress.
+- **State:** Resolved; Terra static PASS; integrated with LUNA-01.
 
 ### BUG-LUNA-00-1 - Demo finance seed is rejected by tenancy triggers
 
@@ -407,5 +407,6 @@ No fully reviewed card is waiting for integration.
 ## Done
 
 - LUNA-00 - shared civic/finance contract and persistent database seed.
+- LUNA-01 - Citizen Flow approved work and both Terra fixes; integrated as `5bc7a09`, `5c02b3c`, `395f28b` (authenticated UI verification remains blocked by OTP/CAPTCHA).
 - LUNA-03 - Parshad Desk approved work, excluding held P3-08/P4-04; source `2d32e4c`, integrated as `3bcc0b3`.
 - LUNA-05 - page-7 sign-in, messaging, favicon, and visible CAPTCHA (desktop verified; narrow verification remains tracked).
