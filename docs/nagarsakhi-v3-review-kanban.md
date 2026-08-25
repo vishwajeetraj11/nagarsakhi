@@ -29,9 +29,9 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | - | - | Idle | - | LUNA-00 integrated after Terra PASS | Available |
-| 2 | - | - | Idle | - | LUNA-05 integrated after desktop Terra PASS; narrow verification remains tracked | Available |
-| 3 | - | - | Idle | - | No agent dispatched | Available |
+| 1 | Luna `luna_01_citizen_flow` | LUNA-01 / P1-01 through P1-04, P2-01, P2-02 | IN PROGRESS | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Agent dispatched with approved other-ward contract | `Skip <task ID>` |
+| 2 | Luna `luna_02_municipality_page` | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | IN PROGRESS | `codex/v3-municipality-page` / `/private/tmp/nagarsakhi-v3-municipality-page` | Agent dispatched against integrated civic/data contract | `Skip <task ID>` |
+| 3 | Luna `luna_03_parshad_desk` | LUNA-03 / P3-05 through P3-07, P3-09, P3-10, P4-01, P4-03 | IN PROGRESS | `codex/v3-parshad-desk` / `/private/tmp/nagarsakhi-v3-parshad-desk` | Agent dispatched; P3-08 and P4-04 explicitly excluded | `Skip <task ID>` |
 
 ### Live-state vocabulary
 
@@ -217,7 +217,7 @@ You can approve work by saying, for example:
 
 ### LUNA-01 - Citizen flow changes
 
-- **Status:** APPROVED; waiting for LUNA-00 integration
+- **Status:** IN PROGRESS
 - **Conflict key:** `citizen-ui`
 - **Branch:** `codex/v3-citizen-flow`
 - **Worktree:** `../nagarsakhi-wt-v3-citizen-flow`
@@ -235,7 +235,7 @@ You can approve work by saying, for example:
 
 ### LUNA-02 - Shared municipality home page
 
-- **Status:** APPROVED; depends on integrated LUNA-00
+- **Status:** IN PROGRESS
 - **Conflict key:** `municipality-page`
 - **Branch:** `codex/v3-municipality-page`
 - **Worktree:** `../nagarsakhi-wt-v3-municipality-page`
@@ -251,7 +251,7 @@ You can approve work by saying, for example:
 
 ### LUNA-03 - Parshad Desk changes
 
-- **Status:** APPROVED except P3-08; depends on integrated LUNA-00; P3-08 is ON HOLD
+- **Status:** IN PROGRESS except P3-08; P3-08 is ON HOLD
 - **Conflict key:** `official-ui`
 - **Branch:** `codex/v3-parshad-desk`
 - **Worktree:** `../nagarsakhi-wt-v3-parshad-desk`
@@ -324,7 +324,9 @@ You can approve work by saying, for example:
 
 ## In progress
 
-No Luna implementation or fix card is active.
+- LUNA-01 - Citizen flow changes.
+- LUNA-02 - shared municipality page.
+- LUNA-03 - Parshad Desk changes excluding held calendar/Ward Tasks work.
 
 ## Terra review queue
 
