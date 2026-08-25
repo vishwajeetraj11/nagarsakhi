@@ -43,16 +43,6 @@ export function LiveLogin() {
     return () => window.clearInterval(timer);
   }, [resendSeconds]);
 
-  useEffect(() => () => {
-    const verifier = recaptcha.current;
-    recaptcha.current = null;
-    try {
-      verifier?.clear();
-    } catch {
-      // Firebase can race React's DOM cleanup after a solved challenge.
-    }
-  }, []);
-
   const resetRecaptcha = () => {
     const verifier = recaptcha.current;
     recaptcha.current = null;
@@ -69,26 +59,48 @@ export function LiveLogin() {
 
   useEffect(() => {
     const auth = getFirebaseAuth();
-    if (!auth || recaptcha.current) return;
+    if (!auth) return;
 
-    const verifier = new RecaptchaVerifier(auth, "firebase-recaptcha", {
-      "expired-callback": () => {
-        resetRecaptcha();
-        setStage("phone");
-        setMessageTone("error");
-        setMessage("The app verification expired. Complete the check again to request a new code.");
-      },
-      size: "normal",
+    // Defer one frame so React's development-only effect replay cannot leave
+    // two verifiers rendering into the same container.
+    let cancelled = false;
+    const frame = window.requestAnimationFrame(() => {
+      if (cancelled || recaptcha.current) return;
+
+      document.getElementById("firebase-recaptcha")?.replaceChildren();
+      const verifier = new RecaptchaVerifier(auth, "firebase-recaptcha", {
+        "expired-callback": () => {
+          resetRecaptcha();
+          setStage("phone");
+          setMessageTone("error");
+          setMessage("The app verification expired. Complete the check again to request a new code.");
+        },
+        size: "normal",
+      });
+      recaptcha.current = verifier;
+      recaptchaRender.current = verifier.render();
+      recaptchaRender.current.catch(() => {
+        if (recaptcha.current === verifier) {
+          resetRecaptcha();
+          setMessageTone("error");
+          setMessage("The app verification could not load. Refresh and try again.");
+        }
+      });
     });
-    recaptcha.current = verifier;
-    recaptchaRender.current = verifier.render();
-    recaptchaRender.current.catch(() => {
-      if (recaptcha.current === verifier) {
-        resetRecaptcha();
-        setMessageTone("error");
-        setMessage("The app verification could not load. Refresh and try again.");
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+      const verifier = recaptcha.current;
+      recaptcha.current = null;
+      recaptchaRender.current = null;
+      try {
+        verifier?.clear();
+      } catch {
+        // Firebase can race React's DOM cleanup after a solved challenge.
       }
-    });
+      document.getElementById("firebase-recaptcha")?.replaceChildren();
+    };
   }, []);
 
   async function requestOtp() {

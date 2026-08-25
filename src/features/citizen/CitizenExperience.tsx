@@ -28,7 +28,7 @@ import type { PublicDemoData } from "@/data/demo";
 import type { WardIssuesResult } from "@/lib/data/live";
 import { createLiveIssue, deleteIssueVote, setIssueVote, uploadLiveIssueMedia } from "@/lib/data/live-mutations";
 import type { DemoSession, EscalationStatus, Issue, IssueMedia, IssueStatus } from "@/lib/domain/types";
-import { wardLocalityName } from "@/lib/domain/ward-label";
+import { formatWardLabel, wardLocalityName } from "@/lib/domain/ward-label";
 import { getFirebaseAuthorizationHeader } from "@/lib/firebase";
 import styles from "./citizenStyles";
 
@@ -485,7 +485,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
     <section className={styles.experience} aria-label="NagarSakhi citizen experience">
       <div className={styles.wardBand}>
         <div className={styles.wardIdentity}>
-          <h1>Ward {ward.number}{wardLocality ? <span> / {wardLocality}</span> : null}</h1>
+          <h1>{formatWardLabel(ward.number)}{wardLocality ? <span> / {wardLocality}</span> : null}</h1>
           <p className={styles.wardLocation}><MapPin size={15} aria-hidden="true" /> <span>{data.municipality.name}, {data.municipality.district}</span></p>
         </div>
       </div>
@@ -540,7 +540,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
                 {openWardIssues.length > 0 ? openWardIssues.slice(0, 2).map((issue) => <IssueRecord key={issue.id} issue={issue} canVote={canVote} viewerId={session?.profileId} onOpen={() => { setSelectedIssueId(issue.id); moveTo("issues"); }} onVote={(direction) => handleVote(issue.id, direction)} />) : (
                   <div className={styles.homeEmpty} role="status">
                     <p className={styles.kicker}>No work in progress</p>
-                    <h3>No issues are currently in progress in Ward {ward.number}.</h3>
+                    <h3>No issues are currently in progress in {formatWardLabel(ward.number)}.</h3>
                     <p className={styles.homeEmptyCopy}>Reported, fixed, and rejected records remain available in the full issue board.</p>
                     <div className={styles.homeEmptyActions}>
                       <button type="button" className={styles.textAction} onClick={() => moveTo("issues")}>Browse the issue record <ArrowUpRight size={16} aria-hidden="true" /></button>
@@ -577,8 +577,8 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
 
         {view === "issues" && (
           <section className={styles.issueBoard} aria-labelledby="issue-board-title">
-            <div className={styles.sectionHead}>
-              <div><p className={styles.kicker}>Community reports · जन शिकायतें</p><h2 id="issue-board-title">Ward {ward.number} issue board</h2></div>
+              <div className={styles.sectionHead}>
+                <div><p className={styles.kicker}>Community reports · जन शिकायतें</p><h2 id="issue-board-title">{formatWardLabel(ward.number)} issue board</h2></div>
               {canReportInWard ? <button type="button" className={styles.primaryAction} onClick={() => moveTo("report")}><Plus size={19} aria-hidden="true" /> Report issue</button> : null}
             </div>
             <div className={styles.filterBar} role="group" aria-label="Filter issues by status">
@@ -586,7 +586,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
             </div>
             {filter === "rejected" && <div className={styles.historyIntro}><p className={styles.kicker}>Rejected history</p><p>These reports stay in the public record with the ward decision, reason, official, and timestamp.</p></div>}
             <div className={styles.boardLayout}>
-              <div className={styles.issueList}>{filteredIssues.length ? filteredIssues.map((issue) => <IssueRecord key={issue.id} issue={issue} canVote={canVote} viewerId={session?.profileId} onOpen={() => setSelectedIssueId(issue.id)} onVote={(direction) => handleVote(issue.id, direction)} />) : <p className={styles.emptyState}>No reports match this status in Ward {ward.number}. Try another filter or report a new concern.</p>}</div>
+              <div className={styles.issueList}>{filteredIssues.length ? filteredIssues.map((issue) => <IssueRecord key={issue.id} issue={issue} canVote={canVote} viewerId={session?.profileId} onOpen={() => setSelectedIssueId(issue.id)} onVote={(direction) => handleVote(issue.id, direction)} />) : <p className={styles.emptyState}>No reports match this status in {formatWardLabel(ward.number)}. Try another filter or report a new concern.</p>}</div>
               <aside className={styles.detailPanel} aria-live="polite">
                 {selectedIssue ? <IssueDetail key={selectedIssue.id} issue={selectedIssue} onClose={() => setSelectedIssueId(null)} /> : <div className={styles.detailEmpty}><FileText size={28} aria-hidden="true" /><h3>Open a report</h3><p>Select any issue to read its evidence and public record.</p></div>}
               </aside>
@@ -609,14 +609,14 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
               {formError && <p id="report-error" className={styles.formError} role="alert">{formError}</p>}
               <button type="submit" className={`${styles.primaryAction} inline-flex items-center gap-2 transition-transform duration-150 hover:-translate-y-px`} disabled={isSubmitting} aria-busy={isSubmitting}>{isSubmitting ? <><span className={styles.submitSpinner} aria-hidden="true" /> Submitting…</> : <>Submit report <ChevronRight size={19} aria-hidden="true" /></>}</button>
             </form>}
-            {reportStage === "success" && <div className={styles.successState} role="status"><span className={styles.successMark}><Check size={28} aria-hidden="true" /></span><h3>Your community record is updated.</h3><p>{dataMode === "demo" ? "In this synthetic demo, the update is saved only in this browser." : "The report is now in your municipality’s live issue register."} You can follow it from the Ward {ward.number} issue board.</p>{dataMode === "supabase" && aiJobId ? <AiJobStatus jobId={aiJobId} /> : null}<button type="button" className={styles.primaryAction} onClick={() => moveTo("issues")}>View the issue board <ArrowUpRight size={18} aria-hidden="true" /></button></div>}
+            {reportStage === "success" && <div className={styles.successState} role="status"><span className={styles.successMark}><Check size={28} aria-hidden="true" /></span><h3>Your community record is updated.</h3><p>{dataMode === "demo" ? "In this synthetic demo, the update is saved only in this browser." : "The report is now in your municipality’s live issue register."} You can follow it from the {formatWardLabel(ward.number)} issue board.</p>{dataMode === "supabase" && aiJobId ? <AiJobStatus jobId={aiJobId} /> : null}<button type="button" className={styles.primaryAction} onClick={() => moveTo("issues")}>View the issue board <ArrowUpRight size={18} aria-hidden="true" /></button></div>}
           </section>
         )}
 
-        {view === "wards" && <section className={styles.wardBrowser} aria-labelledby="ward-browser-title" aria-busy={Boolean(loadingWardId)}><p className={styles.kicker}>{data.municipality.district}, {data.municipality.state}</p><h2 id="ward-browser-title">Browse {data.municipality.name} wards</h2><p className={styles.leadCopy}>Your ward is the place linked to your verified mobile number. You can read other ward records, but reports can only be filed in your own ward.</p>{residentWard && <div className={styles.yourWardCard}><div><p className={styles.kicker}>Your ward · आपका वार्ड</p><strong>Ward {residentWard.number}{residentWardLocality ? ` · ${residentWardLocality}` : ""}</strong><p>Report issues and follow work here.</p></div><button type="button" className={styles.secondaryAction} disabled={Boolean(loadingWardId)} onClick={() => void openWard(residentWard)}>Open your ward <ArrowUpRight size={16} aria-hidden="true" /></button></div>}<div className={styles.wardList}>{data.wards.map((item) => <button key={item.id} type="button" disabled={Boolean(loadingWardId)} className={item.id === residentWard?.id ? `${styles.wardSelected} ${styles.wardResident}` : item.number === ward.number ? styles.wardSelected : ""} aria-current={item.id === residentWard?.id ? "true" : undefined} onClick={() => void openWard(item)}><span>{item.id === residentWard?.id ? "Your ward" : `Ward ${item.number}`}</span><strong>{loadingWardId === item.id ? "Opening…" : wardLocalityName(item.name) ?? `Ward ${item.number}`}</strong><small>{formatRupees(item.spentBudget)} spent</small><ChevronRight size={18} aria-hidden="true" /></button>)}</div></section>}
+        {view === "wards" && <section className={styles.wardBrowser} aria-labelledby="ward-browser-title" aria-busy={Boolean(loadingWardId)}><p className={styles.kicker}>{data.municipality.district}, {data.municipality.state}</p><h2 id="ward-browser-title">Browse {data.municipality.name} wards</h2><p className={styles.leadCopy}>Your ward is the place linked to your verified mobile number. You can read other ward records, but reports can only be filed in your own ward.</p>{residentWard && <div className={styles.yourWardCard}><div><p className={styles.kicker}>Your ward · आपका वार्ड</p><strong>{formatWardLabel(residentWard.number)}{residentWardLocality ? ` · ${residentWardLocality}` : ""}</strong><p>Report issues and follow work here.</p></div><button type="button" className={styles.secondaryAction} disabled={Boolean(loadingWardId)} onClick={() => void openWard(residentWard)}>Open your ward <ArrowUpRight size={16} aria-hidden="true" /></button></div>}<div className={styles.wardList}>{data.wards.map((item) => <button key={item.id} type="button" disabled={Boolean(loadingWardId)} className={item.id === residentWard?.id ? `${styles.wardSelected} ${styles.wardResident}` : item.number === ward.number ? styles.wardSelected : ""} aria-current={item.id === residentWard?.id ? "true" : undefined} onClick={() => void openWard(item)}><span>{item.id === residentWard?.id ? "Your ward" : formatWardLabel(item.number)}</span><strong>{loadingWardId === item.id ? "Opening…" : wardLocalityName(item.name) ?? formatWardLabel(item.number)}</strong><small>{formatRupees(item.spentBudget)} spent</small><ChevronRight size={18} aria-hidden="true" /></button>)}</div></section>}
 
         {view === "profile" && <section className={styles.profilePage} aria-labelledby="parshad-profile-title">
-          <button type="button" className={styles.backButton} onClick={returnFromProfile}><ArrowLeft size={18} aria-hidden="true" /> Back to Ward {(displayedOfficialWard ?? ward).number}</button>
+          <button type="button" className={styles.backButton} onClick={returnFromProfile}><ArrowLeft size={18} aria-hidden="true" /> Back to {formatWardLabel((displayedOfficialWard ?? ward).number)}</button>
           <p className={styles.kicker}>Public representative profile · सार्वजनिक प्रोफ़ाइल</p>
           {displayedOfficial ? <>
             <h2 id="parshad-profile-title">{displayedOfficial.name}</h2>

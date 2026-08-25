@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 
-import { wardLocalityName } from "@/lib/domain/ward-label";
+import { formatWardLabel, wardLocalityName } from "@/lib/domain/ward-label";
 import { createFirebaseSupabaseClient } from "@/lib/supabase";
 
 type LocationRow = {
@@ -150,7 +150,7 @@ export function LiveOnboarding({ user, onComplete, registrationRequired = false 
           <select id="onboarding-ward" onChange={(event) => setWardId(event.target.value)} required value={wardId}>
             {wards.map((ward) => (
               <option key={ward.ward_id} value={ward.ward_id}>
-                Ward {ward.ward_number}{wardLocalityName(ward.ward_name) ? `: ${wardLocalityName(ward.ward_name)}` : ""}
+                {formatWardLabel(ward.ward_number)}{wardLocalityName(ward.ward_name) ? `: ${wardLocalityName(ward.ward_name)}` : ""}
               </option>
             ))}
           </select>
