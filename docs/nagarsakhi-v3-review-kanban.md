@@ -29,9 +29,9 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Terra `terra_reverify_citizen` | LUNA-01 / P1-01 through P1-04, P2-01, P2-02 | TERRA REVIEW | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Luna fixed BUG-LUNA-01-1 in `a57ed81`; Terra is re-verifying the full card | `Skip <task ID>` |
+| 1 | Luna `luna_01_citizen_flow` | LUNA-01 / BUG-LUNA-01-2 | FIXING BUG-LUNA-01-2 | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Terra found demo mode still permits reporting in another ward; Luna is removing that contract breach | `Skip <task ID>` |
 | 2 | Terra `terra_review_municipality` | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | TERRA REVIEW | `codex/v3-municipality-page` / `/private/tmp/nagarsakhi-v3-municipality-page` | Luna committed `980cc59`; Terra is checking navigation, source fields, persistence labels, and responsive behavior | `Skip <task ID>` |
-| 3 | Terra `terra_review_parshad` | LUNA-03 / P3-05 through P3-07, P3-09, P3-10, P4-01, P4-03 | TERRA REVIEW | `codex/v3-parshad-desk` / `/private/tmp/nagarsakhi-v3-parshad-desk` | Luna committed `2d32e4c`; Terra is reviewing it; P3-08 and P4-04 remain excluded | `Skip <task ID>` |
+| 3 | Terra `terra_review_parshad` | LUNA-03 / P3-05 through P3-07, P3-09, P3-10, P4-01, P4-03 | READY TO INTEGRATE | `codex/v3-parshad-desk` / `/private/tmp/nagarsakhi-v3-parshad-desk` | Terra static review PASS at `2d32e4c`; rendered desktop/narrow verification remains manual-blocked | `Skip <task ID>` |
 
 ### Live-state vocabulary
 
@@ -252,7 +252,7 @@ You can approve work by saying, for example:
 
 ### LUNA-03 - Parshad Desk changes
 
-- **Status:** TERRA REVIEW at commit `2d32e4c`; P3-08 and P4-04 are ON HOLD
+- **Status:** READY TO INTEGRATE at commit `2d32e4c`; P3-08 and P4-04 are ON HOLD
 - **Conflict key:** `official-ui`
 - **Branch:** `codex/v3-parshad-desk`
 - **Worktree:** `../nagarsakhi-wt-v3-parshad-desk`
@@ -325,14 +325,13 @@ You can approve work by saying, for example:
 
 ## In progress
 
-No Luna implementation is currently active; three Terra reviews are running in parallel.
+LUNA-01 is fixing BUG-LUNA-01-2 while the Municipality and Parshad Terra reviews continue.
 
 ## Terra review queue
 
 - LUNA-05 - narrow viewport verification remains pending due local Mac window-control limitation.
-- LUNA-01 / `a57ed81` - active Terra re-verification after BUG-LUNA-01-1 fix.
 - LUNA-02 / `980cc59` - active Terra review.
-- LUNA-03 / `2d32e4c` - active Terra review; held calendar/Ward Tasks items are not included.
+- LUNA-03 / `2d32e4c` - Terra static review PASS; rendered desktop/narrow verification remains manual-blocked.
 
 Terra handoff must contain:
 
@@ -348,6 +347,15 @@ Terra handoff must contain:
 ```
 
 ## Luna bug-fix queue
+
+### BUG-LUNA-01-2 - Demo mode permits reporting in another ward
+
+- **Parent:** LUNA-01 / P1-03 / commit `a57ed81`
+- **Severity:** P1
+- **Reproduction:** In demo mode, browse a ward other than `session.wardId`; the reporting permission includes a `dataMode === "demo"` bypass.
+- **Expected:** Other wards are strictly view-only in every data mode: no reporting and no voting.
+- **Actual:** Voting is correctly own-ward-only, but reporting remains available in other wards under demo mode.
+- **State:** Assigned back to `luna_01_citizen_flow`; Terra re-verification required.
 
 ### BUG-LUNA-01-1 - Vote removal reports a downvote
 
@@ -393,7 +401,7 @@ Terra handoff must contain:
 
 ## Integration queue
 
-No reviewed card is waiting for integration.
+- LUNA-03 / `2d32e4c` - Terra static review PASS; integrate after recording the manual Computer Use limitation. Held P3-08/P4-04 are absent.
 
 ## Done
 
