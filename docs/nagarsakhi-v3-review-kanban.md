@@ -29,7 +29,7 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Terra `terra_review_citizen_flow` | LUNA-01 / P1-01 through P1-04, P2-01, P2-02 | TERRA REVIEW | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Luna committed `be758c0`; Terra is verifying the citizen flows through Computer Use | `Skip <task ID>` |
+| 1 | Luna `luna_01_citizen_flow` | LUNA-01 / BUG-LUNA-01-1 | FIXING BUG-LUNA-01-1 | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Terra found misleading feedback when an existing vote is removed; Luna is applying the scoped fix | `Skip <task ID>` |
 | 2 | Luna `luna_02_municipality_page` | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | IN PROGRESS | `codex/v3-municipality-page` / `/private/tmp/nagarsakhi-v3-municipality-page` | Agent dispatched against integrated civic/data contract | `Skip <task ID>` |
 | 3 | Luna `luna_03_parshad_desk` | LUNA-03 / P3-05 through P3-07, P3-09, P3-10, P4-01, P4-03 | TERRA REVIEW QUEUED | `codex/v3-parshad-desk` / `/private/tmp/nagarsakhi-v3-parshad-desk` | Luna committed `2d32e4c`; waiting for the next Terra slot; P3-08 and P4-04 remain excluded | `Skip <task ID>` |
 
@@ -330,7 +330,7 @@ You can approve work by saying, for example:
 ## Terra review queue
 
 - LUNA-05 - narrow viewport verification remains pending due local Mac window-control limitation.
-- LUNA-01 / `be758c0` - active Computer Use review by `terra_review_citizen_flow`.
+- LUNA-01 / `be758c0` - static contract review complete; manual Computer Use is blocked because the Mac is locked. BUG-LUNA-01-1 is back with Luna.
 - LUNA-03 / `2d32e4c` - queued for the next Terra slot; held calendar/Ward Tasks items are not included.
 
 Terra handoff must contain:
@@ -347,6 +347,15 @@ Terra handoff must contain:
 ```
 
 ## Luna bug-fix queue
+
+### BUG-LUNA-01-1 - Vote removal reports a downvote
+
+- **Parent:** LUNA-01 / P1-04 / commit `be758c0`
+- **Severity:** P1
+- **Reproduction:** In the citizen's own ward, support an issue and click Support again to remove that vote.
+- **Expected:** Removing an existing vote gives truthful removal feedback; newly cast support still says `Your support was recorded`, and a newly cast downvote uses distinct downvote feedback.
+- **Actual:** The vote is deleted, but every non-support result is labeled `Your downvote was recorded`.
+- **State:** Assigned back to `luna_01_citizen_flow`; Terra re-verification required.
 
 ### BUG-LUNA-00-1 - Demo finance seed is rejected by tenancy triggers
 
