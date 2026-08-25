@@ -568,7 +568,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
               </div>
               <div className={styles.budgetTrack} aria-label={`${formatRupees(ward.spentBudget)} of ${formatRupees(ward.allocatedBudget)} spent`}><span style={{ width: `${ward.allocatedBudget > 0 ? Math.min(100, (ward.spentBudget / ward.allocatedBudget) * 100) : 0}%` }} /></div>
               <div className={styles.workGrid}>
-                <div><h3>Recent spending</h3>{expenditures.length ? expenditures.map((expense) => <p key={expense.id}><span>{expense.description}</span><strong>{formatRupees(expense.amount)}</strong></p>) : <p>No ward expenditure is listed in this demo.</p>}</div>
+                <div><h3>Recent spending</h3>{expenditures.length ? expenditures.map((expense) => <p key={expense.id}><span>{expense.description}</span><strong>{formatRupees(expense.amount)}</strong></p>) : <p>{dataMode === "demo" ? "No ward expenditure is listed in this demo." : "No public spending has been recorded for this ward yet."}</p>}</div>
                 {tasks.length ? <div><h3>Ward tasks</h3>{tasks.map((task) => <p key={task.id}><span className={task.completed ? styles.doneTask : ""}>{task.completed ? "Completed" : "Due"}: {task.title}</span><strong>{formatDate(task.dueAt)}</strong></p>)}</div> : null}
               </div>
             </section>
