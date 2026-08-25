@@ -100,6 +100,14 @@ const formatTimestamp = (value: string) =>
 const formatRupees = (amount: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(amount);
 
+const formatTermLabel = (termNumber?: number) => {
+  if (!termNumber) return "Current term";
+  const suffix = termNumber % 100 >= 11 && termNumber % 100 <= 13
+    ? "th"
+    : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[termNumber % 10] ?? "th";
+  return `${termNumber}${suffix} term`;
+};
+
 type SimilarIssueMatch = {
   id: string;
   title: string;
@@ -548,7 +556,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
                     <h2>{wardOfficial?.name ?? "Ward office"}</h2>
                     <span>View Parshad profile <ArrowUpRight size={15} aria-hidden="true" /></span>
                   </button>
-                  <p>{wardOfficial?.roleLabel ?? "Ward administration"} · Current term</p>
+                  <p>{wardOfficial?.roleLabel ?? "Ward administration"} · {formatTermLabel(wardOfficial?.termNumber)}</p>
                 </section>
               </aside>
             </div>
@@ -615,7 +623,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
             <p className={styles.profileRole}>{displayedOfficial.roleLabel} · {displayedOfficialWard ? `Ward ${displayedOfficialWard.number}, ` : ""}{data.municipality.name}</p>
             <div className={styles.profileGrid}>
               <section><p className={styles.kicker}>Public responsibility</p><h3>Keep the civic record moving.</h3><p>{displayedOfficialWard ? `Residents can follow reported issues, public notices, and progress updates for Ward ${displayedOfficialWard.number}.` : "This public official is part of the municipality’s civic record."}</p></section>
-              <section><p className={styles.kicker}>Current term</p><h3>{displayedOfficial.current ? "Active representative" : "Term record"}</h3><p>{displayedOfficial.wonByVotes ? `${displayedOfficial.wonByVotes.toLocaleString("en-IN")} votes recorded` : "Current term information is maintained by the municipality."}</p></section>
+              <section><p className={styles.kicker}>Service record</p><h3>{displayedOfficial.current ? (displayedOfficial.termNumber ? `Active · ${formatTermLabel(displayedOfficial.termNumber)}` : "Active representative") : "Term record"}</h3><p>{displayedOfficial.wonByVotes ? `${displayedOfficial.wonByVotes.toLocaleString("en-IN")} votes recorded` : displayedOfficial.termNumber ? `Serving their ${formatTermLabel(displayedOfficial.termNumber)}.` : "Term history has not been recorded."}</p></section>
             <section><p className={styles.kicker}>Fixed public issues</p><h3 className={styles.profileMetric}>{completedOfficialIssueCount}</h3><p>{displayedOfficialWard ? `Issues fixed in Ward ${displayedOfficialWard.number}.` : "Fixed issues recorded by the municipality."}</p></section>
             </div>
             <p className={styles.finePrint}>Only public role and term information is shown here. Private contact details are not part of the public record.</p>
