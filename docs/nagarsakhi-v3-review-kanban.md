@@ -29,8 +29,8 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Luna `luna_00_civic_contracts` | LUNA-00 / P3-02, P3-03, P3-04, P4-01, P4-02, P4-03, P5-03, P6-01 | IN PROGRESS | `codex/v3-civic-contracts` / `/private/tmp/nagarsakhi-v3-civic-contracts` | Initial scaffold passed typecheck/lint; persistent idempotent seed migration still being completed | `Skip <task ID>` |
-| 2 | Terra `terra_review_auth_brand` | LUNA-05 / P7-01 through P7-05 | TERRA REVIEW | `codex/v3-auth-brand` / `/private/tmp/nagarsakhi-v3-auth-brand` | Luna commit `61c9018`; Computer Use verification dispatched | `Skip <task ID>` |
+| 1 | Terra `terra_review_civic_contracts` | LUNA-00 / P3-02, P3-03, P3-04, P4-01, P4-02, P4-03, P5-03, P6-01 | TERRA REVIEW | `codex/v3-civic-contracts` / `/private/tmp/nagarsakhi-v3-civic-contracts` | Commit `6d4fb38`; contract/migration review dispatched | `Skip <task ID>` |
+| 2 | Terra `terra_review_auth_brand` | LUNA-05 / P7-01 through P7-05 | TERRA REVIEW | `codex/v3-auth-brand` / `/private/tmp/nagarsakhi-v3-auth-brand` | Environment corrected; Computer Use verification rerunning | `Skip <task ID>` |
 | 3 | - | - | Idle | - | No agent dispatched | Available |
 
 ### Live-state vocabulary
@@ -206,7 +206,7 @@ You can approve work by saying, for example:
 
 ### LUNA-00 - Shared civic and finance contract implementation
 
-- **Status:** IN PROGRESS; contracts resolved
+- **Status:** TERRA REVIEW; commit `6d4fb38`
 - **Conflict key:** `data-contract`
 - **Branch:** `codex/v3-civic-contracts`
 - **Worktree:** `../nagarsakhi-wt-v3-civic-contracts`
@@ -324,12 +324,12 @@ You can approve work by saying, for example:
 
 ## In progress
 
-- LUNA-00 - `luna_00_civic_contracts` - civic/database contract foundation.
-- LUNA-05 implementation complete at `61c9018`; now in Terra review.
+No Luna implementation card is active; two completed branches are in Terra review.
 
 ## Terra review queue
 
-- LUNA-05 / P7-01 through P7-05 - `terra_review_auth_brand` - Computer Use verification in progress.
+- LUNA-00 / shared civic and finance contract - `terra_review_civic_contracts` - migration/contract review in progress.
+- LUNA-05 / P7-01 through P7-05 - `terra_review_auth_brand` - Computer Use verification rerun in progress.
 
 Terra handoff must contain:
 
