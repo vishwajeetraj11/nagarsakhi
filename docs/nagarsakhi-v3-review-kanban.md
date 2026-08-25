@@ -30,8 +30,8 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Luna `luna_01_citizen_flow` | LUNA-01 / BUG-LUNA-01-2 | FIXING BUG-LUNA-01-2 | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Terra found demo mode still permits reporting in another ward; Luna is removing that contract breach | `Skip <task ID>` |
-| 2 | Terra `terra_review_municipality` | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | TERRA REVIEW | `codex/v3-municipality-page` / `/private/tmp/nagarsakhi-v3-municipality-page` | Luna committed `980cc59`; Terra is checking navigation, source fields, persistence labels, and responsive behavior | `Skip <task ID>` |
-| 3 | Terra `terra_review_parshad` | LUNA-03 / P3-05 through P3-07, P3-09, P3-10, P4-01, P4-03 | READY TO INTEGRATE | `codex/v3-parshad-desk` / `/private/tmp/nagarsakhi-v3-parshad-desk` | Terra static review PASS at `2d32e4c`; rendered desktop/narrow verification remains manual-blocked | `Skip <task ID>` |
+| 2 | Terra `terra_review_municipality` | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | MANUAL VERIFICATION BLOCKED | `codex/v3-municipality-page` / `/private/tmp/nagarsakhi-v3-municipality-page` | Static contract review PASS at `980cc59`; desktop/narrow runtime inspection was blocked when Chrome was taken over | `Skip <task ID>` |
+| 3 | Sol orchestrator | LUNA-03 / P3-05 through P3-07, P3-09, P3-10, P4-01, P4-03 | DONE | `codex/v3-review-kanban` | Terra-reviewed `2d32e4c` integrated as `3bcc0b3`; rendered verification limitation remains recorded | — |
 
 ### Live-state vocabulary
 
@@ -41,6 +41,7 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 - `NEEDS INPUT` - an agent is paused on a contract question.
 - `TERRA REVIEW` - implementation is being verified through Computer Use.
 - `TERRA REVIEW QUEUED` - Luna has committed the card and it is waiting for a Terra verification slot.
+- `MANUAL VERIFICATION BLOCKED` - static review found no contract bug, but Computer Use could not safely inspect the running branch.
 - `FIXING BUG-N` - Luna is fixing a Terra finding.
 - `READY TO INTEGRATE` - Terra passed it; Sol has not integrated it yet.
 - `DONE` - integrated by Sol.
@@ -236,7 +237,7 @@ You can approve work by saying, for example:
 
 ### LUNA-02 - Shared municipality home page
 
-- **Status:** TERRA REVIEW at commit `980cc59`
+- **Status:** MANUAL VERIFICATION BLOCKED at commit `980cc59`; static contract review PASS
 - **Conflict key:** `municipality-page`
 - **Branch:** `codex/v3-municipality-page`
 - **Worktree:** `../nagarsakhi-wt-v3-municipality-page`
@@ -252,7 +253,7 @@ You can approve work by saying, for example:
 
 ### LUNA-03 - Parshad Desk changes
 
-- **Status:** READY TO INTEGRATE at commit `2d32e4c`; P3-08 and P4-04 are ON HOLD
+- **Status:** DONE; source `2d32e4c` integrated as `3bcc0b3`; P3-08 and P4-04 are ON HOLD
 - **Conflict key:** `official-ui`
 - **Branch:** `codex/v3-parshad-desk`
 - **Worktree:** `../nagarsakhi-wt-v3-parshad-desk`
@@ -330,8 +331,7 @@ LUNA-01 is fixing BUG-LUNA-01-2 while the Municipality and Parshad Terra reviews
 ## Terra review queue
 
 - LUNA-05 - narrow viewport verification remains pending due local Mac window-control limitation.
-- LUNA-02 / `980cc59` - active Terra review.
-- LUNA-03 / `2d32e4c` - Terra static review PASS; rendered desktop/narrow verification remains manual-blocked.
+- LUNA-02 / `980cc59` - static contract review PASS; Computer Use desktop/narrow inspection remains manual-blocked.
 
 Terra handoff must contain:
 
@@ -401,9 +401,10 @@ Terra handoff must contain:
 
 ## Integration queue
 
-- LUNA-03 / `2d32e4c` - Terra static review PASS; integrate after recording the manual Computer Use limitation. Held P3-08/P4-04 are absent.
+No fully reviewed card is waiting for integration.
 
 ## Done
 
 - LUNA-00 - shared civic/finance contract and persistent database seed.
+- LUNA-03 - Parshad Desk approved work, excluding held P3-08/P4-04; source `2d32e4c`, integrated as `3bcc0b3`.
 - LUNA-05 - page-7 sign-in, messaging, favicon, and visible CAPTCHA (desktop verified; narrow verification remains tracked).
