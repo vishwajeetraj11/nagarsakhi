@@ -29,9 +29,9 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Luna `luna_01_citizen_flow` | LUNA-01 / BUG-LUNA-01-1 | FIXING BUG-LUNA-01-1 | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Terra found misleading feedback when an existing vote is removed; Luna is applying the scoped fix | `Skip <task ID>` |
-| 2 | Luna `luna_02_municipality_page` | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | IN PROGRESS | `codex/v3-municipality-page` / `/private/tmp/nagarsakhi-v3-municipality-page` | Agent dispatched against integrated civic/data contract | `Skip <task ID>` |
-| 3 | Luna `luna_03_parshad_desk` | LUNA-03 / P3-05 through P3-07, P3-09, P3-10, P4-01, P4-03 | TERRA REVIEW QUEUED | `codex/v3-parshad-desk` / `/private/tmp/nagarsakhi-v3-parshad-desk` | Luna committed `2d32e4c`; waiting for the next Terra slot; P3-08 and P4-04 remain excluded | `Skip <task ID>` |
+| 1 | Terra `terra_reverify_citizen` | LUNA-01 / P1-01 through P1-04, P2-01, P2-02 | TERRA REVIEW | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Luna fixed BUG-LUNA-01-1 in `a57ed81`; Terra is re-verifying the full card | `Skip <task ID>` |
+| 2 | Terra `terra_review_municipality` | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | TERRA REVIEW | `codex/v3-municipality-page` / `/private/tmp/nagarsakhi-v3-municipality-page` | Luna committed `980cc59`; Terra is checking navigation, source fields, persistence labels, and responsive behavior | `Skip <task ID>` |
+| 3 | Terra `terra_review_parshad` | LUNA-03 / P3-05 through P3-07, P3-09, P3-10, P4-01, P4-03 | TERRA REVIEW | `codex/v3-parshad-desk` / `/private/tmp/nagarsakhi-v3-parshad-desk` | Luna committed `2d32e4c`; Terra is reviewing it; P3-08 and P4-04 remain excluded | `Skip <task ID>` |
 
 ### Live-state vocabulary
 
@@ -218,7 +218,7 @@ You can approve work by saying, for example:
 
 ### LUNA-01 - Citizen flow changes
 
-- **Status:** TERRA REVIEW at commit `be758c0`
+- **Status:** TERRA REVIEW at commits `be758c0` and bug fix `a57ed81`
 - **Conflict key:** `citizen-ui`
 - **Branch:** `codex/v3-citizen-flow`
 - **Worktree:** `../nagarsakhi-wt-v3-citizen-flow`
@@ -236,7 +236,7 @@ You can approve work by saying, for example:
 
 ### LUNA-02 - Shared municipality home page
 
-- **Status:** IN PROGRESS
+- **Status:** TERRA REVIEW at commit `980cc59`
 - **Conflict key:** `municipality-page`
 - **Branch:** `codex/v3-municipality-page`
 - **Worktree:** `../nagarsakhi-wt-v3-municipality-page`
@@ -252,7 +252,7 @@ You can approve work by saying, for example:
 
 ### LUNA-03 - Parshad Desk changes
 
-- **Status:** TERRA REVIEW QUEUED at commit `2d32e4c`; P3-08 and P4-04 are ON HOLD
+- **Status:** TERRA REVIEW at commit `2d32e4c`; P3-08 and P4-04 are ON HOLD
 - **Conflict key:** `official-ui`
 - **Branch:** `codex/v3-parshad-desk`
 - **Worktree:** `../nagarsakhi-wt-v3-parshad-desk`
@@ -325,13 +325,14 @@ You can approve work by saying, for example:
 
 ## In progress
 
-- LUNA-02 - shared municipality page.
+No Luna implementation is currently active; three Terra reviews are running in parallel.
 
 ## Terra review queue
 
 - LUNA-05 - narrow viewport verification remains pending due local Mac window-control limitation.
-- LUNA-01 / `be758c0` - static contract review complete; manual Computer Use is blocked because the Mac is locked. BUG-LUNA-01-1 is back with Luna.
-- LUNA-03 / `2d32e4c` - queued for the next Terra slot; held calendar/Ward Tasks items are not included.
+- LUNA-01 / `a57ed81` - active Terra re-verification after BUG-LUNA-01-1 fix.
+- LUNA-02 / `980cc59` - active Terra review.
+- LUNA-03 / `2d32e4c` - active Terra review; held calendar/Ward Tasks items are not included.
 
 Terra handoff must contain:
 
@@ -355,7 +356,8 @@ Terra handoff must contain:
 - **Reproduction:** In the citizen's own ward, support an issue and click Support again to remove that vote.
 - **Expected:** Removing an existing vote gives truthful removal feedback; newly cast support still says `Your support was recorded`, and a newly cast downvote uses distinct downvote feedback.
 - **Actual:** The vote is deleted, but every non-support result is labeled `Your downvote was recorded`.
-- **State:** Assigned back to `luna_01_citizen_flow`; Terra re-verification required.
+- **Luna fix:** Commit `a57ed81` adds truthful feedback for support/downvote removal while preserving the approved new-vote copy.
+- **State:** Terra re-verification in progress.
 
 ### BUG-LUNA-00-1 - Demo finance seed is rejected by tenancy triggers
 
