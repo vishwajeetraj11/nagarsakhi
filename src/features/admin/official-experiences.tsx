@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useRef, useState } from "react";
 import type { PublicDemoData } from "@/data/demo";
 import { CitizenExperience } from "@/features/citizen/CitizenExperience";
 import type { WardIssuesResult } from "@/lib/data/live";
-import { createLiveEscalation, publishLiveNotice, rejectLiveIssue, setLiveAlertCompletion, transitionLiveEscalation, transitionLiveIssue } from "@/lib/data/live-mutations";
+import { createLiveEscalation, publishLiveNotice, rejectLiveIssue, transitionLiveEscalation, transitionLiveIssue } from "@/lib/data/live-mutations";
 import type { DemoSession, Escalation, Issue, IssueStatus, Notice } from "@/lib/domain/types";
 import { wardLocalityName } from "@/lib/domain/ward-label";
 import styles from "./adminStyles";
@@ -97,9 +98,9 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
     return escalation ? { ...issue, escalated: true, escalationStatus: escalation.status } : issue;
   }));
   const [selectedIssueId, setSelectedIssueId] = useState(issues[0]?.id ?? "");
+  const [issueFilter, setIssueFilter] = useState<"all" | IssueStatus>("all");
   const [auditMessage, setAuditMessage] = useState("");
   const [auditTone, setAuditTone] = useState<"success" | "error">("success");
-  const [completedTasks, setCompletedTasks] = useState<string[]>(data.alerts.filter((alert) => alert.completed).map((alert) => alert.id));
   const [noticeText, setNoticeText] = useState("");
   const [notices, setNotices] = useState(() => data.notices.filter((notice) => notice.wardId === ward?.id));
   const noticeSequence = useRef(0);
@@ -107,11 +108,12 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   const [rejectingIssueId, setRejectingIssueId] = useState<string | null>(null);
   const [escalationReason, setEscalationReason] = useState("");
   const [escalatingIssueId, setEscalatingIssueId] = useState<string | null>(null);
-  const selectedIssue = issues.find((item) => item.id === selectedIssueId) ?? issues[0];
-  const activeTasks = data.alerts.filter((alert) => alert.wardIds.includes(ward?.id ?? ""));
   const requestedCount = issues.filter((item) => item.status === "requested").length;
   const completedCount = issues.filter((item) => item.status === "completed").length;
   const residents = data.publicProfiles.filter((person) => person.wardId === ward?.id).length;
+  const visibleIssues = issueFilter === "all" ? issues : issues.filter((issue) => issue.status === issueFilter);
+  const selectedIssue = visibleIssues.find((item) => item.id === selectedIssueId) ?? visibleIssues[0];
+  const municipalityNotice = data.notices.find((notice) => notice.wardId === null);
 
   function recordAudit(message: string, tone: "success" | "error" = "success") {
     setAuditMessage(message);
@@ -227,6 +229,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   const wardLocality = wardLocalityName(ward.name);
   const selectedNextStatus = selectedIssue ? nextIssueStatus(selectedIssue.status) : null;
   const canEscalateIssue = Boolean(session?.role === "parshad" && selectedIssue && (selectedIssue.status === "requested" || selectedIssue.status === "in_progress") && !selectedIssue.escalated);
+  const wardExpenditures = data.expenditures.filter((item) => item.wardId === ward.id);
 
   return <main className={styles.workspace} aria-label={`Ward ${ward.number} Parshad workspace`}>
     <header className={styles.masthead}>
@@ -242,6 +245,10 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
       <button type="button" onClick={() => setCitizenView(true)}>View as Citizen</button>
     </div>
     <WorkspaceNotice dataMode={dataMode} />
+    {municipalityNotice ? <section className={styles.municipalityNotice} aria-labelledby="municipality-notice-title">
+      <div><p className={styles.kicker}>Municipality notice / नगर सूचना</p><h2 id="municipality-notice-title">{municipalityNotice.title ?? "Municipality update"}</h2><p>{municipalityNotice.body}</p></div>
+      <small>{municipalityNotice.authorName} · {formatDate(municipalityNotice.createdAt)}</small>
+    </section> : null}
 
     <section className={styles.ledgerSummary} aria-label={`Ward ${ward.number} summary`}>
       <div><span>Residents listed</span><strong>{residents}</strong><small>Public names only</small></div>
@@ -255,15 +262,18 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
         <div><p className={styles.kicker}>Issue register</p><h2 id="workflow-title">Decide the next clear step</h2></div>
         <p>{issues.length} reports</p>
       </div>
+      <div className={styles.issueFilters} role="group" aria-label="Filter issue register by status">
+        {(["all", "requested", "in_progress", "completed", "rejected"] as const).map((filter) => <button key={filter} type="button" className={issueFilter === filter ? styles.issueFilterActive : ""} aria-pressed={issueFilter === filter} onClick={() => { setIssueFilter(filter); setSelectedIssueId(issues.find((issue) => filter === "all" || issue.status === filter)?.id ?? ""); }}>{filter === "all" ? "All reports" : statusCopy[filter]}</button>)}
+      </div>
       <div className={styles.issueLayout}>
         <div className={styles.issueList} aria-label={`Ward ${ward.number} issue list`}>
-          {issues.map((issue, index) => <button key={issue.id} className={`${styles.issueRow} ${selectedIssue?.id === issue.id ? styles.activeIssue : ""}`} onClick={() => { setSelectedIssueId(issue.id); setEscalationReason(""); }} aria-pressed={selectedIssue?.id === issue.id}>
+          {visibleIssues.length > 0 ? visibleIssues.map((issue, index) => <button key={issue.id} className={`${styles.issueRow} ${selectedIssue?.id === issue.id ? styles.activeIssue : ""}`} onClick={() => { setSelectedIssueId(issue.id); setEscalationReason(""); }} aria-pressed={selectedIssue?.id === issue.id}>
             <span className={styles.issueNumber}>{String(index + 1).padStart(2, "0")}</span>
             <span className={styles.issueWords}><b>{issue.title}</b><small>{formatDate(issue.createdAt)} · {issue.upvotes} supports</small></span>
             <span className={styles.issueBadges} aria-label={issue.escalated && issue.escalationStatus ? escalationStateCopy[issue.escalationStatus] : statusCopy[issue.status]}>
               <IssueStatePill issue={issue} />
             </span>
-          </button>)}
+          </button>) : <p className={styles.emptyRecord}>No reports match this filter.</p>}
         </div>
         {selectedIssue && <article className={styles.issueDetail} aria-live="polite">
           <div className={styles.detailTop}><IssueStatePill issue={selectedIssue} /></div>
@@ -280,15 +290,19 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
       {auditMessage ? <div className={`${styles.auditFeedback} ${auditTone === "error" ? styles.auditError : ""}`} role={auditTone === "error" ? "alert" : "status"}><b>{auditTone === "error" ? "Action could not be completed" : "Audited feedback"}</b><AuditLine>{auditMessage}</AuditLine></div> : null}
     </section>
 
+    <section className={`${styles.section} ${styles.publicWork}`} aria-labelledby="public-work-title">
+      <div className={styles.sectionHeading}><div><p className={styles.kicker}>Public work account</p><h2 id="public-work-title">Ward funds & commitments</h2></div><p>{formatRupees(ward.spentBudget)} spent <span className={styles.financeSubline}>of {formatRupees(ward.allocatedBudget)}</span></p></div>
+      <div className={styles.financeLedger} aria-label={`Ward ${ward.number} public work account`}><div><span>Allocated</span><strong>{formatRupees(ward.allocatedBudget)}</strong></div><div><span>Spent / committed</span><strong>{formatRupees(ward.spentBudget)}</strong></div><div><span>Balance remaining</span><strong>{formatRupees(ward.allocatedBudget - ward.spentBudget)}</strong></div></div>
+      <div className={styles.recentSpending}><p className={styles.kicker}>Recent spending</p>{wardExpenditures.length > 0 ? <ol className={styles.expenditureList}>{wardExpenditures.map((item) => <li key={item.id}><div><b>{item.description}</b><small>{formatDate(item.spentAt)}{item.isDemo ? " · Approved demo record" : ""}</small></div><strong>{formatRupees(item.amount)}</strong></li>)}</ol> : <p className={styles.emptyRecord}>No expenditure records have been published for this ward.</p>}</div>
+    </section>
+
     <div className={styles.secondaryColumns}>
-      <section className={styles.section} aria-labelledby="tasks-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Ward calendar</p><h2 id="tasks-title">Required follow-ups</h2></div></div>
-        <ul className={styles.taskList}>{activeTasks.map((task) => { const done = completedTasks.includes(task.id); return <li key={task.id}><label><input type="checkbox" checked={done} onChange={async () => { const nextDone = !done; if (dataMode === "supabase") { const result = await setLiveAlertCompletion(task.id, nextDone); if (!result.ok) { recordAudit(result.error.message, "error"); return; } } setCompletedTasks((current) => done ? current.filter((id) => id !== task.id) : [...current, task.id]); recordAudit(`${task.title} marked ${nextDone ? "complete" : "open"}${dataMode === "demo" ? " in this local demo session" : ""}.`); }} /><span><b>{task.title}</b><small>Due {formatDate(task.dueAt)} · {task.description}</small></span></label><span className={done ? styles.doneMark : styles.openMark}>{done ? "Complete" : "Open"}</span></li>; })}</ul>
-      </section>
       <section className={styles.section} aria-labelledby="notice-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Resident notice</p><h2 id="notice-title">Share a ward update</h2></div></div>
         <form className={styles.noticeForm} onSubmit={publishWardNotice}><label htmlFor="ward-notice">Notice text <span>(public)</span></label><textarea id="ward-notice" value={noticeText} onChange={(event) => setNoticeText(event.target.value)} placeholder="Example: Drain cleaning will begin on…" maxLength={280} /><div><small>{noticeText.length}/280</small><button type="submit" disabled={!noticeText.trim()}>{dataMode === "demo" ? "Publish local draft" : "Publish ward notice"}</button></div></form>
         <ol className={styles.noticeList}>{notices.map((notice) => <li key={notice.id}><p><strong>{notice.title ?? `Ward ${ward.number} update`}</strong><br />{notice.body}</p><small>{notice.authorName} · {formatDate(notice.createdAt)}</small></li>)}</ol>
       </section>
     </div>
+    <section className={`${styles.section} ${styles.representativeBand}`} aria-labelledby="representative-title"><div><p className={styles.kicker}>Ward representative</p><h2 id="representative-title">{official ? <Link href={`/officials/${encodeURIComponent(official.id)}`}>{official.name}</Link> : "Parshad not assigned"}</h2><p>{official?.roleLabel ?? "Ward Parshad"} · {official?.termNumber ? `${official.termNumber}${official.termNumber === 1 ? "st" : official.termNumber === 2 ? "nd" : official.termNumber === 3 ? "rd" : "th"} term` : "Current term"}</p></div>{official ? <Link className={styles.profileLink} href={`/officials/${encodeURIComponent(official.id)}`}>View public profile →</Link> : null}</section>
     <section className={`${styles.section} ${styles.compliance}`} aria-labelledby="compliance-title"><p className={styles.kicker}>Compliance & privacy</p><h2 id="compliance-title">Ward record boundaries</h2><div><AuditLine>Public register displays names and report content only; household and phone details stay outside this view.</AuditLine><AuditLine>Budget figures are synthetic and shown for ward-level transparency.</AuditLine></div></section>
   </main>;
 }
