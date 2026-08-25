@@ -191,15 +191,20 @@ export function LiveLogin() {
           <span>NagarSakhi</span>
         </div>
         <p className="eyebrow">Your ward, in the open</p>
-        <h1 id="live-welcome-title">Sign in to see your municipality&apos;s public record.</h1>
-        <p className="login-lede">Firebase verifies your mobile number; Supabase protects the civic data.</p>
+        <h1 id="live-welcome-title">{"See what's happening in your ward"}</h1>
+        <p className="login-lede">Make sure your voice counts. Sign in to explain file issues, vote on priorities, and track ward work.</p>
+        <ul className="login-purpose-list" aria-label="What you can do in NagarSakhi">
+          <li><span aria-hidden="true">01</span><span>Explain file issues and follow their progress.</span></li>
+          <li><span aria-hidden="true">02</span><span>Vote on priorities that matter in your ward.</span></li>
+          <li><span aria-hidden="true">03</span><span>Track ward work and see where the budget goes.</span></li>
+        </ul>
         <div className="civic-rule" aria-hidden="true">
           <span>वार्ड</span>
           <span>Ward</span>
           <span>नगर</span>
           <span>City</span>
         </div>
-        <p className="demo-note">Your phone number is used only for sign-in. Public records never expose residents&apos; contact details.</p>
+        <p className="demo-note">Private sign-in. Public accountability.</p>
       </section>
 
       <section className="login-panel" aria-labelledby="live-signin-title">
@@ -211,7 +216,6 @@ export function LiveLogin() {
           <span data-complete={stage === "code"} data-active={stage === "phone"}>{stage === "code" ? "✓ Mobile" : "Mobile"}</span>
           <span data-complete="false" data-active={stage === "code"}>OTP</span>
         </div>
-        <div className={`recaptcha-wrap${stage === "code" ? " recaptcha-wrap--hidden" : ""}`} id="firebase-recaptcha" aria-hidden={stage === "code"} />
         {stage === "phone" ? (
           <form className="login-form" onSubmit={sendOtp}>
             <label htmlFor="live-phone">Mobile number</label>
@@ -230,9 +234,10 @@ export function LiveLogin() {
               />
             </div>
             <p>Use the mobile number registered with your municipality.</p>
+            <div className="recaptcha-wrap" id="firebase-recaptcha" />
             <button className="primary-action" disabled={busy} type="submit">
               <ShieldCheck aria-hidden="true" size={18} />
-              {busy ? "Sending code..." : "Send verification code"}
+              {busy ? "Sending code..." : "Get OTP"}
             </button>
           </form>
         ) : (
