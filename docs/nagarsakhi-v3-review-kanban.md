@@ -29,8 +29,8 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Terra `terra_review_civic_contracts` | LUNA-00 / BUG-LUNA-00-1 | TERRA RE-REVIEW | `codex/v3-civic-contracts` / `/private/tmp/nagarsakhi-v3-civic-contracts` | Fix `9e9fee9`; clean reset and seed invariants passed locally; independent recheck dispatched | `Skip <finance task ID>` |
-| 2 | - | LUNA-05 / P7-01 through P7-05 | DESKTOP PASS; NARROW PENDING | `codex/v3-auth-brand` / `/private/tmp/nagarsakhi-v3-auth-brand` | CAPTCHA fix `a895323` passed Computer Use desktop review; narrow window verification blocked by local Mac state | Available |
+| 1 | - | - | Idle | - | LUNA-00 integrated after Terra PASS | Available |
+| 2 | - | - | Idle | - | LUNA-05 integrated after desktop Terra PASS; narrow verification remains tracked | Available |
 | 3 | - | - | Idle | - | No agent dispatched | Available |
 
 ### Live-state vocabulary
@@ -200,13 +200,13 @@ You can approve work by saying, for example:
 | TERRA PASS (desktop) | P7-04 | Present secure registered-mobile sign-in with `+91`, CAPTCHA below the input, and `Get OTP`. | LUNA-05 | None |
 | TERRA PASS | P7-05 | Add a favicon. | LUNA-05 | None |
 
-**Page status:** DESKTOP TERRA PASS; narrow Computer Use verification still pending
+**Page status:** IMPLEMENTED AND INTEGRATED; desktop Terra PASS; narrow Computer Use verification still pending
 
 ## Ready after contracts - delivery cards
 
 ### LUNA-00 - Shared civic and finance contract implementation
 
-- **Status:** TERRA RE-REVIEW of P0 fix `9e9fee9`
+- **Status:** DONE; integrated as `c439f61` + `94f2ba5`; Terra PASS
 - **Conflict key:** `data-contract`
 - **Branch:** `codex/v3-civic-contracts`
 - **Worktree:** `../nagarsakhi-wt-v3-civic-contracts`
@@ -291,7 +291,7 @@ You can approve work by saying, for example:
 
 ### LUNA-05 - Sign-in and UI/UX update
 
-- **Status:** DESKTOP TERRA PASS at `a895323`; narrow Computer Use verification pending
+- **Status:** INTEGRATED as `2ba3f44` + `49dbc9e`; desktop Terra PASS; narrow Computer Use verification pending
 - **Conflict key:** `auth-brand`
 - **Branch:** `codex/v3-auth-brand`
 - **Worktree:** `../nagarsakhi-wt-v3-auth-brand`
@@ -328,8 +328,7 @@ No Luna implementation or fix card is active.
 
 ## Terra review queue
 
-- LUNA-00 / BUG-LUNA-00-1 - `terra_review_civic_contracts` re-verifying fix `9e9fee9`.
-- LUNA-05 - desktop PASS at `a895323`; narrow verification remains pending.
+- LUNA-05 - narrow viewport verification remains pending due local Mac window-control limitation.
 
 Terra handoff must contain:
 
@@ -354,7 +353,7 @@ Terra handoff must contain:
 - **Expected:** The migration inserts 28 demo budgets and four deterministic demo expenditures; real non-demo writes retain actor/tenancy validation.
 - **Actual:** Existing BEFORE triggers reject the null demo actor before rows are inserted.
 - **Fix:** Commit `9e9fee9`; local clean reset and invariant query passed.
-- **State:** Terra re-verification in progress.
+- **State:** Resolved; Terra clean-reset and migration-replay PASS; integrated.
 
 ### BUG-LUNA-05-1 - CAPTCHA is not visible below the mobile input
 
@@ -380,8 +379,9 @@ Terra handoff must contain:
 
 ## Integration queue
 
-No card is approved for integration.
+No reviewed card is waiting for integration.
 
 ## Done
 
-No v3 delivery card is integrated.
+- LUNA-00 - shared civic/finance contract and persistent database seed.
+- LUNA-05 - page-7 sign-in, messaging, favicon, and visible CAPTCHA (desktop verified; narrow verification remains tracked).
