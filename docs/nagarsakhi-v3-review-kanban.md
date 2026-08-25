@@ -29,9 +29,9 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Luna `luna_01_citizen_flow` | LUNA-01 / P1-01 through P1-04, P2-01, P2-02 | IN PROGRESS | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Agent dispatched with approved other-ward contract | `Skip <task ID>` |
+| 1 | Terra `terra_review_citizen_flow` | LUNA-01 / P1-01 through P1-04, P2-01, P2-02 | TERRA REVIEW | `codex/v3-citizen-flow` / `/private/tmp/nagarsakhi-v3-citizen-flow` | Luna committed `be758c0`; Terra is verifying the citizen flows through Computer Use | `Skip <task ID>` |
 | 2 | Luna `luna_02_municipality_page` | LUNA-02 / P2-03 through P2-05, P3-01 through P3-04, P4-02 | IN PROGRESS | `codex/v3-municipality-page` / `/private/tmp/nagarsakhi-v3-municipality-page` | Agent dispatched against integrated civic/data contract | `Skip <task ID>` |
-| 3 | Luna `luna_03_parshad_desk` | LUNA-03 / P3-05 through P3-07, P3-09, P3-10, P4-01, P4-03 | IN PROGRESS | `codex/v3-parshad-desk` / `/private/tmp/nagarsakhi-v3-parshad-desk` | Agent dispatched; P3-08 and P4-04 explicitly excluded | `Skip <task ID>` |
+| 3 | Luna `luna_03_parshad_desk` | LUNA-03 / P3-05 through P3-07, P3-09, P3-10, P4-01, P4-03 | TERRA REVIEW QUEUED | `codex/v3-parshad-desk` / `/private/tmp/nagarsakhi-v3-parshad-desk` | Luna committed `2d32e4c`; waiting for the next Terra slot; P3-08 and P4-04 remain excluded | `Skip <task ID>` |
 
 ### Live-state vocabulary
 
@@ -40,6 +40,7 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 - `IN PROGRESS` - Luna is implementing it.
 - `NEEDS INPUT` - an agent is paused on a contract question.
 - `TERRA REVIEW` - implementation is being verified through Computer Use.
+- `TERRA REVIEW QUEUED` - Luna has committed the card and it is waiting for a Terra verification slot.
 - `FIXING BUG-N` - Luna is fixing a Terra finding.
 - `READY TO INTEGRATE` - Terra passed it; Sol has not integrated it yet.
 - `DONE` - integrated by Sol.
@@ -217,7 +218,7 @@ You can approve work by saying, for example:
 
 ### LUNA-01 - Citizen flow changes
 
-- **Status:** IN PROGRESS
+- **Status:** TERRA REVIEW at commit `be758c0`
 - **Conflict key:** `citizen-ui`
 - **Branch:** `codex/v3-citizen-flow`
 - **Worktree:** `../nagarsakhi-wt-v3-citizen-flow`
@@ -251,7 +252,7 @@ You can approve work by saying, for example:
 
 ### LUNA-03 - Parshad Desk changes
 
-- **Status:** IN PROGRESS except P3-08; P3-08 is ON HOLD
+- **Status:** TERRA REVIEW QUEUED at commit `2d32e4c`; P3-08 and P4-04 are ON HOLD
 - **Conflict key:** `official-ui`
 - **Branch:** `codex/v3-parshad-desk`
 - **Worktree:** `../nagarsakhi-wt-v3-parshad-desk`
@@ -324,13 +325,13 @@ You can approve work by saying, for example:
 
 ## In progress
 
-- LUNA-01 - Citizen flow changes.
 - LUNA-02 - shared municipality page.
-- LUNA-03 - Parshad Desk changes excluding held calendar/Ward Tasks work.
 
 ## Terra review queue
 
 - LUNA-05 - narrow viewport verification remains pending due local Mac window-control limitation.
+- LUNA-01 / `be758c0` - active Computer Use review by `terra_review_citizen_flow`.
+- LUNA-03 / `2d32e4c` - queued for the next Terra slot; held calendar/Ward Tasks items are not included.
 
 Terra handoff must contain:
 
