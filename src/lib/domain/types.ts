@@ -21,6 +21,7 @@ export type Ward = {
   name: string;
   allocatedBudget: number;
   spentBudget: number;
+  budgetIsDemo?: boolean;
 };
 
 export type PublicProfile = {
@@ -44,6 +45,7 @@ export type Official = {
   roleLabel: string;
   department?: string;
   wonByVotes?: number;
+  termNumber?: number;
   current: boolean;
 };
 
@@ -102,6 +104,8 @@ export type Expenditure = {
   amount: number;
   description: string;
   spentAt: string;
+  /** Marks seeded demonstration finance records; live authoritative records may omit it. */
+  isDemo?: boolean;
 };
 
 export type Escalation = {

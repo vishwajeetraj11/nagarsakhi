@@ -222,8 +222,10 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
   const wardId = ward?.id ?? "";
   const wardLocality = ward ? wardLocalityName(ward.name) : null;
   const residentWardLocality = residentWard ? wardLocalityName(residentWard.name) : null;
-  const canReportInWard = Boolean(ward && !readOnly && (dataMode === "demo" || ward.id === session?.wardId));
-  const canVote = session?.role === "citizen" && !readOnly;
+  const canReportInWard = Boolean(ward && !readOnly && ward.id === session?.wardId);
+  // Live RLS permits votes only for issues in the resident's own ward. Keep
+  // the UI in lockstep so browsing another ward never offers a mutation.
+  const canVote = session?.role === "citizen" && !readOnly && ward.id === session.wardId;
   const wardIssues = useMemo(() => issues.filter((item) => item.wardId === wardId), [issues, wardId]);
   const openWardIssues = useMemo(() => wardIssues.filter((item) => item.status === "in_progress"), [wardIssues]);
 
@@ -325,7 +327,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
         setIssues((current) => current.map((item) => item.id === issueId ? previous : item));
         showToast(result.error.message, "error");
       } else {
-        showToast("Your support was recorded.");
+        showToast(nextVote === 1 ? "Your support was recorded" : nextVote === -1 ? "Your downvote was recorded" : previous.viewerVote === 1 ? "Your support was removed" : "Your downvote was removed");
       }
     }
   };
@@ -473,9 +475,6 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
           <h1>Ward {ward.number}{wardLocality ? <span> / {wardLocality}</span> : null}</h1>
           <p className={styles.wardLocation}><MapPin size={15} aria-hidden="true" /> <span>{data.municipality.name}, {data.municipality.district}</span></p>
         </div>
-        <button type="button" className={styles.wardSwitcher} onClick={() => moveTo("wards")}>
-          Browse wards <ChevronRight size={18} aria-hidden="true" />
-        </button>
       </div>
 
       <nav className={styles.nav} aria-label="Citizen sections">
@@ -510,7 +509,6 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
                 <h2 id="overview-title">What’s happening in your ward</h2>
                 <p className={styles.leadCopy}>Track reports, support a neighbour’s issue, and follow public work.</p>
               </div>
-              {canReportInWard ? <button type="button" className={styles.primaryAction} onClick={() => moveTo("report")}><Plus size={19} aria-hidden="true" /> Report an issue</button> : null}
             </section>
 
             <section className={styles.pulse} aria-label="Issue status summary">
@@ -532,7 +530,6 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
                     <h3>No issues are currently in progress in Ward {ward.number}.</h3>
                     <p className={styles.homeEmptyCopy}>Reported, fixed, and rejected records remain available in the full issue board.</p>
                     <div className={styles.homeEmptyActions}>
-                      {canReportInWard ? <button type="button" className={styles.secondaryAction} onClick={() => moveTo("report")}><Plus size={17} aria-hidden="true" /> Report an issue</button> : null}
                       <button type="button" className={styles.textAction} onClick={() => moveTo("issues")}>Browse the issue record <ArrowUpRight size={16} aria-hidden="true" /></button>
                     </div>
                   </div>

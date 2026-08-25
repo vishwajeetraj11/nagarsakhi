@@ -10,6 +10,7 @@ import { LiveOnboarding } from "@/components/shell/LiveOnboarding";
 import type { PublicDemoData } from "@/data/demo";
 import { CorporationExperience, ParshadExperience } from "@/features/admin";
 import { CitizenExperience } from "@/features/citizen/CitizenExperience";
+import { MunicipalityPage } from "@/features/municipality/MunicipalityPage";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { loadLiveData, loadWardIssues, type LiveDataFailure, type WardIssuesResult } from "@/lib/data/live";
 import type { DemoSession } from "@/lib/domain/types";
@@ -172,7 +173,10 @@ export function LiveApp() {
   };
 
   const publicOfficialProfile = pathname?.startsWith("/officials/") === true;
-  const experience = publicOfficialProfile
+  const municipalityHome = pathname === "/municipality" || pathname === "/municipality/phusro";
+  const experience = municipalityHome
+    ? <MunicipalityPage data={state.data} session={state.session} />
+    : publicOfficialProfile
     ? <CitizenExperience data={state.data} dataMode="supabase" session={state.session} readOnly onWardIssuesLoad={handleWardIssuesLoad} />
     : {
       citizen: <CitizenExperience data={state.data} dataMode="supabase" session={state.session} onWardIssuesLoad={handleWardIssuesLoad} />,

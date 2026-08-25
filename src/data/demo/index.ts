@@ -32,7 +32,7 @@ const wardId = (number: number) => `ward-${number}`;
 
 export const demoMunicipality: Municipality = {
   id: municipalityId,
-  name: "Phusro Nagar Parishad",
+  name: "Phusro Municipal Corporation",
   district: "Bokaro",
   state: "Jharkhand",
   wardCount: 28,
@@ -94,7 +94,7 @@ export const demoIssues: Issue[] = [
 ];
 
 export const demoNotices: Notice[] = [
-  { id: "notice-01", municipalityId, wardId: null, authorName: "Phusro Nagar Parishad", body: "Ward sabha meetings will be held on the second Sunday of every month.", createdAt: "2026-08-01T08:00:00Z" },
+  { id: "notice-01", municipalityId, wardId: null, authorName: "Phusro Municipal Corporation", body: "Ward sabha meetings will be held on the second Sunday of every month.", createdAt: "2026-08-01T08:00:00Z" },
   { id: "notice-02", municipalityId, wardId: wardId(12), authorName: "Nandita Sample", body: "वार्ड 12 में सड़क मरम्मत का कार्य 20 अगस्त से शुरू होगा।", createdAt: "2026-08-10T08:00:00Z" },
   { id: "notice-03", municipalityId, wardId: wardId(7), authorName: "Meena Placeholder", body: "Community health camp at Janta Nagar school on 24 August.", createdAt: "2026-08-11T08:00:00Z" },
 ];
@@ -105,10 +105,10 @@ export const demoAlerts: Alert[] = [
 ];
 
 export const demoExpenditures: Expenditure[] = [
-  { id: "expense-01", wardId: wardId(7), amount: 540000, description: "LED streetlight replacement", spentAt: "2026-07-28" },
-  { id: "expense-02", wardId: wardId(12), amount: 825000, description: "Drain desilting and covers", spentAt: "2026-08-04" },
-  { id: "expense-03", wardId: wardId(18), amount: 410000, description: "Community park repairs", spentAt: "2026-07-30" },
-  { id: "expense-04", wardId: wardId(12), amount: 662500, description: "Crossing and footpath works", spentAt: "2026-08-12" },
+  { id: "expense-01", wardId: wardId(7), amount: 540000, description: "LED streetlight replacement", spentAt: "2026-07-28", isDemo: true },
+  { id: "expense-02", wardId: wardId(12), amount: 825000, description: "Drain desilting and covers", spentAt: "2026-08-04", isDemo: true },
+  { id: "expense-03", wardId: wardId(18), amount: 410000, description: "Community park repairs", spentAt: "2026-07-30", isDemo: true },
+  { id: "expense-04", wardId: wardId(12), amount: 662500, description: "Crossing and footpath works", spentAt: "2026-08-12", isDemo: true },
 ];
 
 export const demoEscalations: Escalation[] = [

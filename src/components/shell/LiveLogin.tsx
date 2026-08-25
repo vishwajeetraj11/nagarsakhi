@@ -33,6 +33,7 @@ export function LiveLogin() {
   const [resendSeconds, setResendSeconds] = useState(0);
   const confirmation = useRef<ConfirmationResult | null>(null);
   const recaptcha = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaRender = useRef<Promise<number> | null>(null);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
   const otp = otpDigits.join("");
 
@@ -55,6 +56,7 @@ export function LiveLogin() {
   const resetRecaptcha = () => {
     const verifier = recaptcha.current;
     recaptcha.current = null;
+    recaptchaRender.current = null;
     try {
       verifier?.clear();
     } catch {
@@ -64,6 +66,30 @@ export function LiveLogin() {
     // Ensure the next verifier starts with the empty container Firebase requires.
     document.getElementById("firebase-recaptcha")?.replaceChildren();
   };
+
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    if (!auth || recaptcha.current) return;
+
+    const verifier = new RecaptchaVerifier(auth, "firebase-recaptcha", {
+      "expired-callback": () => {
+        resetRecaptcha();
+        setStage("phone");
+        setMessageTone("error");
+        setMessage("The app verification expired. Complete the check again to request a new code.");
+      },
+      size: "normal",
+    });
+    recaptcha.current = verifier;
+    recaptchaRender.current = verifier.render();
+    recaptchaRender.current.catch(() => {
+      if (recaptcha.current === verifier) {
+        resetRecaptcha();
+        setMessageTone("error");
+        setMessage("The app verification could not load. Refresh and try again.");
+      }
+    });
+  }, []);
 
   async function requestOtp() {
     const auth = getFirebaseAuth();
@@ -94,8 +120,9 @@ export function LiveLogin() {
           },
           size: "normal",
         });
-        await recaptcha.current.render();
+        recaptchaRender.current = recaptcha.current.render();
       }
+      if (recaptchaRender.current) await recaptchaRender.current;
       confirmation.current = await signInWithPhoneNumber(auth, `+91${phone}`, recaptcha.current);
       // The verifier is only needed to request the SMS. Clear it before moving
       // to OTP so a Google iframe cannot outlive this login step.
@@ -191,15 +218,20 @@ export function LiveLogin() {
           <span>NagarSakhi</span>
         </div>
         <p className="eyebrow">Your ward, in the open</p>
-        <h1 id="live-welcome-title">Sign in to see your municipality&apos;s public record.</h1>
-        <p className="login-lede">Firebase verifies your mobile number; Supabase protects the civic data.</p>
+        <h1 id="live-welcome-title">{"See what's happening in your ward"}</h1>
+        <p className="login-lede">Make sure your voice counts. Sign in to explain file issues, vote on priorities, and track ward work.</p>
+        <ul className="login-purpose-list" aria-label="What you can do in NagarSakhi">
+          <li><span aria-hidden="true">01</span><span>Explain file issues and follow their progress.</span></li>
+          <li><span aria-hidden="true">02</span><span>Vote on priorities that matter in your ward.</span></li>
+          <li><span aria-hidden="true">03</span><span>Track ward work and see where the budget goes.</span></li>
+        </ul>
         <div className="civic-rule" aria-hidden="true">
           <span>वार्ड</span>
           <span>Ward</span>
           <span>नगर</span>
           <span>City</span>
         </div>
-        <p className="demo-note">Your phone number is used only for sign-in. Public records never expose residents&apos; contact details.</p>
+        <p className="demo-note">Private sign-in. Public accountability.</p>
       </section>
 
       <section className="login-panel" aria-labelledby="live-signin-title">
@@ -211,7 +243,6 @@ export function LiveLogin() {
           <span data-complete={stage === "code"} data-active={stage === "phone"}>{stage === "code" ? "✓ Mobile" : "Mobile"}</span>
           <span data-complete="false" data-active={stage === "code"}>OTP</span>
         </div>
-        <div className={`recaptcha-wrap${stage === "code" ? " recaptcha-wrap--hidden" : ""}`} id="firebase-recaptcha" aria-hidden={stage === "code"} />
         {stage === "phone" ? (
           <form className="login-form" onSubmit={sendOtp}>
             <label htmlFor="live-phone">Mobile number</label>
@@ -230,9 +261,10 @@ export function LiveLogin() {
               />
             </div>
             <p>Use the mobile number registered with your municipality.</p>
+            <div className="recaptcha-wrap" id="firebase-recaptcha" />
             <button className="primary-action" disabled={busy} type="submit">
               <ShieldCheck aria-hidden="true" size={18} />
-              {busy ? "Sending code..." : "Send verification code"}
+              {busy ? "Sending code..." : "Get OTP"}
             </button>
           </form>
         ) : (
