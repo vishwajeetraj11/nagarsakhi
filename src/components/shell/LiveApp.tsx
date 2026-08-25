@@ -19,7 +19,7 @@ import { createFirebaseSupabaseClient } from "@/lib/supabase";
 type LiveState =
   | { status: "checking" }
   | { status: "signed_out" }
-  | { status: "onboarding"; user: User }
+  | { status: "onboarding"; user: User; registrationRequired?: boolean }
   | { status: "ready"; data: PublicDemoData; session: DemoSession }
   | { status: "error"; error: LiveDataFailure["error"] };
 
@@ -29,13 +29,13 @@ async function provisionFirebaseProfile(user: User) {
     return { ok: false as const, message: "Supabase is not configured in this browser." };
   }
 
-  const { error } = await supabase.rpc("provision_firebase_profile", {
+  const { data, error } = await supabase.rpc("provision_firebase_profile", {
     display_name: user.displayName || null,
   });
 
   return error
     ? { ok: false as const, message: error.message }
-    : { ok: true as const, supabase };
+    : { ok: true as const, registered: Boolean(data), supabase };
 }
 
 export function LiveApp() {
@@ -71,6 +71,11 @@ export function LiveApp() {
         return;
       }
 
+      if (!provisioned.registered) {
+        setState({ status: "onboarding", user, registrationRequired: true });
+        return;
+      }
+
       const result = await loadLiveData(provisioned.supabase, { firebaseUid: user.uid });
       if (!result.ok) {
         setState({ status: "error", error: result.error });
@@ -88,6 +93,7 @@ export function LiveApp() {
     return (
       <LiveOnboarding
         user={state.user}
+        registrationRequired={state.registrationRequired}
         onComplete={() => {
           setState({ status: "checking" });
           void state.user.getIdToken(true).then(async () => {

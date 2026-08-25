@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { useRef, useState } from "react";
 import type { PublicDemoData } from "@/data/demo";
@@ -308,8 +309,11 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
 }
 
 export function CorporationExperience({ data, dataMode }: ExperienceProps) {
+  const searchParams = useSearchParams();
+  const requestedWard = searchParams.get("ward");
+  const requestedWardId = data.wards.find((ward) => ward.id === requestedWard || String(ward.number) === requestedWard)?.id ?? null;
   const [escalations, setEscalations] = useState(data.escalations);
-  const [selectedWardId, setSelectedWardId] = useState<string | null>(null);
+  const [selectedWardId, setSelectedWardId] = useState<string | null>(requestedWardId);
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeText, setNoticeText] = useState("");
   const [notices, setNotices] = useState(data.notices.filter((notice) => notice.wardId === null));

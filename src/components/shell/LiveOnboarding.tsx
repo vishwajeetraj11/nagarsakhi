@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 
+import { wardLocalityName } from "@/lib/domain/ward-label";
 import { createFirebaseSupabaseClient } from "@/lib/supabase";
 
 type LocationRow = {
@@ -18,9 +19,10 @@ type LocationRow = {
 type LiveOnboardingProps = {
   user: User;
   onComplete: () => void;
+  registrationRequired?: boolean;
 };
 
-export function LiveOnboarding({ user, onComplete }: LiveOnboardingProps) {
+export function LiveOnboarding({ user, onComplete, registrationRequired = false }: LiveOnboardingProps) {
   const supabase = useMemo(() => createFirebaseSupabaseClient(() => user.getIdToken(false)), [user]);
   const [locations, setLocations] = useState<LocationRow[]>([]);
   const [municipalityId, setMunicipalityId] = useState("");
@@ -74,6 +76,17 @@ export function LiveOnboarding({ user, onComplete }: LiveOnboardingProps) {
 
     setBusy(true);
     setMessage("");
+
+    if (registrationRequired) {
+      const { error } = await supabase.rpc("check_firebase_profile_registration", {
+        target_municipality_id: municipalityId,
+        target_ward_id: wardId,
+      });
+      setBusy(false);
+      setMessage(error?.message ?? "Your registration was found. Please sign in again to open your ward.");
+      return;
+    }
+
     const { error } = await supabase.rpc("complete_firebase_profile_onboarding", {
       target_municipality_id: municipalityId,
       target_ward_id: wardId,
@@ -95,9 +108,6 @@ export function LiveOnboarding({ user, onComplete }: LiveOnboardingProps) {
         <div className="brand-lockup"><span className="brand-mark" aria-hidden="true">न</span><span>NagarSakhi</span></div>
         <p className="eyebrow">First-time setup</p>
         <h1 id="ward-setup-title">Choose your municipality and ward.</h1>
-        <p className="login-lede">Your reports, notices, budgets, and public representatives will be scoped to this ward.</p>
-        <div className="civic-rule" aria-hidden="true"><span>नगर</span><span>Ward</span><span>जन</span><span>Record</span></div>
-        <p className="demo-note">You can update this later through a verified profile flow. For now, choose the ward where you live or want to report civic issues.</p>
       </section>
 
       <section className="login-panel" aria-labelledby="ward-form-title">
@@ -140,7 +150,7 @@ export function LiveOnboarding({ user, onComplete }: LiveOnboardingProps) {
           <select id="onboarding-ward" onChange={(event) => setWardId(event.target.value)} required value={wardId}>
             {wards.map((ward) => (
               <option key={ward.ward_id} value={ward.ward_id}>
-                Ward {ward.ward_number}: {ward.ward_name}
+                Ward {ward.ward_number}{wardLocalityName(ward.ward_name) ? `: ${wardLocalityName(ward.ward_name)}` : ""}
               </option>
             ))}
           </select>

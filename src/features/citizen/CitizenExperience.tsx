@@ -5,7 +5,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -149,7 +149,7 @@ function IssueRecord({ issue, onOpen, onVote, canVote, viewerId }: {
         </div>
         {issue.status === "rejected" && <div className={styles.rejectionSummary}><strong>Rejected: </strong>{issue.rejectionReason ?? "The ward office did not accept this report."}<small>Decision by {issue.rejectionActorName ?? "Ward representative"} · {issue.rejectionAt ? formatTimestamp(issue.rejectionAt) : formatDate(issue.updatedAt)}</small></div>}
       </button>
-      {isOwnReport ? <div className={styles.voteRow}><span className={styles.voteNotice}>You cannot support or downvote your own report.</span></div> : canVote ? (
+      {!issue.escalated && (isOwnReport ? <div className={styles.voteRow}><span className={styles.voteNotice}>You cannot support or downvote your own report.</span></div> : canVote ? (
         <div className={styles.voteRow} aria-label={`Community support for ${issue.title}`}>
           <button
             type="button"
@@ -172,7 +172,7 @@ function IssueRecord({ issue, onOpen, onVote, canVote, viewerId }: {
             <strong>{issue.downvotes}</strong>
           </button>
         </div>
-      ) : null}
+      ) : null)}
     </article>
   );
 }
@@ -188,8 +188,13 @@ type CitizenExperienceProps = {
 
 export function CitizenExperience({ data, dataMode, session, readOnly = false, routing = true, onWardIssuesLoad }: CitizenExperienceProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const requestedWard = searchParams.get("ward");
   const [localView, setLocalView] = useState<View>("home");
-  const initialWard = data.wards.find((item) => item.id === session?.wardId) ?? data.wards.find((item) => item.number === 12) ?? data.wards[0];
+  const initialWard = data.wards.find((item) => item.id === requestedWard || String(item.number) === requestedWard)
+    ?? data.wards.find((item) => item.id === session?.wardId)
+    ?? data.wards.find((item) => item.number === 12)
+    ?? data.wards[0];
   const residentWard = data.wards.find((item) => item.id === session?.wardId) ?? initialWard;
   const [selectedWardNumber, setSelectedWardNumber] = useState(initialWard?.number ?? 1);
   const [issues, setIssues] = useState<Issue[]>(() => data.issues.map((issue) => {
@@ -556,7 +561,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
               <div className={styles.budgetTrack} aria-label={`${formatRupees(ward.spentBudget)} of ${formatRupees(ward.allocatedBudget)} spent`}><span style={{ width: `${ward.allocatedBudget > 0 ? Math.min(100, (ward.spentBudget / ward.allocatedBudget) * 100) : 0}%` }} /></div>
               <div className={styles.workGrid}>
                 <div><h3>Recent spending</h3>{expenditures.length ? expenditures.map((expense) => <p key={expense.id}><span>{expense.description}</span><strong>{formatRupees(expense.amount)}</strong></p>) : <p>No ward expenditure is listed in this demo.</p>}</div>
-                <div><h3>Ward tasks</h3>{tasks.length ? tasks.map((task) => <p key={task.id}><span className={task.completed ? styles.doneTask : ""}>{task.completed ? "Completed" : "Due"}: {task.title}</span><strong>{formatDate(task.dueAt)}</strong></p>) : <p>No tasks are currently published.</p>}</div>
+                {tasks.length ? <div><h3>Ward tasks</h3>{tasks.map((task) => <p key={task.id}><span className={task.completed ? styles.doneTask : ""}>{task.completed ? "Completed" : "Due"}: {task.title}</span><strong>{formatDate(task.dueAt)}</strong></p>)}</div> : null}
               </div>
             </section>
           </>
