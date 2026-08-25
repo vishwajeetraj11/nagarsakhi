@@ -44,6 +44,7 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 - `READY TO INTEGRATE` - Terra passed it; Sol has not integrated it yet.
 - `DONE` - integrated by Sol.
 - `SKIPPED` - explicitly excluded by the user.
+- `ON HOLD` - user asked Sol not to decide or dispatch it yet.
 
 ### Skip and resume controls
 
@@ -53,37 +54,45 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 - If skipping breaks another approved task's dependency, Sol marks the dependent task `NEEDS INPUT` instead of inventing replacement behavior.
 - Skipped tasks are never silently reintroduced during bug fixing or integration.
 
-## Contract gate - Sol must settle before dependent work
+## Contract gate and decision log
 
 ### CONTRACT-01 - Canonical municipality name
 
+- **Status:** RESOLVED by user, 25 Aug 2026
 - **Source:** OPEN, pages 2-3
 - Page 2 says `Phusro Nagar Parishad`.
 - Page 3 says `Phusro Municipal Corporation`.
-- **Decision required:** Select the canonical public name and whether alternate wording remains anywhere.
-- **Blocks:** LUNA-00, LUNA-02, LUNA-04
+- **Approved contract:** The canonical public name is `Phusro Municipal Corporation`.
+- **Blocks:** None
 
 ### CONTRACT-02 - Other-ward read-only boundary
 
+- **Status:** RESOLVED by user, 25 Aug 2026
 - **Source:** PDF p1
 - Exact intent: citizens can view other wards but make no updates.
-- **Decision required:** Define `no updates` against the actions that already exist in the product. Do not invent new actions.
-- **Blocks:** LUNA-01
+- **Approved contract:** A citizen viewing another ward cannot report an issue or vote there. No new actions are introduced by this contract.
+- **Blocks:** None
 
 ### CONTRACT-03 - Placeholder public finance values
 
+- **Status:** RESOLVED by user delegation to Sol, 25 Aug 2026
 - **Source:** OPEN, pages 3, 4, and 6
 - Page 3 asks for random ward-fund and commitment numbers.
 - Page 4 asks for a fixed issue with a random cost `for now`.
 - Page 6 asks to replace zero public-spending values with a random number between ₹3-5 crore.
-- **Decision required:** Approve exact temporary values and how they are labeled. Do not generate new random values on each render.
-- **Blocks:** LUNA-00, LUNA-02, LUNA-03, LUNA-04
+- **Approved persistence contract:** The database is the source of truth. Values must survive refreshes and remain identical across Citizen, Parshad, and Corporation views. No render-time or refresh-time randomness.
+- **Approved temporary dataset:** Persist the existing fixed demo ward-budget dataset instead of inventing a new set. Its 28 allocations total ₹4,93,05,000, within the PDF's ₹3-5 crore range.
+- **Approved temporary expenditures:** Persist the existing four fixed demo entries: ₹5,40,000 for Ward 7 LED streetlight replacement; ₹8,25,000 and ₹6,62,500 for Ward 12 drain/crossing work; and ₹4,10,000 for Ward 18 community-park repairs.
+- **Database rule:** Use idempotent stored records in `ward_budgets` and `expenditures`; repeated application must not duplicate expenditures.
+- **Labeling rule:** These remain clearly identified as temporary/demo finance values until replaced by authoritative figures.
+- **Blocks:** None
 
 ### CONTRACT-04 - Calendar versus Ward Tasks
 
+- **Status:** ON HOLD by user, 25 Aug 2026
 - **Source:** OPEN, page 4
 - The note says `Ward Tasks ? Discussion?` and suggests it can replace Ward Calendar, possibly with Aadhaar verification or something similar.
-- **Decision required:** Either keep the page 3 calendar change or replace it with a separately defined Ward Tasks contract. Aadhaar verification is not approved by the PDF note alone.
+- **Decision required later:** Either keep the page 3 calendar change or replace it with a separately defined Ward Tasks contract. Aadhaar verification is not approved by the PDF note alone.
 - **Blocks:** The calendar/task portion of LUNA-03
 
 ### CONTRACT-05 - Public Parshad phone-number source and placement
@@ -140,7 +149,7 @@ You can approve work by saying, for example:
 | [ ] | P3-05 | Keep Parshad login opening Parshad Desk and showing fixed issues. | LUNA-03 | None |
 | [ ] | P3-06 | Add filters to the cluttered Issue Register. | LUNA-03 | None |
 | [ ] | P3-07 | Remove `Required follow-ups` from Ward Calendar. | LUNA-03 | None |
-| [ ] | P3-08 | Change the order of Ward Calendar and Resident Notice, and add a real date-selectable calendar. | LUNA-03 | CONTRACT-04 |
+| ON HOLD | P3-08 | Change the order of Ward Calendar and Resident Notice, and add a real date-selectable calendar. | LUNA-03 | CONTRACT-04 |
 | [ ] | P3-09 | Add `View as Citizen` to the Parshad experience. | LUNA-03 | None |
 | [ ] | P3-10 | Show the missing municipality-wide notice at the top of the Parshad view. | LUNA-03 | None |
 
@@ -153,7 +162,7 @@ You can approve work by saying, for example:
 | [ ] | P4-01 | Use `Ward Parshad`, make the Parshad name the profile link, and show the actual term number; the sketch uses `2nd term`. | LUNA-00, LUNA-03 | None |
 | [ ] | P4-02 | Show ward funds and commitments in Public Work Account. | LUNA-00, LUNA-03 | CONTRACT-03 |
 | [ ] | P4-03 | Temporarily show a fixed issue with an approved cost in Recent Spending. | LUNA-00, LUNA-03 | CONTRACT-03 |
-| [ ] | P4-04 | Decide whether Ward Tasks replaces Ward Calendar; the PDF marks this for discussion and mentions Aadhaar verification only as an uncertain example. | Sol | CONTRACT-04 |
+| ON HOLD | P4-04 | Decide whether Ward Tasks replaces Ward Calendar; the PDF marks this for discussion and mentions Aadhaar verification only as an uncertain example. | Sol | CONTRACT-04 |
 
 **Page status:** Awaiting go-ahead
 
@@ -197,7 +206,7 @@ You can approve work by saying, for example:
 
 ### LUNA-00 - Shared civic and finance contract implementation
 
-- **Status:** Blocked by CONTRACT-01 and CONTRACT-03
+- **Status:** Awaiting user go-ahead; contracts resolved
 - **Conflict key:** `data-contract`
 - **Branch:** `codex/v3-civic-contracts`
 - **Worktree:** `../nagarsakhi-wt-v3-civic-contracts`
@@ -208,7 +217,7 @@ You can approve work by saying, for example:
 
 ### LUNA-01 - Citizen flow changes
 
-- **Status:** Blocked by CONTRACT-02
+- **Status:** Awaiting user go-ahead; contract resolved
 - **Conflict key:** `citizen-ui`
 - **Branch:** `codex/v3-citizen-flow`
 - **Worktree:** `../nagarsakhi-wt-v3-citizen-flow`
@@ -226,7 +235,7 @@ You can approve work by saying, for example:
 
 ### LUNA-02 - Shared municipality home page
 
-- **Status:** Blocked by CONTRACT-01, CONTRACT-03, and LUNA-00
+- **Status:** Awaiting user go-ahead; depends on integrated LUNA-00
 - **Conflict key:** `municipality-page`
 - **Branch:** `codex/v3-municipality-page`
 - **Worktree:** `../nagarsakhi-wt-v3-municipality-page`
@@ -242,7 +251,7 @@ You can approve work by saying, for example:
 
 ### LUNA-03 - Parshad Desk changes
 
-- **Status:** Blocked by CONTRACT-03; calendar portion also blocked by CONTRACT-04
+- **Status:** Awaiting user go-ahead except P3-08; P3-08 is ON HOLD under CONTRACT-04
 - **Conflict key:** `official-ui`
 - **Branch:** `codex/v3-parshad-desk`
 - **Worktree:** `../nagarsakhi-wt-v3-parshad-desk`
@@ -261,7 +270,7 @@ You can approve work by saying, for example:
 
 ### LUNA-04 - Corporation Desk changes
 
-- **Status:** Blocked by CONTRACT-01, CONTRACT-03, LUNA-00, and integrated LUNA-03
+- **Status:** Awaiting user go-ahead; depends on integrated LUNA-00 and LUNA-03
 - **Conflict key:** `official-ui`
 - **Branch:** `codex/v3-corporation-desk`
 - **Worktree:** `../nagarsakhi-wt-v3-corporation-desk`
@@ -282,7 +291,7 @@ You can approve work by saying, for example:
 
 ### LUNA-05 - Sign-in and UI/UX update
 
-- **Status:** Ready
+- **Status:** Awaiting user go-ahead
 - **Conflict key:** `auth-brand`
 - **Branch:** `codex/v3-auth-brand`
 - **Worktree:** `../nagarsakhi-wt-v3-auth-brand`
@@ -304,7 +313,7 @@ You can approve work by saying, for example:
 
 ## Parallel dispatch order - SOL
 
-1. Sol settles CONTRACT-01 through CONTRACT-04 and records the exact decisions here.
+1. CONTRACT-01 through CONTRACT-03 are resolved. CONTRACT-04 remains ON HOLD; do not dispatch P3-08 or P4-04.
 2. Run LUNA-00 and LUNA-05 in parallel because their conflict keys differ.
 3. After LUNA-00, run LUNA-01, LUNA-02, and LUNA-03 in parallel because their conflict keys differ.
 4. Run LUNA-04 only after LUNA-03 is integrated because both touch `official-ui`.
