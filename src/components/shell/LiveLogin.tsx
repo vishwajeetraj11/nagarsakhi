@@ -33,6 +33,7 @@ export function LiveLogin() {
   const [resendSeconds, setResendSeconds] = useState(0);
   const confirmation = useRef<ConfirmationResult | null>(null);
   const recaptcha = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaRender = useRef<Promise<number> | null>(null);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
   const otp = otpDigits.join("");
 
@@ -55,6 +56,7 @@ export function LiveLogin() {
   const resetRecaptcha = () => {
     const verifier = recaptcha.current;
     recaptcha.current = null;
+    recaptchaRender.current = null;
     try {
       verifier?.clear();
     } catch {
@@ -64,6 +66,30 @@ export function LiveLogin() {
     // Ensure the next verifier starts with the empty container Firebase requires.
     document.getElementById("firebase-recaptcha")?.replaceChildren();
   };
+
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    if (!auth || recaptcha.current) return;
+
+    const verifier = new RecaptchaVerifier(auth, "firebase-recaptcha", {
+      "expired-callback": () => {
+        resetRecaptcha();
+        setStage("phone");
+        setMessageTone("error");
+        setMessage("The app verification expired. Complete the check again to request a new code.");
+      },
+      size: "normal",
+    });
+    recaptcha.current = verifier;
+    recaptchaRender.current = verifier.render();
+    recaptchaRender.current.catch(() => {
+      if (recaptcha.current === verifier) {
+        resetRecaptcha();
+        setMessageTone("error");
+        setMessage("The app verification could not load. Refresh and try again.");
+      }
+    });
+  }, []);
 
   async function requestOtp() {
     const auth = getFirebaseAuth();
@@ -94,8 +120,9 @@ export function LiveLogin() {
           },
           size: "normal",
         });
-        await recaptcha.current.render();
+        recaptchaRender.current = recaptcha.current.render();
       }
+      if (recaptchaRender.current) await recaptchaRender.current;
       confirmation.current = await signInWithPhoneNumber(auth, `+91${phone}`, recaptcha.current);
       // The verifier is only needed to request the SMS. Clear it before moving
       // to OTP so a Google iframe cannot outlive this login step.
