@@ -29,8 +29,8 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Luna `luna_00_civic_contracts` | LUNA-00 / BUG-LUNA-00-1 | FIXING P0 BUG-1 | `codex/v3-civic-contracts` / `/private/tmp/nagarsakhi-v3-civic-contracts` | Clean local reset exposed demo rows blocked by existing tenancy triggers; scoped fix dispatched | `Skip <finance task ID>` |
-| 2 | Terra `terra_review_auth_brand` | P7-04 / BUG-LUNA-05-1 | TERRA RE-REVIEW | `codex/v3-auth-brand` / `/private/tmp/nagarsakhi-v3-auth-brand` | Luna fix `a895323`; Computer Use re-verification dispatched | `Skip P7-04` |
+| 1 | Terra `terra_review_civic_contracts` | LUNA-00 / BUG-LUNA-00-1 | TERRA RE-REVIEW | `codex/v3-civic-contracts` / `/private/tmp/nagarsakhi-v3-civic-contracts` | Fix `9e9fee9`; clean reset and seed invariants passed locally; independent recheck dispatched | `Skip <finance task ID>` |
+| 2 | - | LUNA-05 / P7-01 through P7-05 | DESKTOP PASS; NARROW PENDING | `codex/v3-auth-brand` / `/private/tmp/nagarsakhi-v3-auth-brand` | CAPTCHA fix `a895323` passed Computer Use desktop review; narrow window verification blocked by local Mac state | Available |
 | 3 | - | - | Idle | - | No agent dispatched | Available |
 
 ### Live-state vocabulary
@@ -197,16 +197,16 @@ You can approve work by saying, for example:
 | TERRA PASS | P7-01 | Apply the NagarSakhi identity and the source messages: `Your ward, in the open`, `See what's happening in your ward`, and `Make sure your voice counts`. | LUNA-05 | None |
 | TERRA PASS | P7-02 | Explain: file issues, vote on priorities, track ward work, and see where the budget goes. | LUNA-05 | None |
 | TERRA PASS | P7-03 | Use `Private sign-in. Public accountability.` | LUNA-05 | None |
-| FIXING BUG-1 | P7-04 | Present secure registered-mobile sign-in with `+91`, CAPTCHA below the input, and `Get OTP`. | LUNA-05 | None |
+| TERRA PASS (desktop) | P7-04 | Present secure registered-mobile sign-in with `+91`, CAPTCHA below the input, and `Get OTP`. | LUNA-05 | None |
 | TERRA PASS | P7-05 | Add a favicon. | LUNA-05 | None |
 
-**Page status:** BUG FIX IN PROGRESS; narrow Computer Use verification still pending
+**Page status:** DESKTOP TERRA PASS; narrow Computer Use verification still pending
 
 ## Ready after contracts - delivery cards
 
 ### LUNA-00 - Shared civic and finance contract implementation
 
-- **Status:** FIXING BUG-LUNA-00-1 [P0] on top of commit `6d4fb38`
+- **Status:** TERRA RE-REVIEW of P0 fix `9e9fee9`
 - **Conflict key:** `data-contract`
 - **Branch:** `codex/v3-civic-contracts`
 - **Worktree:** `../nagarsakhi-wt-v3-civic-contracts`
@@ -291,7 +291,7 @@ You can approve work by saying, for example:
 
 ### LUNA-05 - Sign-in and UI/UX update
 
-- **Status:** TERRA RE-REVIEW of CAPTCHA fix `a895323`
+- **Status:** DESKTOP TERRA PASS at `a895323`; narrow Computer Use verification pending
 - **Conflict key:** `auth-brand`
 - **Branch:** `codex/v3-auth-brand`
 - **Worktree:** `../nagarsakhi-wt-v3-auth-brand`
@@ -324,12 +324,12 @@ You can approve work by saying, for example:
 
 ## In progress
 
-- LUNA-00 / BUG-LUNA-00-1 - P0 migration-trigger fix in progress.
+No Luna implementation or fix card is active.
 
 ## Terra review queue
 
-- LUNA-00 - waiting for Luna P0 fix, then Terra migration re-verification.
-- LUNA-05 / P7-04 - `terra_review_auth_brand` re-verifying fix `a895323`; narrow verification remains pending.
+- LUNA-00 / BUG-LUNA-00-1 - `terra_review_civic_contracts` re-verifying fix `9e9fee9`.
+- LUNA-05 - desktop PASS at `a895323`; narrow verification remains pending.
 
 Terra handoff must contain:
 
@@ -353,7 +353,8 @@ Terra handoff must contain:
 - **Reproduction:** Clean local `supabase db reset --local --no-seed` reaches the new migration and fails with `Budget editor must administer the ward municipality`.
 - **Expected:** The migration inserts 28 demo budgets and four deterministic demo expenditures; real non-demo writes retain actor/tenancy validation.
 - **Actual:** Existing BEFORE triggers reject the null demo actor before rows are inserted.
-- **State:** Luna fix in progress; Terra clean-reset re-verification required.
+- **Fix:** Commit `9e9fee9`; local clean reset and invariant query passed.
+- **State:** Terra re-verification in progress.
 
 ### BUG-LUNA-05-1 - CAPTCHA is not visible below the mobile input
 
@@ -363,7 +364,7 @@ Terra handoff must contain:
 - **Expected:** A visible CAPTCHA directly below the mobile input.
 - **Actual:** The reserved area is blank; no CAPTCHA iframe/control is exposed.
 - **Luna fix:** Commit `a895323`.
-- **State:** Terra Computer Use re-verification in progress.
+- **State:** Resolved on desktop by Terra; narrow page verification remains pending.
 
 ```md
 ### BUG-<parent>-<number> - <source requirement that failed>
