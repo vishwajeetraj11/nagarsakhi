@@ -225,6 +225,63 @@
 }
 
 @layer shell {
+  .municipality-page { width: min(100%, var(--content-max)); margin: 0 auto; padding: clamp(1.5rem, 4vw, 3rem) clamp(1.25rem, 4vw, 2rem) 4rem; }
+  .municipality-hero { display: flex; align-items: end; justify-content: space-between; gap: 2rem; border-bottom: 3px solid var(--ink); padding-bottom: clamp(2rem, 5vw, 3.5rem); }
+  .municipality-hero h1 { max-width: 14ch; margin: .45rem 0 .75rem; font-size: clamp(2.45rem, 7vw, 5.6rem); }
+  .municipality-kicker { margin: 0; color: var(--green); font-size: .76rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+  .municipality-location { display: flex; align-items: center; gap: .4rem; margin: 0; color: var(--ink-soft); font-size: 1.05rem; }
+  .municipality-lede { max-width: 58ch; margin: 1.3rem 0 0; color: var(--ink-soft); font-size: 1.08rem; line-height: 1.55; }
+  .municipality-stamp { display: grid; flex: 0 0 auto; grid-template-columns: auto auto; align-items: center; gap: .6rem; border-left: 1px solid var(--line-strong); padding-left: 1rem; }
+  .municipality-stamp strong { font-family: var(--font-display); font-size: clamp(2.8rem, 7vw, 5rem); line-height: .9; }
+  .municipality-stamp span { color: var(--ink-soft); font-size: .78rem; font-weight: 700; line-height: 1.15; text-transform: uppercase; }
+  .municipality-notice { display: flex; gap: 1rem; margin: 1.5rem 0 3rem; border-left: 4px solid var(--marigold); background: var(--marigold-soft); padding: 1rem 1.25rem; color: var(--ink-soft); }
+  .municipality-notice strong { color: var(--ink); white-space: nowrap; }
+  .municipality-section { margin-top: 3.5rem; }
+  .municipality-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; margin-bottom: 1.5rem; }
+  .municipality-section-heading h2 { margin: .35rem 0 0; font-size: clamp(1.7rem, 4vw, 2.7rem); }
+  .municipality-section-heading > p { max-width: 35ch; margin: 0; color: var(--ink-soft); text-align: right; }
+  .municipality-facts { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); }
+  .municipality-facts div { border-bottom: 1px solid var(--line); padding: 1rem 1rem 1rem 0; }
+  .municipality-facts dt { color: var(--ink-soft); font-size: .8rem; text-transform: uppercase; }
+  .municipality-facts dd { margin: .25rem 0 0; font-weight: 700; }
+  .municipality-ward-table-wrap { overflow-x: auto; border-top: 2px solid var(--ink); }
+  .municipality-ward-table { width: 100%; border-collapse: collapse; text-align: left; }
+  .municipality-ward-table th, .municipality-ward-table td { border-bottom: 1px solid var(--line); padding: .85rem .75rem; vertical-align: top; }
+  .municipality-ward-table thead th { color: var(--ink-soft); font-size: .76rem; letter-spacing: .06em; text-transform: uppercase; }
+  .municipality-ward-table tbody th { width: 5rem; font-family: var(--font-display); font-size: 1.2rem; }
+  .municipality-missing { color: var(--ink-faint); font-style: italic; }
+  .municipality-ledger-summary { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
+  .municipality-ledger-summary div { padding: 1rem 1rem 1rem 0; }
+  .municipality-ledger-summary span, .municipality-ledger-summary small { display: block; color: var(--ink-soft); }
+  .municipality-ledger-summary strong { display: block; margin: .25rem 0; font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 2.8rem); }
+  .municipality-ledger-summary small { font-size: .8rem; }
+  .municipality-finance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 6vw, 5rem); margin-top: 2rem; }
+  .municipality-finance-grid h3 { margin: 0 0 .75rem; color: var(--ink-soft); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; }
+  .municipality-finance-list { margin: 0; padding: 0; list-style: none; }
+  .municipality-finance-row { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--line); padding: .8rem 0; }
+  .municipality-finance-row span:last-child { text-align: right; }
+  .municipality-finance-row strong, .municipality-finance-row small { display: block; }
+  .municipality-finance-row small { margin-top: .2rem; color: var(--ink-soft); font-size: .82rem; }
+  .municipality-finance-row span:last-child strong { color: var(--indigo); font-variant-numeric: tabular-nums; }
+  .municipality-empty, .municipality-footnote { color: var(--ink-soft); }
+  .municipality-footnote { border-top: 1px solid var(--line); margin: 1.5rem 0 0; padding-top: .75rem; font-size: .82rem; }
+  .municipality-footer-nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-top: 3px solid var(--ink); margin-top: 4rem; padding-top: 1rem; color: var(--ink-soft); }
+  .municipality-footer-nav a { display: inline-flex; align-items: center; gap: .35rem; color: var(--indigo); font-weight: 700; }
+
+  @media (max-width: 42rem) {
+    .municipality-hero, .municipality-section-heading, .municipality-footer-nav { align-items: start; flex-direction: column; }
+    .municipality-stamp { align-self: stretch; }
+    .municipality-section-heading > p { text-align: left; }
+    .municipality-facts, .municipality-ledger-summary, .municipality-finance-grid { grid-template-columns: 1fr; }
+    .municipality-ward-table thead { display: none; }
+    .municipality-ward-table, .municipality-ward-table tbody, .municipality-ward-table tr, .municipality-ward-table th, .municipality-ward-table td { display: block; }
+    .municipality-ward-table tr { border-bottom: 2px solid var(--line-strong); padding: .65rem 0; }
+    .municipality-ward-table th, .municipality-ward-table td { border: 0; padding: .25rem 0 .25rem 6.5rem; position: relative; }
+    .municipality-ward-table th::before, .municipality-ward-table td::before { position: absolute; left: 0; color: var(--ink-soft); content: attr(data-label); font-size: .76rem; font-weight: 700; text-transform: uppercase; }
+    .municipality-ward-table tbody th { width: auto; font-size: 1.2rem; }
+    .municipality-notice { align-items: start; flex-direction: column; gap: .3rem; }
+  }
+
   .skip-link {
     position: fixed;
     z-index: 1000;
