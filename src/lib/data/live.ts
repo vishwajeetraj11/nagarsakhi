@@ -47,8 +47,8 @@ type ProfileRow = {
 };
 type MunicipalityRow = { id: string; name: string; district: string; state: string };
 type WardRow = { id: string; municipality_id: string; ward_number: number; name: string };
-type BudgetRow = { ward_id: string; allocated_amount: number | string };
-type ExpenditureRow = { id: string; ward_id: string; amount: number | string; description: string; spent_at: string };
+type BudgetRow = { ward_id: string; allocated_amount: number | string; is_demo?: boolean };
+type ExpenditureRow = { id: string; ward_id: string; amount: number | string; description: string; spent_at: string; is_demo?: boolean };
 type PublicProfileRow = { id: string; name: string };
 type OfficialRow = { id: string; municipality_id: string; name: string; role_label: string; department: string | null };
 type OfficialTermRow = {
@@ -57,6 +57,7 @@ type OfficialTermRow = {
   ward_id: string | null;
   role_label: string;
   won_by_votes: number | null;
+  term_number: number | null;
   is_current: boolean;
 };
 type IssueRow = {
@@ -360,12 +361,12 @@ export async function loadLiveData(
     alertCompletionsResult,
   ] = await Promise.all([
     supabase.from("wards").select("id, municipality_id, ward_number, name").eq("municipality_id", viewer.municipality_id).order("ward_number").limit(LIMITS.wards),
-    supabase.from("ward_budgets").select("ward_id, allocated_amount").limit(LIMITS.wards),
-    supabase.from("expenditures").select("id, ward_id, amount, description, spent_at").order("spent_at", { ascending: false }).limit(LIMITS.expenditures),
+    supabase.from("ward_budgets").select("ward_id, allocated_amount, is_demo").limit(LIMITS.wards),
+    supabase.from("expenditures").select("id, ward_id, amount, description, spent_at, is_demo").order("spent_at", { ascending: false }).limit(LIMITS.expenditures),
     supabase.from("public_profiles").select("id, name").limit(LIMITS.profiles),
     supabase.from("profiles").select("id, name, role, ward_id").eq("municipality_id", viewer.municipality_id).limit(LIMITS.profiles),
     supabase.from("officials").select("id, municipality_id, name, role_label, department").eq("municipality_id", viewer.municipality_id).limit(LIMITS.officials),
-    supabase.from("official_terms").select("id, official_id, ward_id, role_label, won_by_votes, is_current").limit(LIMITS.officialTerms),
+    supabase.from("official_terms").select("id, official_id, ward_id, role_label, won_by_votes, term_number, is_current").limit(LIMITS.officialTerms),
     issuesQuery.order("created_at", { ascending: false }).limit(LIMITS.issues),
     supabase.from("notices").select("id, municipality_id, ward_id, author_id, title, body, created_at").eq("municipality_id", viewer.municipality_id).order("created_at", { ascending: false }).limit(LIMITS.notices),
     supabase.from("alerts").select("id, municipality_id, title, description, due_at, targets_all_wards, created_at").eq("municipality_id", viewer.municipality_id).order("created_at", { ascending: false }).limit(LIMITS.alerts),
@@ -423,8 +424,10 @@ export async function loadLiveData(
     amount: asNumber(expense.amount),
     description: expense.description,
     spentAt: expense.spent_at,
+    isDemo: expense.is_demo ?? false,
   }));
   const budgetByWard = new Map(rows(budgetsResult).map((budget) => [budget.ward_id, asNumber(budget.allocated_amount)]));
+  const budgetDemoByWard = new Map(rows(budgetsResult).map((budget) => [budget.ward_id, budget.is_demo ?? false]));
   const spentByWard = new Map<string, number>();
   for (const expenditure of expenditures) {
     spentByWard.set(expenditure.wardId, (spentByWard.get(expenditure.wardId) ?? 0) + expenditure.amount);
@@ -436,6 +439,7 @@ export async function loadLiveData(
     name: ward.name,
     allocatedBudget: budgetByWard.get(ward.id) ?? 0,
     spentBudget: spentByWard.get(ward.id) ?? 0,
+    budgetIsDemo: budgetDemoByWard.get(ward.id) ?? false,
   }));
   const wardById = new Map(wards.map((ward) => [ward.id, ward]));
 
@@ -472,6 +476,7 @@ export async function loadLiveData(
         roleLabel: term.role_label,
         department: official.department ?? undefined,
         wonByVotes: term.won_by_votes ?? undefined,
+        termNumber: term.term_number ?? undefined,
         current: term.is_current,
       };
     });

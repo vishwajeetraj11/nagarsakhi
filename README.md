@@ -1,6 +1,6 @@
 # NagarSakhi
 
-NagarSakhi is a mobile-first municipal governance platform for tier-3 Indian cities. This repository contains the Phusro Nagar Parishad hackathon demo described in the product requirements document.
+NagarSakhi is a mobile-first municipal governance platform for tier-3 Indian cities. This repository contains the Phusro Municipal Corporation hackathon demo described in the product requirements document.
 
 The municipality is the customer and residents are the users. Citizens can record and prioritize ward issues, follow work and budgets, and complete municipal tasks. Ward parshads manage issue status and escalation. Corporation officials publish alerts, budgets, and municipality-wide notices.
 
