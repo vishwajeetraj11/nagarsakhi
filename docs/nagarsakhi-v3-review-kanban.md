@@ -29,8 +29,8 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 
 | Slot | Agent | Task IDs | State | Branch/worktree | Last update | User control |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Terra `terra_review_civic_contracts` | LUNA-00 / P3-02, P3-03, P3-04, P4-01, P4-02, P4-03, P5-03, P6-01 | TERRA REVIEW | `codex/v3-civic-contracts` / `/private/tmp/nagarsakhi-v3-civic-contracts` | Commit `6d4fb38`; contract/migration review dispatched | `Skip <task ID>` |
-| 2 | Luna `luna_05_auth_brand` | P7-04 / BUG-LUNA-05-1 | FIXING BUG-1 | `codex/v3-auth-brand` / `/private/tmp/nagarsakhi-v3-auth-brand` | Terra passed copy, desktop layout, OTP framing, and favicon; visible CAPTCHA defect returned to Luna | `Skip P7-04` |
+| 1 | Luna `luna_00_civic_contracts` | LUNA-00 / BUG-LUNA-00-1 | FIXING P0 BUG-1 | `codex/v3-civic-contracts` / `/private/tmp/nagarsakhi-v3-civic-contracts` | Clean local reset exposed demo rows blocked by existing tenancy triggers; scoped fix dispatched | `Skip <finance task ID>` |
+| 2 | Terra `terra_review_auth_brand` | P7-04 / BUG-LUNA-05-1 | TERRA RE-REVIEW | `codex/v3-auth-brand` / `/private/tmp/nagarsakhi-v3-auth-brand` | Luna fix `a895323`; Computer Use re-verification dispatched | `Skip P7-04` |
 | 3 | - | - | Idle | - | No agent dispatched | Available |
 
 ### Live-state vocabulary
@@ -206,7 +206,7 @@ You can approve work by saying, for example:
 
 ### LUNA-00 - Shared civic and finance contract implementation
 
-- **Status:** TERRA REVIEW; commit `6d4fb38`
+- **Status:** FIXING BUG-LUNA-00-1 [P0] on top of commit `6d4fb38`
 - **Conflict key:** `data-contract`
 - **Branch:** `codex/v3-civic-contracts`
 - **Worktree:** `../nagarsakhi-wt-v3-civic-contracts`
@@ -291,7 +291,7 @@ You can approve work by saying, for example:
 
 ### LUNA-05 - Sign-in and UI/UX update
 
-- **Status:** FIXING BUG-LUNA-05-1 on top of Luna commit `61c9018`
+- **Status:** TERRA RE-REVIEW of CAPTCHA fix `a895323`
 - **Conflict key:** `auth-brand`
 - **Branch:** `codex/v3-auth-brand`
 - **Worktree:** `../nagarsakhi-wt-v3-auth-brand`
@@ -324,12 +324,12 @@ You can approve work by saying, for example:
 
 ## In progress
 
-- LUNA-05 / BUG-LUNA-05-1 - visible CAPTCHA fix in progress.
+- LUNA-00 / BUG-LUNA-00-1 - P0 migration-trigger fix in progress.
 
 ## Terra review queue
 
-- LUNA-00 / shared civic and finance contract - `terra_review_civic_contracts` - migration/contract review in progress.
-- LUNA-05 / P7-04 - waiting for Luna fix, then Terra re-verification; narrow verification remains pending.
+- LUNA-00 - waiting for Luna P0 fix, then Terra migration re-verification.
+- LUNA-05 / P7-04 - `terra_review_auth_brand` re-verifying fix `a895323`; narrow verification remains pending.
 
 Terra handoff must contain:
 
@@ -346,6 +346,15 @@ Terra handoff must contain:
 
 ## Luna bug-fix queue
 
+### BUG-LUNA-00-1 - Demo finance seed is rejected by tenancy triggers
+
+- **Parent:** LUNA-00 / commit `6d4fb38`
+- **Severity:** P0
+- **Reproduction:** Clean local `supabase db reset --local --no-seed` reaches the new migration and fails with `Budget editor must administer the ward municipality`.
+- **Expected:** The migration inserts 28 demo budgets and four deterministic demo expenditures; real non-demo writes retain actor/tenancy validation.
+- **Actual:** Existing BEFORE triggers reject the null demo actor before rows are inserted.
+- **State:** Luna fix in progress; Terra clean-reset re-verification required.
+
 ### BUG-LUNA-05-1 - CAPTCHA is not visible below the mobile input
 
 - **Parent:** LUNA-05 / P7-04 / commit `61c9018`
@@ -353,7 +362,8 @@ Terra handoff must contain:
 - **Computer Use reproduction:** Open the configured signed-out app at desktop size; inspect the area between the mobile input and `Get OTP` without entering phone data.
 - **Expected:** A visible CAPTCHA directly below the mobile input.
 - **Actual:** The reserved area is blank; no CAPTCHA iframe/control is exposed.
-- **State:** Luna fix in progress; Terra re-verification required.
+- **Luna fix:** Commit `a895323`.
+- **State:** Terra Computer Use re-verification in progress.
 
 ```md
 ### BUG-<parent>-<number> - <source requirement that failed>
