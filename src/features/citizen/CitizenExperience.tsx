@@ -327,7 +327,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
         setIssues((current) => current.map((item) => item.id === issueId ? previous : item));
         showToast(result.error.message, "error");
       } else {
-        showToast(nextVote === 1 ? "Your support was recorded" : "Your downvote was recorded");
+        showToast(nextVote === 1 ? "Your support was recorded" : nextVote === -1 ? "Your downvote was recorded" : previous.viewerVote === 1 ? "Your support was removed" : "Your downvote was removed");
       }
     }
   };
