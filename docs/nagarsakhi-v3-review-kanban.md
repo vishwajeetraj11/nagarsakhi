@@ -55,78 +55,102 @@ Source: `nagarsakhi_v3_review.pdf`, seven handwritten pages, visually re-verifie
 - **Decision required:** Either keep the page 3 calendar change or replace it with a separately defined Ward Tasks contract. Aadhaar verification is not approved by the PDF note alone.
 - **Blocks:** The calendar/task portion of LUNA-03
 
-## Source-verified requirement register
+## PDF page approval board
 
-### Page 1 - Citizen flow
+This is the go-ahead surface. Every row maps one source note to its delivery agent. Sol changes `Awaiting go-ahead` only after the user approves the page or task ID.
 
-- Citizen Overview contains latest updates, in-progress issues, issue reporting, and access to the Parshad profile.
-- There are three ways to report an issue: Overview, Issues, and Report; remove reporting from Overview.
-- Citizens can view other wards but make no updates.
-- There are two ward-browsing controls (`Wards` and `Browse wards`); remove the duplication.
-- Upvoting and downvoting show the same popup; downvoting needs a different option/message.
-- Support confirmation shown in the note: `Your support was recorded`.
+You can approve work by saying, for example:
 
-### Page 2 - Issues and municipality page
+- `Go ahead with page 1.`
+- `Go ahead with P1-01 and P1-04.`
+- `Hold P4-04; approve the rest of page 4.`
 
-- The Issues page should allow clicking between issue progress statuses.
-- Clicking an issue should open its report.
-- Add a common read-only Phusro Nagar Parishad page for all roles.
-- The common page contains municipality details.
-- NagarSakhi should be clickable and open that common page.
+### PDF page 1 - Citizen flow
 
-### Page 3 - Municipality and Parshad
+| Go ahead | ID | Task from page 1 | Agent/card | Contract dependency |
+| --- | --- | --- | --- | --- |
+| [ ] | P1-01 | Remove issue reporting from Overview; Issues and Report remain the other two reporting paths. | LUNA-01 | None |
+| [ ] | P1-02 | Remove the duplicate ward-browsing control (`Wards` versus `Browse wards`). | LUNA-01 | None |
+| [ ] | P1-03 | Let citizens view other wards but make no updates there. | LUNA-01 | CONTRACT-02 |
+| [ ] | P1-04 | Give downvoting feedback different from support feedback; preserve `Your support was recorded` for support. | LUNA-01 | None |
 
-- Add a Phusro Municipal Corporation home page.
-- Show names for all ward Parshads.
-- Show temporary ward-fund and commitment numbers.
-- Show a term number next to the ward representative.
-- Parshad login opens Parshad Desk and shows fixed issues.
-- The Issue Register is cluttered; add filters.
-- Remove `Required follow-ups` from Ward Calendar.
-- Change the order of Ward Calendar and Resident Notice.
-- Add a real calendar with date selection.
-- Add `View as Citizen`.
-- Show a missing municipality-wide notice at the top of the Parshad view.
+**Page status:** Awaiting go-ahead
 
-### Page 4 - Parshad card and public work account
+### PDF page 2 - Issues and common municipality page
 
-- Change the representative card to `Ward Parshad`.
-- Make the Parshad name the profile link.
-- Show the actual term number; the sketch uses `2nd term`.
-- Public Work Account shows ward funds and commitments.
-- Recent Spending should temporarily show a fixed issue with a cost.
-- Ward Tasks replacing Ward Calendar is marked for discussion, not as a settled requirement.
+| Go ahead | ID | Task from page 2 | Agent/card | Contract dependency |
+| --- | --- | --- | --- | --- |
+| [ ] | P2-01 | Allow selection between issue progress statuses on the Issues page. | LUNA-01 | None |
+| [ ] | P2-02 | Open an issue's report when that issue is selected. | LUNA-01 | None |
+| [ ] | P2-03 | Add a common read-only municipality page for all roles. | LUNA-02 | CONTRACT-01 |
+| [ ] | P2-04 | Show municipality details on the common page. | LUNA-02 | CONTRACT-01 |
+| [ ] | P2-05 | Make NagarSakhi clickable and open the common municipality page. | LUNA-02 | CONTRACT-01 |
 
-### Page 5 - Corporation Official
+**Page status:** Awaiting go-ahead
 
-- Corporation Official login opens Corporation Desk.
-- Choosing a ward opens its ward view.
-- Show ward work by status.
-- Ward Budget needs to be synchronized.
-- Ward Activity is not color coded; update it with tags.
-- Rename `Corporation Overview` to `Municipal Overview`.
-- Show Escalated Issues with Ward, Parshad, Issue, Request, Status, and Ward View information.
-- Remove the redundant standalone `Ward 7` element shown in the sketch.
+### PDF page 3 - Municipality and Parshad
 
-### Page 6 - Corporation dashboard
+| Go ahead | ID | Task from page 3 | Agent/card | Contract dependency |
+| --- | --- | --- | --- | --- |
+| [ ] | P3-01 | Add the Phusro municipality home page. | LUNA-02 | CONTRACT-01 |
+| [ ] | P3-02 | Show names for all ward Parshads. | LUNA-00, LUNA-02 | None |
+| [ ] | P3-03 | Show approved temporary ward-fund and commitment numbers. | LUNA-00, LUNA-02 | CONTRACT-03 |
+| [ ] | P3-04 | Show a term number next to the ward representative. | LUNA-00, LUNA-02 | None |
+| [ ] | P3-05 | Keep Parshad login opening Parshad Desk and showing fixed issues. | LUNA-03 | None |
+| [ ] | P3-06 | Add filters to the cluttered Issue Register. | LUNA-03 | None |
+| [ ] | P3-07 | Remove `Required follow-ups` from Ward Calendar. | LUNA-03 | None |
+| [ ] | P3-08 | Change the order of Ward Calendar and Resident Notice, and add a real date-selectable calendar. | LUNA-03 | CONTRACT-04 |
+| [ ] | P3-09 | Add `View as Citizen` to the Parshad experience. | LUNA-03 | None |
+| [ ] | P3-10 | Show the missing municipality-wide notice at the top of the Parshad view. | LUNA-03 | None |
 
-- Replace the zero Public Spending display with an approved temporary value between ₹3-5 crore.
-- Remove Operational Alerts because they have no point right now.
-- Let Public Notices take the entire available width.
+**Page status:** Awaiting go-ahead
 
-### Page 7 - UI/UX and sign-in
+### PDF page 4 - Parshad card and public work account
 
-- Use the NagarSakhi identity shown in the sketch.
-- Copy: `Your ward, in the open`.
-- Copy: `See what's happening in your ward`.
-- Copy: `Make sure your voice counts`.
-- Copy explains: file issues, vote on priorities, track ward work, and see where the budget goes.
-- Copy: `Private sign-in. Public accountability.`
-- Secure sign-in uses a registered mobile number.
-- Mobile input shows `+91`.
-- CAPTCHA appears below the mobile input.
-- The action is `Get OTP`.
-- Add a favicon.
+| Go ahead | ID | Task from page 4 | Agent/card | Contract dependency |
+| --- | --- | --- | --- | --- |
+| [ ] | P4-01 | Use `Ward Parshad`, make the Parshad name the profile link, and show the actual term number; the sketch uses `2nd term`. | LUNA-00, LUNA-03 | None |
+| [ ] | P4-02 | Show ward funds and commitments in Public Work Account. | LUNA-00, LUNA-03 | CONTRACT-03 |
+| [ ] | P4-03 | Temporarily show a fixed issue with an approved cost in Recent Spending. | LUNA-00, LUNA-03 | CONTRACT-03 |
+| [ ] | P4-04 | Decide whether Ward Tasks replaces Ward Calendar; the PDF marks this for discussion and mentions Aadhaar verification only as an uncertain example. | Sol | CONTRACT-04 |
+
+**Page status:** Awaiting go-ahead
+
+### PDF page 5 - Corporation Official
+
+| Go ahead | ID | Task from page 5 | Agent/card | Contract dependency |
+| --- | --- | --- | --- | --- |
+| [ ] | P5-01 | Keep Corporation Official login opening Corporation Desk; choosing a ward opens its ward view. | LUNA-04 | None |
+| [ ] | P5-02 | Show ward work by status. | LUNA-04 | None |
+| [ ] | P5-03 | Synchronize Ward Budget. | LUNA-00, LUNA-04 | CONTRACT-03 |
+| [ ] | P5-04 | Update Ward Activity with tags/color coding. | LUNA-04 | None |
+| [ ] | P5-05 | Rename `Corporation Overview` to `Municipal Overview`. | LUNA-04 | CONTRACT-01 |
+| [ ] | P5-06 | Show Escalated Issues information for Ward, Parshad, Issue, Request, Status, and Ward View. | LUNA-04 | None |
+| [ ] | P5-07 | Remove the redundant standalone `Ward 7` element shown in the sketch. | LUNA-04 | None |
+
+**Page status:** Awaiting go-ahead
+
+### PDF page 6 - Corporation dashboard
+
+| Go ahead | ID | Task from page 6 | Agent/card | Contract dependency |
+| --- | --- | --- | --- | --- |
+| [ ] | P6-01 | Replace the zero Public Spending display with an approved temporary value between ₹3-5 crore. | LUNA-00, LUNA-04 | CONTRACT-03 |
+| [ ] | P6-02 | Remove Operational Alerts because they have no point right now. | LUNA-04 | None |
+| [ ] | P6-03 | Let Public Notices take the entire available width. | LUNA-04 | None |
+
+**Page status:** Awaiting go-ahead
+
+### PDF page 7 - UI/UX and sign-in
+
+| Go ahead | ID | Task from page 7 | Agent/card | Contract dependency |
+| --- | --- | --- | --- | --- |
+| [ ] | P7-01 | Apply the NagarSakhi identity and the source messages: `Your ward, in the open`, `See what's happening in your ward`, and `Make sure your voice counts`. | LUNA-05 | None |
+| [ ] | P7-02 | Explain: file issues, vote on priorities, track ward work, and see where the budget goes. | LUNA-05 | None |
+| [ ] | P7-03 | Use `Private sign-in. Public accountability.` | LUNA-05 | None |
+| [ ] | P7-04 | Present secure registered-mobile sign-in with `+91`, CAPTCHA below the input, and `Get OTP`. | LUNA-05 | None |
+| [ ] | P7-05 | Add a favicon. | LUNA-05 | None |
+
+**Page status:** Awaiting go-ahead
 
 ## Ready after contracts - delivery cards
 
