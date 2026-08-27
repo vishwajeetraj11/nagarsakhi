@@ -225,30 +225,20 @@ export function LiveLogin() {
   return (
     <main className="login-page live-login" id="main-content">
       <section className="login-intro" aria-labelledby="live-welcome-title">
-        <div className="brand-lockup">
-          <span className="brand-mark" aria-hidden="true">न</span>
-          <span>NagarSakhi</span>
+        <div className="login-intro__content">
+          <div className="brand-lockup">
+            <span className="brand-mark" aria-hidden="true">न</span>
+            <span>NagarSakhi</span>
+          </div>
+          <p className="eyebrow">Your ward, in the open</p>
+          <h1 id="live-welcome-title">Your ward&apos;s issues, budget, and progress — all in one place.</h1>
+          <p className="login-lede">Sign in with the mobile number registered to your ward.</p>
         </div>
-        <p className="eyebrow">Your ward, in the open</p>
-        <h1 id="live-welcome-title">{"See what's happening in your ward"}</h1>
-        <p className="login-lede">Make sure your voice counts. Sign in to explain file issues, vote on priorities, and track ward work.</p>
-        <ul className="login-purpose-list" aria-label="What you can do in NagarSakhi">
-          <li><span aria-hidden="true">01</span><span>Explain file issues and follow their progress.</span></li>
-          <li><span aria-hidden="true">02</span><span>Vote on priorities that matter in your ward.</span></li>
-          <li><span aria-hidden="true">03</span><span>Track ward work and see where the budget goes.</span></li>
-        </ul>
-        <div className="civic-rule" aria-hidden="true">
-          <span>वार्ड</span>
-          <span>Ward</span>
-          <span>नगर</span>
-          <span>City</span>
-        </div>
-        <p className="demo-note">Private sign-in. Public accountability.</p>
+        <footer className="login-footer">Private sign-in. Public accountability.</footer>
       </section>
 
       <section className="login-panel" aria-labelledby="live-signin-title">
         <div>
-          <p className="section-kicker">Secure sign-in</p>
           <h2 id="live-signin-title">{stage === "phone" ? "Enter your registered mobile number" : "Enter your verification code"}</h2>
         </div>
         <div className="auth-stepper" aria-label="Sign-in progress">

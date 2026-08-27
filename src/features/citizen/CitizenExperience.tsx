@@ -80,15 +80,15 @@ const statusHindi: Record<IssueStatus, string> = {
 };
 
 const escalationCopy: Record<EscalationStatus, string> = {
-  open: "Escalated to corporation",
-  acknowledged: "Acknowledged by corporation",
-  resolved: "Resolved by corporation",
+  open: "Escalated to Nagar Parishad",
+  acknowledged: "Acknowledged by Nagar Parishad",
+  resolved: "Resolved by Nagar Parishad",
 };
 
 const escalationStateCopy: Record<EscalationStatus, string> = {
-  open: "Escalated to corporation",
-  acknowledged: "Escalated · Acknowledged by corporation",
-  resolved: "Escalated · Resolved by corporation",
+  open: "Escalated to Nagar Parishad",
+  acknowledged: "Escalated · Acknowledged by Nagar Parishad",
+  resolved: "Escalated · Resolved by Nagar Parishad",
 };
 
 const formatDate = (value: string) =>
@@ -128,7 +128,7 @@ function IssueStateMark({ issue }: { issue: Issue }) {
   if (!issue.escalated) return <StatusMark status={issue.status} />;
   return <span className={`${styles.status} ${styles.escalationStatus}`}>
     <span aria-hidden="true" className={`${styles.statusDot} ${styles.escalationStatusDot}`} />
-    {issue.escalationStatus ? escalationStateCopy[issue.escalationStatus] : "Escalated to corporation"}
+    {issue.escalationStatus ? escalationStateCopy[issue.escalationStatus] : "Escalated to Nagar Parishad"}
   </span>;
 }
 
@@ -177,7 +177,7 @@ function IssueRecord({ issue, onOpen, onVote, canVote, viewerId }: {
         {issue.status === "rejected" && <div className={styles.rejectionSummary}><strong>Rejected: </strong>{issue.rejectionReason ?? "The ward office did not accept this report."}<small>Decision by {issue.rejectionActorName ?? "Ward representative"} · {issue.rejectionAt ? formatTimestamp(issue.rejectionAt) : formatDate(issue.updatedAt)}</small></div>}
       </button>
       {issue.status === "completed" ? <div className={styles.voteSummary} aria-label={`Community response: ${issue.upvotes} support, ${issue.downvotes} downvotes`}><span>{issue.upvotes} support{issue.upvotes === 1 ? "" : "s"}</span><span>{issue.downvotes} downvote{issue.downvotes === 1 ? "" : "s"}</span></div> : null}
-      {issue.status !== "rejected" && issue.status !== "completed" && !issue.escalated && (isOwnReport ? <div className={styles.voteRow}><span className={styles.voteNotice}>You cannot support or downvote your own report.</span></div> : canVote ? (
+      {issue.status !== "rejected" && issue.status !== "completed" && !issue.escalated && (isOwnReport ? <div className={styles.voteRow}><span className={styles.voteNotice}>You filed this report.</span></div> : canVote ? (
         <div className={styles.voteRow} aria-label={`Community support for ${issue.title}`}>
           <button
             type="button"
@@ -523,16 +523,16 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
           <>
             {latestMunicipalityNotice ? <section className={styles.municipalityNotice} aria-labelledby="latest-municipality-note-title">
               <div>
-                <p className={styles.kicker}>Latest municipality note</p>
-                <h2 id="latest-municipality-note-title">{latestMunicipalityNotice.title ?? "Municipality update"}</h2>
+                <p className={styles.kicker}>Nagar Parishad notice · नगर सूचना</p>
+                <h2 id="latest-municipality-note-title">{latestMunicipalityNotice.title ?? "Nagar Parishad notice"}</h2>
                 <p className={styles.latestNoticeBody}>{latestMunicipalityNotice.body}</p>
               </div>
               <p className={styles.latestNoticeMeta}>{latestMunicipalityNotice.authorName} · Published {formatDate(latestMunicipalityNotice.createdAt)}</p>
             </section> : null}
             {latestWardNotice ? <section className={styles.latestNotice} aria-labelledby="latest-ward-note-title">
               <div>
-                <p className={styles.kicker}>Latest ward note</p>
-                <h2 id="latest-ward-note-title">{latestWardNotice.title ?? "Ward update"}</h2>
+                <p className={styles.kicker}>Ward notice · वार्ड सूचना</p>
+                <h2 id="latest-ward-note-title">{latestWardNotice.title ?? "Ward notice"}</h2>
                 <p className={styles.latestNoticeBody}>{latestWardNotice.body}</p>
               </div>
               <p className={styles.latestNoticeMeta}>{latestWardNotice.authorName} · Published {formatDate(latestWardNotice.createdAt)}</p>
@@ -554,7 +554,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
             <div className={styles.homeGrid}>
               <section className={styles.section} aria-labelledby="watching-title">
                 <div className={styles.sectionHead}>
-                  <div><p className={styles.kicker}>Open record</p><h2 id="watching-title">Worth watching</h2></div>
+                  <div><p className={styles.kicker}>Active issues · सक्रिय मुद्दे</p><h2 id="watching-title">{openWardIssues.length} active issues</h2></div>
                   <button type="button" className={styles.textAction} onClick={() => moveTo("issues")}>View all issues <ArrowUpRight size={16} aria-hidden="true" /></button>
                 </div>
                 {openWardIssues.length > 0 ? openWardIssues.slice(0, 2).map((issue) => <IssueRecord key={issue.id} issue={issue} canVote={canVote} viewerId={session?.profileId} onOpen={() => { setSelectedIssueId(issue.id); moveTo("issues"); }} onVote={(direction) => handleVote(issue.id, direction)} />) : (
@@ -583,10 +583,10 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
 
             <section className={styles.publicWork} aria-labelledby="public-work-title">
               <div className={styles.sectionHead}>
-                <div><p className={styles.kicker}>Public work account</p><h2 id="public-work-title">Ward funds & commitments</h2></div>
-                <p className={styles.budgetNumber}>{formatRupees(ward.spentBudget)} <span>of {formatRupees(ward.allocatedBudget)}</span></p>
+                <div><p className={styles.kicker}>Ward budget · वार्ड बजट</p><h2 id="public-work-title">Allocation and spending</h2></div>
+                <p className={styles.budgetNumber}>{formatRupees(ward.spentBudget)} spent <span>of {formatRupees(ward.allocatedBudget)} allocated</span></p>
               </div>
-              <div className={styles.budgetTrack} aria-label={`${formatRupees(ward.spentBudget)} of ${formatRupees(ward.allocatedBudget)} spent`}><span style={{ width: `${ward.allocatedBudget > 0 ? Math.min(100, (ward.spentBudget / ward.allocatedBudget) * 100) : 0}%` }} /></div>
+              <div className={styles.budgetTrack} aria-label={`${formatRupees(ward.spentBudget)} spent of ${formatRupees(ward.allocatedBudget)} allocated`}><span style={{ width: `${ward.allocatedBudget > 0 ? Math.min(100, (ward.spentBudget / ward.allocatedBudget) * 100) : 0}%` }} /></div>
               <div className={styles.workGrid}>
                 <div><h3>Recent spending</h3>{expenditures.length ? expenditures.map((expense) => <p key={expense.id}><span>{expense.description}</span><strong>{formatRupees(expense.amount)}</strong></p>) : <p>{dataMode === "demo" ? "No ward expenditure is listed in this demo." : "No public spending has been recorded for this ward yet."}</p>}</div>
                 {tasks.length ? <div><h3>Ward tasks</h3>{tasks.map((task) => <p key={task.id}><span className={task.completed ? styles.doneTask : ""}>{task.completed ? "Completed" : "Due"}: {task.title}</span><strong>{formatDate(task.dueAt)}</strong></p>)}</div> : null}
@@ -598,7 +598,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
         {view === "issues" && (
           <section className={styles.issueBoard} aria-labelledby="issue-board-title">
               <div className={styles.sectionHead}>
-                <div><p className={styles.kicker}>Community reports · जन शिकायतें</p><h2 id="issue-board-title">{formatWardLabel(ward.number)} issue board</h2></div>
+                <div><p className={styles.kicker}>Ward issues · वार्ड शिकायतें</p><h2 id="issue-board-title">{formatWardLabel(ward.number)} issue board</h2></div>
               {canReportInWard ? <button type="button" className={styles.primaryAction} onClick={() => moveTo("report")}><Plus size={19} aria-hidden="true" /> Report issue</button> : null}
             </div>
             <div className={styles.filterBar} role="group" aria-label="Filter issues by status">
@@ -617,7 +617,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
         {view === "report" && (
           <section className={styles.reportFlow} aria-labelledby="report-title">
             <button type="button" className={styles.backButton} onClick={() => moveTo("home")}><ArrowLeft size={18} aria-hidden="true" /> Back to ward overview</button>
-            <p className={styles.kicker}>New public record · नया रिकॉर्ड</p>
+            <p className={styles.kicker}>New report · नई शिकायत</p>
             <h2 id="report-title">Report a ward issue</h2>
             <p id="report-guidance" className={styles.leadCopy}>Tell us what happened, where it is, and when you noticed it. Add a nearby landmark or photo so the ward team can find and verify the problem.</p>
             <p className={styles.finePrint}>Your phone number and house details stay private. Please do not include them in the report.</p>
@@ -640,11 +640,11 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
           <p className={styles.kicker}>Public representative profile · सार्वजनिक प्रोफ़ाइल</p>
           {displayedOfficial ? <>
             <h2 id="parshad-profile-title">{displayedOfficial.name}</h2>
-            <p className={styles.profileRole}>{displayedOfficial.roleLabel} · {displayedOfficialWard ? `Ward ${displayedOfficialWard.number}, ` : ""}{data.municipality.name}</p>
+            <p className={styles.profileRole}>{displayedOfficial.roleLabel} · {displayedOfficialWard ? `${formatWardLabel(displayedOfficialWard.number)}, ` : ""}{data.municipality.name}</p>
             <div className={styles.profileGrid}>
-              <section><p className={styles.kicker}>Public responsibility</p><h3>Keep the civic record moving.</h3><p>{displayedOfficialWard ? `Residents can follow reported issues, public notices, and progress updates for Ward ${displayedOfficialWard.number}.` : "This public official is part of the municipality’s civic record."}</p></section>
+              <section><p className={styles.kicker}>Public responsibility</p><h3>{displayedOfficialWard ? `This Parshad manages ${formatWardLabel(displayedOfficialWard.number)}'s public issue board.` : "This public official is part of the municipality’s civic record."}</h3><p>{displayedOfficialWard ? `Residents can follow reported issues, public notices, and progress updates for ${formatWardLabel(displayedOfficialWard.number)}.` : "This public official is part of the municipality’s civic record."}</p></section>
               <section><p className={styles.kicker}>Service record</p><h3>{displayedOfficial.current ? (displayedOfficial.termNumber ? `Active · ${formatTermLabel(displayedOfficial.termNumber)}` : "Active representative") : "Term record"}</h3><p>{displayedOfficial.wonByVotes ? `${displayedOfficial.wonByVotes.toLocaleString("en-IN")} votes recorded` : displayedOfficial.termNumber ? `Serving their ${formatTermLabel(displayedOfficial.termNumber)}.` : "Term history has not been recorded."}</p></section>
-            <section><p className={styles.kicker}>Fixed public issues</p><h3 className={styles.profileMetric}>{completedOfficialIssueCount}</h3><p>{displayedOfficialWard ? `Issues fixed in Ward ${displayedOfficialWard.number}.` : "Fixed issues recorded by the municipality."}</p></section>
+            <section><p className={styles.kicker}>Fixed public issues</p><h3 className={styles.profileMetric}>{completedOfficialIssueCount}</h3><p>{displayedOfficialWard ? `Issues fixed in ${formatWardLabel(displayedOfficialWard.number)}.` : "Fixed issues recorded by the municipality."}</p></section>
             </div>
             <p className={styles.finePrint}>Only public role and term information is shown here. Private contact details are not part of the public record.</p>
             <button type="button" className={styles.primaryAction} onClick={() => moveTo("home")}>Return to citizen view</button>
@@ -657,7 +657,12 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
         </section>}
       </main>
 
-      <footer className={styles.footer}>{dataMode === "demo" ? "NagarSakhi uses synthetic people, records, media and budgets for this demonstration." : "NagarSakhi keeps resident phone and household details outside the public record."}</footer>
+      <footer className={styles.footer}>
+        <div className={styles.footerMeta}>
+          <span>{dataMode === "demo" ? "This is a working prototype. All resident data, budget figures, and ward records are synthetic." : "NagarSakhi keeps resident phone and household details outside the public record."}</span>
+          <span>© {new Date().getFullYear()} NagarSakhi</span>
+        </div>
+      </footer>
     </section>
   );
 }
@@ -773,12 +778,12 @@ function IssueDetail({ issue, onClose }: { issue: Issue; onClose: () => void }) 
   return <div className={styles.detailContent}>
     <div className={styles.detailTop}><button type="button" onClick={onClose} aria-label="Close issue detail"><X size={19} aria-hidden="true" /></button></div>
     <IssueStateMark issue={issue} />
-    {issue.escalated && <div className={styles.escalationNotice} role="status"><strong>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated to corporation"}</strong><span>Corporation follow-up is recorded on this report.</span></div>}
+    {issue.escalated && <div className={styles.escalationNotice} role="status"><strong>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated to Nagar Parishad"}</strong><span>Nagar Parishad follow-up is recorded on this report.</span></div>}
     <h3>{issue.title}</h3>
     <p className={styles.detailDescription}>{issue.description}</p>
     <StatusTrail issue={issue} />
     {issue.status === "rejected" ? <section className={styles.rejectionNotice} aria-label="Rejection history"><p className={styles.kicker}>Rejection history</p><p><strong>Reason:</strong> {issue.rejectionReason ?? "The ward office marked this report as rejected."}</p><dl className={styles.rejectionFacts}><div><dt>Decision by</dt><dd>{issue.rejectionActorName ?? "Ward representative"}</dd></div><div><dt>Rejected on</dt><dd>{issue.rejectionAt ? formatTimestamp(issue.rejectionAt) : formatDate(issue.updatedAt)}</dd></div></dl></section> : null}
-    <dl className={styles.recordFacts}><div><dt>Reported by</dt><dd>{issue.reporterName}</dd></div><div><dt>First recorded</dt><dd>{formatDate(issue.createdAt)}</dd></div><div><dt>Last public update</dt><dd>{formatDate(issue.updatedAt)}</dd></div>{issue.escalated && <div><dt>Escalation</dt><dd>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated to corporation"}</dd></div>}</dl>
+    <dl className={styles.recordFacts}><div><dt>Reported by</dt><dd>{issue.reporterName}</dd></div><div><dt>First recorded</dt><dd>{formatDate(issue.createdAt)}</dd></div><div><dt>Last public update</dt><dd>{formatDate(issue.updatedAt)}</dd></div>{issue.escalated && <div><dt>Escalation</dt><dd>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated to Nagar Parishad"}</dd></div>}</dl>
     <section className={styles.evidence}><h4>Evidence</h4>{resolvedMedia.length ? <div className={styles.evidenceList}>{resolvedMedia.map((media, index) => <EvidencePreview key={media.id} media={media} index={index} onOpen={() => setActiveMediaId(media.id)} />)}</div> : <p>No photo or video was added to this report.</p>}</section>
     <p className={styles.privacyNote}>Only the reporter’s public name is shown here. Contact details remain private.</p>
     <MediaLightbox media={activeMedia} onClose={() => setActiveMediaId(null)} />

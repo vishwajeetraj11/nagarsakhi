@@ -22,7 +22,7 @@ export function AppShell({ children, session }: AppShellProps) {
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="app-header">
         <div className="app-header__inner">
-          <Link className="brand-lockup brand-lockup--compact" href="/municipality/phusro" aria-label="Open Phusro Municipal Corporation home">
+          <Link className="brand-lockup brand-lockup--compact" href="/municipality/phusro" aria-label="Open Phusro Nagar Parishad home">
             <span className="brand-mark" aria-hidden="true">न</span>
             <span>NagarSakhi</span>
           </Link>

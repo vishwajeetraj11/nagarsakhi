@@ -64,8 +64,8 @@ Sol updates this section whenever an agent starts, reports progress, requests in
 - **Status:** RESOLVED by user, 25 Aug 2026
 - **Source:** OPEN, pages 2-3
 - Page 2 says `Phusro Nagar Parishad`.
-- Page 3 says `Phusro Municipal Corporation`.
-- **Approved contract:** The canonical public name is `Phusro Municipal Corporation`.
+- Page 3 uses an outdated entity type.
+- **Approved contract:** The canonical public name is `Phusro Nagar Parishad`.
 - **Blocks:** None
 
 ### CONTRACT-02 - Other-ward read-only boundary

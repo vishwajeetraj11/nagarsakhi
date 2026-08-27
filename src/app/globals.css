@@ -353,12 +353,17 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    gap: var(--space-8);
+    gap: var(--space-10);
     padding: max(var(--space-6), env(safe-area-inset-top)) var(--space-6) var(--space-12);
     background:
       repeating-linear-gradient(0deg, transparent 0 31px, color-mix(in oklch, var(--indigo) 8%, transparent) 31px 32px),
       var(--indigo-soft);
     border-bottom: 1px solid var(--line);
+  }
+
+  .login-intro__content {
+    display: grid;
+    gap: var(--space-6);
   }
 
   .login-intro .eyebrow,
@@ -383,59 +388,6 @@
     font-size: var(--text-lg);
   }
 
-  .login-purpose-list {
-    display: grid;
-    max-width: 38rem;
-    gap: 0;
-    margin: 0;
-    padding: 0;
-    border-block: 1px solid var(--line-strong);
-    list-style: none;
-  }
-
-  .login-purpose-list li {
-    display: grid;
-    grid-template-columns: 2.5rem minmax(0, 1fr);
-    align-items: baseline;
-    gap: var(--space-3);
-    padding-block: var(--space-3);
-    color: var(--ink-soft);
-  }
-
-  .login-purpose-list li + li {
-    border-top: 1px solid var(--line);
-  }
-
-  .login-purpose-list li > span:first-child {
-    color: var(--green);
-    font-size: var(--text-xs);
-    font-variant-numeric: tabular-nums;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-  }
-
-  .login-purpose-list li > span:last-child {
-    color: var(--ink);
-    font-weight: 600;
-  }
-
-  .civic-rule {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    max-width: 38rem;
-    border-block: 1px solid var(--indigo);
-    color: var(--indigo);
-    font-size: var(--text-xs);
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    padding-block: var(--space-2);
-    text-transform: uppercase;
-  }
-
-  .civic-rule span:nth-child(even) {
-    color: var(--green);
-  }
-
   .demo-note {
     max-width: 62ch;
     color: var(--ink-soft);
@@ -444,6 +396,14 @@
 
   .demo-note strong {
     color: var(--danger);
+  }
+
+  .login-footer {
+    max-width: 62ch;
+    border-top: 1px solid var(--line);
+    padding-top: var(--space-4);
+    color: var(--ink-soft);
+    font-size: var(--text-sm);
   }
 
   .login-panel {

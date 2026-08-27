@@ -127,6 +127,7 @@ const styles: Record<string, string> = {
   wardSelected: "!bg-[var(--indigo-soft)] !px-3 !text-[var(--indigo)]",
   wardResident: "[&>span]:font-bold",
   footer: "mx-auto mt-auto w-full max-w-[var(--content-max,76rem)] border-t border-[var(--rule)] px-[clamp(1.25rem,4vw,2rem)] py-5 text-[.78rem] leading-[1.45] text-[var(--muted)]",
+  footerMeta: "flex flex-wrap items-center justify-between gap-x-6 gap-y-2",
   srOnly: "sr-only",
 };
 

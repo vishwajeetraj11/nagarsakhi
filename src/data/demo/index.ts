@@ -33,7 +33,7 @@ const wardId = (number: number) => `ward-${number}`;
 
 export const demoMunicipality: Municipality = {
   id: municipalityId,
-  name: "Phusro Municipal Corporation",
+  name: "Phusro Nagar Parishad",
   district: "Bokaro",
   state: "Jharkhand",
   wardCount: 28,
@@ -108,7 +108,7 @@ export const demoIssues: Issue[] = [
 ].map(addDemoStatusHistory);
 
 export const demoNotices: Notice[] = [
-  { id: "notice-01", municipalityId, wardId: null, authorName: "Phusro Municipal Corporation", body: "Ward sabha meetings will be held on the second Sunday of every month.", createdAt: "2026-08-01T08:00:00Z" },
+  { id: "notice-01", municipalityId, wardId: null, authorName: "Phusro Nagar Parishad", body: "Ward sabha meetings will be held on the second Sunday of every month.", createdAt: "2026-08-01T08:00:00Z" },
   { id: "notice-02", municipalityId, wardId: wardId(12), authorName: "Nandita Sample", body: "वार्ड 12 में सड़क मरम्मत का कार्य 20 अगस्त से शुरू होगा।", createdAt: "2026-08-10T08:00:00Z" },
   { id: "notice-03", municipalityId, wardId: wardId(7), authorName: "Meena Placeholder", body: "Community health camp at Janta Nagar school on 24 August.", createdAt: "2026-08-11T08:00:00Z" },
 ];
