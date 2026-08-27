@@ -6,6 +6,7 @@ import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 import { getFirebaseAuth } from "@/lib/firebase";
 import { BrandMark } from "./BrandMark";
+import styles from "./LiveLogin.module.css";
 
 type LoginStage = "phone" | "code";
 type MessageTone = "error" | "success";
@@ -224,52 +225,73 @@ export function LiveLogin() {
   }
 
   return (
-    <main className="login-page live-login" id="main-content">
-      <section className="login-intro" aria-labelledby="live-welcome-title">
-        <div className="login-intro__content">
-          <div className="brand-lockup">
-            <BrandMark />
-            <span>NagarSakhi</span>
-          </div>
-          <p className="eyebrow">Your ward, in the open</p>
-          <h1 id="live-welcome-title">Your ward&apos;s issues, budget, and progress — all in one place.</h1>
-          <p className="login-lede">Only residents verified by their Nagar Parishad can sign in.</p>
+    <main className={styles.page} id="main-content">
+      <section className={styles.intro} aria-labelledby="live-welcome-title">
+        <div className={`brand-lockup ${styles.brand}`}>
+          <BrandMark />
+          <span>NagarSakhi</span>
         </div>
-        <footer className="login-footer">Private sign-in. Public accountability.</footer>
+        <div className={styles.introContent}>
+          <p className={styles.lede}>Only residents verified by their Nagar Parishad can sign in.</p>
+          <h1 id="live-welcome-title" className={styles.headline}>
+            <span>Your ward,</span>
+            <em>in the open.</em>
+          </h1>
+          <ul className={styles.capabilities} aria-label="Inside NagarSakhi">
+            <li><span aria-hidden="true">01</span> Report issues</li>
+            <li><span aria-hidden="true">02</span> Follow progress</li>
+            <li><span aria-hidden="true">03</span> See public spending</li>
+          </ul>
+        </div>
+        <footer className={styles.footer}>
+          <ShieldCheck aria-hidden="true" size={17} />
+          Private sign-in. Public accountability.
+        </footer>
       </section>
 
-      <section className="login-panel" aria-labelledby="live-signin-title">
-        <div>
-          <h2 id="live-signin-title">{stage === "phone" ? "Enter your registered mobile number" : "Enter your verification code"}</h2>
-        </div>
-        <div className="auth-stepper" aria-label="Sign-in progress">
-          <span data-complete={stage === "code"} data-active={stage === "phone"}>{stage === "code" ? "✓ Mobile" : "Mobile"}</span>
-          <span data-complete="false" data-active={stage === "code"}>OTP</span>
-        </div>
-        {stage === "phone" ? (
+      <section className={styles.panel} aria-labelledby="live-signin-title">
+        <div className={styles.formContainer}>
+          <div className={styles.formHeader}>
+            <p className={styles.eyebrow}>Resident sign-in</p>
+            <h2 id="live-signin-title">{stage === "phone" ? "A closer connection to your ward." : "Check your messages."}</h2>
+            <p>{stage === "phone" ? "Use your registered mobile number. We’ll send a one-time verification code." : "Enter the six-digit code sent to your mobile number to continue."}</p>
+          </div>
+          <ol className={styles.steps} aria-label="Sign-in progress">
+            <li aria-current={stage === "phone" ? "step" : undefined} data-complete={stage === "code"}>
+              <span aria-hidden="true">{stage === "code" ? "✓" : "1"}</span>
+              Mobile number
+            </li>
+            <li aria-current={stage === "code" ? "step" : undefined}>
+              <span aria-hidden="true">2</span>
+              Verify OTP
+            </li>
+          </ol>
+          {stage === "phone" ? (
           <form className="login-form" onSubmit={sendOtp}>
             <label htmlFor="live-phone">Mobile number</label>
             <div className="phone-field">
               <span aria-hidden="true">+91</span>
               <input
                 autoComplete="tel-national"
+                aria-describedby="live-phone-hint"
                 id="live-phone"
                 inputMode="numeric"
                 maxLength={10}
                 onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))}
                 pattern="[0-9]{10}"
-                placeholder="98765 43210"
+                placeholder="10-digit mobile number"
                 required
                 value={phone}
               />
             </div>
+            <p className={styles.fieldHint} id="live-phone-hint">Use the number registered with your Nagar Parishad.</p>
             <div className="recaptcha-wrap" id="firebase-recaptcha" />
             <button className="primary-action" disabled={busy} type="submit">
               <ShieldCheck aria-hidden="true" size={18} />
               {busy ? "Sending code..." : "Get OTP"}
             </button>
           </form>
-        ) : (
+          ) : (
           <form className="login-form otp-form" onSubmit={verifyOtp}>
             <div className="otp-heading">
               <div>
@@ -307,12 +329,17 @@ export function LiveLogin() {
               {resendSeconds > 0 ? `Resend code in ${resendSeconds}s` : "Resend code"}
             </button>
           </form>
-        )}
-        {message ? (
-          <p aria-live="polite" className={`form-message form-message--${messageTone}`} role={messageTone === "error" ? "alert" : "status"}>
-            {message}
+          )}
+          {message ? (
+            <p aria-live="polite" className={`form-message form-message--${messageTone}`} role={messageTone === "error" ? "alert" : "status"}>
+              {message}
+            </p>
+          ) : null}
+          <p className={styles.signinNote}>
+            <ShieldCheck aria-hidden="true" size={16} />
+            No password to remember. Just your mobile.
           </p>
-        ) : null}
+        </div>
       </section>
     </main>
   );

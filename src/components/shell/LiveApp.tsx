@@ -24,6 +24,8 @@ type LiveState =
   | { status: "ready"; data: PublicDemoData; session: DemoSession }
   | { status: "error"; error: LiveDataFailure["error"] };
 
+const SESSION_LOAD_TIMEOUT_MS = 15000;
+
 async function provisionFirebaseProfile(user: User) {
   const supabase = createFirebaseSupabaseClient(() => user.getIdToken(false));
   if (!supabase) {
@@ -44,6 +46,8 @@ export function LiveApp() {
   const pathname = usePathname();
   const router = useRouter();
   const redirectedAfterLogin = useRef(false);
+  const refreshTokenOnLoad = useRef(false);
+  const [sessionAttempt, setSessionAttempt] = useState(0);
   const [state, setState] = useState<LiveState>(() => (
     auth
       ? { status: "checking" }
@@ -58,38 +62,91 @@ export function LiveApp() {
       return;
     }
 
-    return onAuthStateChanged(auth, async (user) => {
+    let cancelled = false;
+    let request = 0;
+    let timeout: number | undefined;
+    const startDeadline = () => {
+      window.clearTimeout(timeout);
+      const current = ++request;
+      timeout = window.setTimeout(() => {
+        if (cancelled || current !== request) return;
+        ++request; // A late response must not overwrite the recovery screen.
+        setState({
+          status: "error",
+          error: {
+            code: "QUERY_FAILED",
+            message: "Your sign-in session is taking too long to open.",
+            detail: "Check your connection, then try again. No ward data has been opened.",
+          },
+        });
+      }, SESSION_LOAD_TIMEOUT_MS);
+      return current;
+    };
+    startDeadline();
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (cancelled) return;
+      const current = startDeadline();
+      const isCurrent = () => !cancelled && current === request;
       if (!user) {
         redirectedAfterLogin.current = false;
+        window.clearTimeout(timeout);
         setState({ status: "signed_out" });
         return;
       }
 
       setState({ status: "checking" });
-      const provisioned = await provisionFirebaseProfile(user);
-      if (!provisioned.ok) {
+      try {
+        if (refreshTokenOnLoad.current) {
+          refreshTokenOnLoad.current = false;
+          await user.getIdToken(true);
+          if (!isCurrent()) return;
+        }
+        const provisioned = await provisionFirebaseProfile(user);
+        if (!isCurrent()) return;
+        if (!provisioned.ok) {
+          setState({
+            status: "error",
+            error: { code: "QUERY_FAILED", message: "Unable to prepare your NagarSakhi profile.", detail: provisioned.message },
+          });
+          return;
+        }
+
+        if (!provisioned.registered) {
+          setState({ status: "onboarding", user, registrationRequired: true });
+          return;
+        }
+
+        const result = await loadLiveData(provisioned.supabase, { firebaseUid: user.uid });
+        if (!isCurrent()) return;
+        if (!result.ok) {
+          setState({ status: "error", error: result.error });
+        } else if (result.needsOnboarding) {
+          setState({ status: "onboarding", user });
+        } else {
+          setState({ status: "ready", data: result.data, session: result.session });
+        }
+      } catch (error) {
+        if (!isCurrent()) return;
         setState({
           status: "error",
-          error: { code: "QUERY_FAILED", message: "Unable to prepare your NagarSakhi profile.", detail: provisioned.message },
+          error: {
+            code: "QUERY_FAILED",
+            message: "Your civic workspace could not be loaded.",
+            detail: error instanceof Error ? error.message : "Check your connection and try again.",
+          },
         });
-        return;
-      }
-
-      if (!provisioned.registered) {
-        setState({ status: "onboarding", user, registrationRequired: true });
-        return;
-      }
-
-      const result = await loadLiveData(provisioned.supabase, { firebaseUid: user.uid });
-      if (!result.ok) {
-        setState({ status: "error", error: result.error });
-      } else if (result.needsOnboarding) {
-        setState({ status: "onboarding", user });
-      } else {
-        setState({ status: "ready", data: result.data, session: result.session });
+      } finally {
+        if (isCurrent()) window.clearTimeout(timeout);
       }
     });
-  }, [auth]);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+      unsubscribe();
+    };
+  }, [auth, sessionAttempt]);
 
   useEffect(() => {
     if (state.status !== "ready" || redirectedAfterLogin.current) {
@@ -110,19 +167,9 @@ export function LiveApp() {
         user={state.user}
         registrationRequired={state.registrationRequired}
         onComplete={() => {
+          refreshTokenOnLoad.current = true;
           setState({ status: "checking" });
-          void state.user.getIdToken(true).then(async () => {
-            const supabase = createFirebaseSupabaseClient(() => state.user.getIdToken(false));
-            if (!supabase) {
-              setState({
-                status: "error",
-                error: { code: "QUERY_FAILED", message: "Supabase is not configured in this browser." },
-              });
-              return;
-            }
-            const result = await loadLiveData(supabase, { firebaseUid: state.user.uid });
-            setState(result.ok ? { status: "ready", data: result.data, session: result.session } : { status: "error", error: result.error });
-          });
+          setSessionAttempt((attempt) => attempt + 1);
         }}
       />
     );
@@ -172,6 +219,18 @@ export function LiveApp() {
           <h1>We could not open your civic workspace.</h1>
           <p className="login-lede">{state.error.message}</p>
           {state.error.detail ? <p className="demo-note">{state.error.detail}</p> : null}
+          {auth ? (
+            <button
+              className="primary-action"
+              type="button"
+              onClick={() => {
+                setState({ status: "checking" });
+                setSessionAttempt((attempt) => attempt + 1);
+              }}
+            >
+              Try again
+            </button>
+          ) : null}
         </section>
       </main>
     );

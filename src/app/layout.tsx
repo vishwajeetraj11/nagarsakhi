@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Anek_Devanagari, Mukta } from "next/font/google";
+import { Mukta, Tiro_Devanagari_Hindi } from "next/font/google";
 import { Toaster } from "sonner";
 
 import { LiveApp } from "@/components/shell/LiveApp";
@@ -9,17 +9,19 @@ const mukta = Mukta({
   display: "swap",
   subsets: ["devanagari", "latin"],
   variable: "--font-mukta",
-  weight: ["400", "600", "700"],
+  weight: ["400", "600"],
 });
 
-const anekDevanagari = Anek_Devanagari({
+const editorial = Tiro_Devanagari_Hindi({
+  weight: "400",
+  style: ["normal", "italic"],
   display: "swap",
   subsets: ["devanagari", "latin"],
-  variable: "--font-anek-devanagari",
+  variable: "--font-editorial",
 });
 
 export const metadata: Metadata = {
-  title: "NagarSakhi · Your ward, in the open",
+  title: "NagarSakhi",
   description: "A transparent, ward-first civic participation demo for Indian municipalities.",
 };
 
@@ -27,12 +29,12 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#edf3ea",
+  themeColor: "#f3f0e7",
 };
 
 export default function RootLayout() {
   return (
-    <html lang="en" className={`${mukta.variable} ${anekDevanagari.variable}`}>
+    <html lang="en" className={`${mukta.variable} ${editorial.variable}`}>
       <body>
         <LiveApp />
         <Toaster
@@ -49,13 +51,13 @@ export default function RootLayout() {
             "--normal-text": "var(--ink)",
             "--success-bg": "var(--green-soft)",
             "--success-border": "var(--green)",
-            "--success-text": "oklch(28% .07 175)",
+            "--success-text": "var(--green)",
             "--info-bg": "var(--indigo-soft)",
             "--info-border": "var(--indigo)",
             "--info-text": "var(--indigo-strong)",
             "--error-bg": "var(--danger-soft)",
             "--error-border": "var(--danger)",
-            "--error-text": "oklch(33% .1 27)",
+            "--error-text": "var(--danger)",
           } as React.CSSProperties}
         />
       </body>
