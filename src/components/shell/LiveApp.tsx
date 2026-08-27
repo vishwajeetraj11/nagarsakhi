@@ -97,7 +97,7 @@ export function LiveApp() {
     }
 
     redirectedAfterLogin.current = true;
-    if (pathname !== "/municipality/phusro") {
+    if (pathname === "/" || pathname === "/municipality") {
       router.replace("/municipality/phusro");
     }
   }, [pathname, router, state.status]);

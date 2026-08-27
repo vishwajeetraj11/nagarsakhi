@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Anek_Devanagari, Mukta } from "next/font/google";
-import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 
+import { LiveApp } from "@/components/shell/LiveApp";
 import "./globals.css";
 
 const mukta = Mukta({
@@ -30,11 +30,11 @@ export const viewport: Viewport = {
   themeColor: "#edf3ea",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default function RootLayout() {
   return (
     <html lang="en" className={`${mukta.variable} ${anekDevanagari.variable}`}>
       <body>
-        {children}
+        <LiveApp />
         <Toaster
           position="bottom-right"
           theme="light"
