@@ -43,9 +43,26 @@ describe("municipal ward finder", () => {
       const link = screen.getByRole("link", { name: "Find a ward" });
       expect(document.querySelector(link.getAttribute("href")!)).not.toBeNull();
     }
-    for (const name of ["Municipality details"]) {
-      const link = screen.getByRole("link", { name });
+    if (role === "citizen") {
+      expect(screen.queryByRole("link", { name: "Municipality details" })).toBeNull();
+      expect(screen.queryByRole("heading", { name: "Municipality details" })).toBeNull();
+    } else {
+      const link = screen.getByRole("link", { name: "Municipality details" });
       expect(document.querySelector(link.getAttribute("href")!)).not.toBeNull();
     }
+  });
+
+  it.each(["parshad", "corporation_admin"] as const)("places municipality details before ward representatives for %s", (role) => {
+    render(<MunicipalityPage data={data} session={{ ...session, role }} />);
+    const details = screen.getByRole("heading", { name: "Municipality details" });
+    const representatives = screen.getByRole("heading", { name: "Ward representatives" });
+
+    expect(details.compareDocumentPosition(representatives) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("sends citizens to the ward overview even when a ward is set", () => {
+    render(<MunicipalityPage data={data} session={{ ...session, role: "citizen", wardId: "ward-8" }} />);
+
+    expect(screen.getByRole("link", { name: "Go to your ward" })).toHaveAttribute("href", "/wards");
   });
 });
