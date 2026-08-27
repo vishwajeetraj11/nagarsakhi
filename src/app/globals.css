@@ -264,22 +264,10 @@
   .municipality-ward-table tbody th { width: 5rem; font-family: var(--font-display); font-size: 1.2rem; }
   .municipality-table-action { display: inline-flex; align-items: center; gap: .35rem; border: 1px solid var(--line-strong); color: var(--indigo); font-size: .86rem; font-weight: 700; padding: .45rem .65rem; white-space: nowrap; }
   .municipality-table-action:hover { border-color: var(--indigo); background: var(--indigo-soft); }
+  .municipality-table-person { color: var(--indigo); font-weight: 700; text-decoration: underline; text-decoration-thickness: .08em; text-underline-offset: .18em; }
+  .municipality-table-person:hover { color: var(--indigo-strong); }
+  .municipality-table-amount { color: var(--indigo); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .municipality-missing { color: var(--ink-faint); font-style: italic; }
-  .municipality-ledger-summary { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
-  .municipality-ledger-summary div { padding: 1rem 1rem 1rem 0; }
-  .municipality-ledger-summary span, .municipality-ledger-summary small { display: block; color: var(--ink-soft); }
-  .municipality-ledger-summary strong { display: block; margin: .25rem 0; font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 2.8rem); }
-  .municipality-ledger-summary small { font-size: .8rem; }
-  .municipality-finance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 6vw, 5rem); margin-top: 2rem; }
-  .municipality-finance-grid h3 { margin: 0 0 .75rem; color: var(--ink-soft); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; }
-  .municipality-finance-list { margin: 0; padding: 0; list-style: none; }
-  .municipality-finance-row { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--line); padding: .8rem 0; }
-  .municipality-finance-row span:last-child { text-align: right; }
-  .municipality-finance-row strong, .municipality-finance-row small { display: block; }
-  .municipality-finance-row small { margin-top: .2rem; color: var(--ink-soft); font-size: .82rem; }
-  .municipality-finance-row span:last-child strong { color: var(--indigo); font-variant-numeric: tabular-nums; }
-  .municipality-empty, .municipality-footnote { color: var(--ink-soft); }
-  .municipality-footnote { border-top: 1px solid var(--line); margin: 1.5rem 0 0; padding-top: .75rem; font-size: .82rem; }
   .municipality-footer-nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-top: 3px solid var(--ink); margin-top: 4rem; padding-top: 1rem; color: var(--ink-soft); }
   .municipality-footer-nav a { display: inline-flex; align-items: center; gap: .35rem; color: var(--indigo); font-weight: 700; }
 
@@ -287,7 +275,7 @@
     .municipality-hero, .municipality-section-heading, .municipality-footer-nav { align-items: start; flex-direction: column; }
     .municipality-stamp { align-self: stretch; }
     .municipality-section-heading > p { text-align: left; }
-    .municipality-facts, .municipality-ledger-summary, .municipality-finance-grid { grid-template-columns: 1fr; }
+    .municipality-facts { grid-template-columns: 1fr; }
     .municipality-ward-table thead { display: none; }
     .municipality-ward-table, .municipality-ward-table tbody, .municipality-ward-table tr, .municipality-ward-table th, .municipality-ward-table td { display: block; }
     .municipality-ward-table tr { border-bottom: 2px solid var(--line-strong); padding: .65rem 0; }
@@ -325,17 +313,10 @@
   }
 
   .brand-mark {
-    display: grid;
+    display: block;
+    flex: 0 0 auto;
     width: 2.75rem;
     height: 2.75rem;
-    place-items: center;
-    background: var(--indigo);
-    border-radius: 50% 50% 50% 18%;
-    color: var(--paper);
-    font-family: var(--font-body);
-    font-size: 1.35rem;
-    line-height: 1;
-    transform: rotate(-3deg);
   }
 
   .brand-lockup--compact .brand-mark {
@@ -931,7 +912,7 @@
     color: var(--ink-soft);
     font-size: var(--text-xs);
     line-height: 1.45;
-    padding: var(--space-4) max(var(--space-5), env(safe-area-inset-right)) var(--space-4) max(var(--space-5), env(safe-area-inset-left));
+    padding-block: var(--space-4);
   }
 
   .app-footer__inner {
@@ -941,6 +922,7 @@
     gap: var(--space-6);
     width: min(100%, var(--content-max));
     margin-inline: auto;
+    padding-inline: max(var(--space-5), env(safe-area-inset-left)) max(var(--space-5), env(safe-area-inset-right));
   }
 
   .app-footer__inner span:first-child {

@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import type { DemoSession } from "@/lib/domain/types";
 
+import { BrandMark } from "./BrandMark";
 import { SignOutButton } from "./SignOutButton";
 
 const roleLabel = {
@@ -35,7 +36,7 @@ export function AppShell({ children, session, dataMode = "supabase" }: AppShellP
       <header className="app-header">
         <div className="app-header__inner">
           <Link className="brand-lockup brand-lockup--compact" href="/municipality/phusro" aria-label="Open Phusro Nagar Parishad home">
-            <span className="brand-mark" aria-hidden="true">न</span>
+            <BrandMark />
             <span>NagarSakhi</span>
           </Link>
           <div className="session-context">

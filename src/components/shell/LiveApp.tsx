@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "@/components/shell/AppShell";
+import { BrandMark } from "@/components/shell/BrandMark";
 import { LiveLogin } from "@/components/shell/LiveLogin";
 import { LiveOnboarding } from "@/components/shell/LiveOnboarding";
 import type { PublicDemoData } from "@/data/demo";
@@ -117,7 +118,7 @@ export function LiveApp() {
     return (
       <main className="login-page live-loading" id="main-content" aria-busy="true">
         <section className="login-intro" aria-labelledby="live-loading-title">
-          <div className="brand-lockup"><span className="brand-mark" aria-hidden="true">न</span><span>NagarSakhi</span></div>
+          <div className="brand-lockup"><BrandMark /><span>NagarSakhi</span></div>
           <p className="eyebrow">Live municipality record</p>
           <h1 id="live-loading-title">Opening your civic workspace.</h1>
           <p className="login-lede">We are checking your verified mobile number and loading the ward record.</p>
@@ -152,7 +153,7 @@ export function LiveApp() {
     return (
       <main className="login-page" id="main-content">
         <section className="login-intro">
-          <div className="brand-lockup"><span className="brand-mark" aria-hidden="true">न</span><span>NagarSakhi</span></div>
+          <div className="brand-lockup"><BrandMark /><span>NagarSakhi</span></div>
           <p className="eyebrow">Live municipality record</p>
           <h1>We could not open your civic workspace.</h1>
           <p className="login-lede">{state.error.message}</p>

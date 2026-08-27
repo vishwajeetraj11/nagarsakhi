@@ -5,6 +5,7 @@ import { ClipboardEvent, FormEvent, KeyboardEvent, useEffect, useRef, useState }
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 import { getFirebaseAuth } from "@/lib/firebase";
+import { BrandMark } from "./BrandMark";
 
 type LoginStage = "phone" | "code";
 type MessageTone = "error" | "success";
@@ -227,7 +228,7 @@ export function LiveLogin() {
       <section className="login-intro" aria-labelledby="live-welcome-title">
         <div className="login-intro__content">
           <div className="brand-lockup">
-            <span className="brand-mark" aria-hidden="true">न</span>
+            <BrandMark />
             <span>NagarSakhi</span>
           </div>
           <p className="eyebrow">Your ward, in the open</p>
