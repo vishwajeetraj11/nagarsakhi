@@ -132,6 +132,25 @@ function IssueStateMark({ issue }: { issue: Issue }) {
   </span>;
 }
 
+function StatusTrail({ issue }: { issue: Issue }) {
+  const events = issue.statusHistory ?? [];
+  if (issue.status !== "completed" || events.length < 2) return null;
+
+  return <section className={styles.statusTrail} aria-label="Status trail">
+    <div className={styles.statusTrailHeader}><p className={styles.kicker}>Status trail</p><span>{events.length} updates</span></div>
+    <ol className={styles.statusTrailList}>
+      {events.map((event, index) => <li key={`${event.status}-${event.createdAt}-${index}`} className={styles.statusTrailItem}>
+        <span className={styles.statusTrailRail} aria-hidden="true"><span className={`${styles.statusTrailMarker} ${styles[`statusTrailMarker_${event.status}`]}`} /></span>
+        <div className={styles.statusTrailBody}>
+          <div className={styles.statusTrailMeta}><strong>{statusCopy[event.status]} <span className={styles.hindiHint}>· {statusHindi[event.status]}</span></strong><time dateTime={event.createdAt}>{formatDate(event.createdAt)}</time></div>
+          <p>{event.note ?? (event.status === "requested" ? issue.description : "This update was recorded in the public issue history.")}</p>
+          <small>By {event.actorName}</small>
+        </div>
+      </li>)}
+    </ol>
+  </section>;
+}
+
 function IssueRecord({ issue, onOpen, onVote, canVote, viewerId }: {
   issue: Issue;
   onOpen: () => void;
@@ -157,7 +176,8 @@ function IssueRecord({ issue, onOpen, onVote, canVote, viewerId }: {
         </div>
         {issue.status === "rejected" && <div className={styles.rejectionSummary}><strong>Rejected: </strong>{issue.rejectionReason ?? "The ward office did not accept this report."}<small>Decision by {issue.rejectionActorName ?? "Ward representative"} · {issue.rejectionAt ? formatTimestamp(issue.rejectionAt) : formatDate(issue.updatedAt)}</small></div>}
       </button>
-      {!issue.escalated && (isOwnReport ? <div className={styles.voteRow}><span className={styles.voteNotice}>You cannot support or downvote your own report.</span></div> : canVote ? (
+      {issue.status === "completed" ? <div className={styles.voteSummary} aria-label={`Community response: ${issue.upvotes} support, ${issue.downvotes} downvotes`}><span>{issue.upvotes} support{issue.upvotes === 1 ? "" : "s"}</span><span>{issue.downvotes} downvote{issue.downvotes === 1 ? "" : "s"}</span></div> : null}
+      {issue.status !== "rejected" && issue.status !== "completed" && !issue.escalated && (isOwnReport ? <div className={styles.voteRow}><span className={styles.voteNotice}>You cannot support or downvote your own report.</span></div> : canVote ? (
         <div className={styles.voteRow} aria-label={`Community support for ${issue.title}`}>
           <button
             type="button"
@@ -756,6 +776,7 @@ function IssueDetail({ issue, onClose }: { issue: Issue; onClose: () => void }) 
     {issue.escalated && <div className={styles.escalationNotice} role="status"><strong>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated to corporation"}</strong><span>Corporation follow-up is recorded on this report.</span></div>}
     <h3>{issue.title}</h3>
     <p className={styles.detailDescription}>{issue.description}</p>
+    <StatusTrail issue={issue} />
     {issue.status === "rejected" ? <section className={styles.rejectionNotice} aria-label="Rejection history"><p className={styles.kicker}>Rejection history</p><p><strong>Reason:</strong> {issue.rejectionReason ?? "The ward office marked this report as rejected."}</p><dl className={styles.rejectionFacts}><div><dt>Decision by</dt><dd>{issue.rejectionActorName ?? "Ward representative"}</dd></div><div><dt>Rejected on</dt><dd>{issue.rejectionAt ? formatTimestamp(issue.rejectionAt) : formatDate(issue.updatedAt)}</dd></div></dl></section> : null}
     <dl className={styles.recordFacts}><div><dt>Reported by</dt><dd>{issue.reporterName}</dd></div><div><dt>First recorded</dt><dd>{formatDate(issue.createdAt)}</dd></div><div><dt>Last public update</dt><dd>{formatDate(issue.updatedAt)}</dd></div>{issue.escalated && <div><dt>Escalation</dt><dd>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated to corporation"}</dd></div>}</dl>
     <section className={styles.evidence}><h4>Evidence</h4>{resolvedMedia.length ? <div className={styles.evidenceList}>{resolvedMedia.map((media, index) => <EvidencePreview key={media.id} media={media} index={index} onOpen={() => setActiveMediaId(media.id)} />)}</div> : <p>No photo or video was added to this report.</p>}</section>

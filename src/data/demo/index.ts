@@ -3,6 +3,7 @@ import type {
   Escalation,
   Expenditure,
   Issue,
+  IssueStatusEvent,
   Municipality,
   Notice,
   Official,
@@ -74,6 +75,19 @@ export const demoOfficials: Official[] = [
   { id: "official-ward18-previous", municipalityId, wardId: wardId(18), name: "Madan Sample", roleLabel: "Ward Parshad", wonByVotes: 1210, current: false },
 ];
 
+const addDemoStatusHistory = (item: Issue): Issue => {
+  const wardOfficial = demoOfficials.find((official) => official.wardId === item.wardId && official.current)?.name ?? "Ward representative";
+  const history: IssueStatusEvent[] = [{ status: "requested", actorName: item.reporterName, note: item.description, createdAt: item.createdAt }];
+  if (item.status === "in_progress" || item.status === "completed") {
+    const startedAt = new Date(new Date(item.updatedAt).getTime() - (item.status === "completed" ? 2 : 1) * 60 * 60 * 1000).toISOString();
+    history.push({ status: "in_progress", actorName: wardOfficial, note: "The ward team has started checking this report.", createdAt: startedAt });
+  }
+  if (item.status === "completed") {
+    history.push({ status: "completed", actorName: wardOfficial, note: "The reported work was completed and recorded by the ward office.", createdAt: item.updatedAt });
+  }
+  return { ...item, statusHistory: history };
+};
+
 const issue = (id: string, ward: number, reporter: number, title: string, description: string, language: "en" | "hi", status: Issue["status"], date: string, escalated = false, media: Issue["media"] = []): Issue => ({
   id, municipalityId, wardId: wardId(ward), reporterId: citizenIdForWard(ward, reporter), reporterName: citizenById.get(citizenIdForWard(ward, reporter))?.name ?? "Community Reporter", title, description, originalLanguage: language, status, upvotes: 3 + reporter, downvotes: reporter % 3, viewerVote: 0, media, createdAt: `${date}T09:00:00Z`, updatedAt: `${date}T15:00:00Z`, escalated,
 });
@@ -91,7 +105,7 @@ export const demoIssues: Issue[] = [
   issue("issue-10", 7, 10, "बाजार में स्ट्रीट लाइट", "मुख्य बाजार की दो लाइटें रात में बंद रहती हैं।", "hi", "requested", "2026-08-11", true),
   issue("issue-11", 12, 11, "Need a pedestrian crossing", "Add visible markings outside the primary health centre.", "en", "in_progress", "2026-08-12"),
   issue("issue-12", 18, 12, "सार्वजनिक शौचालय की सफाई", "साप्ताहिक सफाई और पानी की उपलब्धता सुनिश्चित करें।", "hi", "requested", "2026-08-13"),
-];
+].map(addDemoStatusHistory);
 
 export const demoNotices: Notice[] = [
   { id: "notice-01", municipalityId, wardId: null, authorName: "Phusro Municipal Corporation", body: "Ward sabha meetings will be held on the second Sunday of every month.", createdAt: "2026-08-01T08:00:00Z" },

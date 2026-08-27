@@ -56,6 +56,13 @@ export type IssueMedia = {
   alt?: string;
 };
 
+export type IssueStatusEvent = {
+  status: IssueStatus;
+  actorName: string;
+  note?: string;
+  createdAt: string;
+};
+
 export type Issue = {
   id: string;
   municipalityId: string;
@@ -66,6 +73,7 @@ export type Issue = {
   description: string;
   originalLanguage: "en" | "hi";
   status: IssueStatus;
+  statusHistory?: IssueStatusEvent[];
   rejectionReason?: string;
   rejectionActorName?: string;
   rejectionAt?: string;

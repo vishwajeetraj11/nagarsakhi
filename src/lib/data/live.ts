@@ -9,6 +9,7 @@ import type {
   Expenditure,
   Issue,
   IssueMedia,
+  IssueStatusEvent,
   IssueStatus,
   Municipality,
   Notice,
@@ -77,8 +78,10 @@ type IssueRow = {
 };
 type IssueStatusEventRow = {
   issue_id: string;
+  from_status: string | null;
   to_status: string;
   changed_by: string;
+  note: string | null;
   created_at: string;
 };
 type IssueMediaRow = { id: string; issue_id: string; kind: string; storage_path: string; alt_text: string | null; sort_order: number };
@@ -184,6 +187,17 @@ function mapIssueRows(
 
   const voteByIssue = new Map(voteRows.map((vote) => [vote.issue_id, vote.value]));
   const escalationByIssue = new Map(escalationRows.map((escalation) => [escalation.issue_id, escalation]));
+  const statusHistoryByIssue = new Map<string, IssueStatusEvent[]>();
+  for (const event of [...statusEventRows].sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime())) {
+    if (!isIssueStatus(event.to_status)) continue;
+    const historyEvent: IssueStatusEvent = {
+      status: event.to_status,
+      actorName: nameByProfile.get(event.changed_by) ?? (event.to_status === "requested" ? "Community reporter" : "Ward representative"),
+      note: event.note ?? undefined,
+      createdAt: event.created_at,
+    };
+    statusHistoryByIssue.set(event.issue_id, [...(statusHistoryByIssue.get(event.issue_id) ?? []), historyEvent]);
+  }
   const rejectionByIssue = new Map(
     statusEventRows
       .filter((event) => event.to_status === "rejected")
@@ -205,6 +219,7 @@ function mapIssueRows(
       description: issue.description,
       originalLanguage: issue.original_language === "hi" ? "hi" : "en",
       status: isIssueStatus(issue.status) ? issue.status : "requested",
+      statusHistory: statusHistoryByIssue.get(issue.id) ?? [],
       rejectionReason: issue.rejection_reason ?? undefined,
       rejectionActorName: rejection ? nameByProfile.get(rejection.changed_by) ?? "Ward representative" : undefined,
       rejectionAt: rejection?.created_at,
@@ -245,7 +260,7 @@ export async function loadWardIssues(
     supabase.from("issue_media").select("id, issue_id, kind, storage_path, alt_text, sort_order").in("issue_id", issueIds).order("sort_order").limit(LIMITS.media),
     supabase.from("issue_votes").select("issue_id, value").eq("voter_id", input.viewerId).in("issue_id", issueIds).limit(LIMITS.votes),
     supabase.from("escalations").select("id, issue_id, reason, status, created_at").in("issue_id", issueIds).order("created_at", { ascending: false }).limit(LIMITS.escalations),
-    supabase.from("issue_status_events").select("issue_id, to_status, changed_by, created_at").in("issue_id", issueIds).eq("to_status", "rejected").order("created_at", { ascending: false }).limit(LIMITS.issues),
+    supabase.from("issue_status_events").select("issue_id, from_status, to_status, changed_by, note, created_at").in("issue_id", issueIds).order("created_at", { ascending: false }).limit(LIMITS.issues * 4),
   ]) as unknown as [
     QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>, QueryResult<IssueStatusEventRow[]>,
   ];
@@ -395,7 +410,7 @@ export async function loadLiveData(
       supabase.from("issue_media").select("id, issue_id, kind, storage_path, alt_text, sort_order").in("issue_id", issueIdList).order("sort_order").limit(LIMITS.media),
       supabase.from("issue_votes").select("issue_id, value").eq("voter_id", viewer.id).in("issue_id", issueIdList).limit(LIMITS.votes),
       supabase.from("escalations").select("id, issue_id, reason, status, created_at").in("issue_id", issueIdList).order("created_at", { ascending: false }).limit(LIMITS.escalations),
-      supabase.from("issue_status_events").select("issue_id, to_status, changed_by, created_at").in("issue_id", issueIdList).eq("to_status", "rejected").order("created_at", { ascending: false }).limit(LIMITS.issues),
+      supabase.from("issue_status_events").select("issue_id, from_status, to_status, changed_by, note, created_at").in("issue_id", issueIdList).order("created_at", { ascending: false }).limit(LIMITS.issues * 4),
     ]) as unknown as [QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>, QueryResult<IssueStatusEventRow[]>]
     : [emptyRows, emptyRows, emptyRows, emptyRows] as [QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>, QueryResult<IssueStatusEventRow[]>];
 
