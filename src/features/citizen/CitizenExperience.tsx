@@ -657,12 +657,6 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
         </section>}
       </main>
 
-      <footer className={styles.footer}>
-        <div className={styles.footerMeta}>
-          <span>{dataMode === "demo" ? "This is a working prototype. All resident data, budget figures, and ward records are synthetic." : "NagarSakhi keeps resident phone and household details outside the public record."}</span>
-          <span>© {new Date().getFullYear()} NagarSakhi</span>
-        </div>
-      </footer>
     </section>
   );
 }

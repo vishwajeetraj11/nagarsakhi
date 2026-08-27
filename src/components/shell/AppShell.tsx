@@ -14,9 +14,21 @@ const roleLabel = {
 type AppShellProps = {
   children: ReactNode;
   session: DemoSession;
+  dataMode?: "demo" | "supabase";
 };
 
-export function AppShell({ children, session }: AppShellProps) {
+function AppFooter({ dataMode }: { dataMode: "demo" | "supabase" }) {
+  return (
+    <footer className="app-footer">
+      <div className="app-footer__inner">
+        <span>{dataMode === "demo" ? "This is a working prototype. All resident data, budget figures, and ward records are synthetic." : "NagarSakhi keeps resident phone and household details outside the public record."}</span>
+        <span>© {new Date().getFullYear()} NagarSakhi</span>
+      </div>
+    </footer>
+  );
+}
+
+export function AppShell({ children, session, dataMode = "supabase" }: AppShellProps) {
   return (
     <div className="app-frame">
       <a className="skip-link" href="#main-content">Skip to main content</a>
@@ -34,6 +46,7 @@ export function AppShell({ children, session }: AppShellProps) {
         </div>
       </header>
       <div id="main-content">{children}</div>
+      <AppFooter dataMode={dataMode} />
     </div>
   );
 }
