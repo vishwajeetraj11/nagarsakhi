@@ -253,7 +253,6 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
 
   const ward = data.wards.find((item) => item.number === selectedWardNumber) ?? data.wards[0];
   const wardId = ward?.id ?? "";
-  const wardLocality = ward ? wardLocalityName(ward.name) : null;
   const residentWardLocality = residentWard ? wardLocalityName(residentWard.name) : null;
   const canReportInWard = Boolean(ward && !readOnly && ward.id === session?.wardId);
   // Live RLS permits votes only for issues in the resident's own ward. Keep
@@ -279,6 +278,10 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
   const profileOfficial = profileOfficialId ? data.officials.find((item) => item.id === profileOfficialId) : null;
   const displayedOfficial = profileOfficialId ? profileOfficial : wardOfficial;
   const displayedOfficialWard = displayedOfficial?.wardId ? data.wards.find((item) => item.id === displayedOfficial.wardId) : null;
+  // Profile context follows the representative, without changing the resident's
+  // selected ward or the ward used to authorize reporting and voting.
+  const headerWard = view === "profile" ? displayedOfficialWard : ward;
+  const headerLocality = headerWard ? wardLocalityName(headerWard.name) : null;
   const completedOfficialIssueCount = displayedOfficialWard
     ? issues.filter((item) => item.wardId === displayedOfficialWard.id && item.status === "completed").length
     : 0;
@@ -505,7 +508,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
     <section className={styles.experience} aria-label="NagarSakhi citizen experience">
       <div className={styles.wardBand}>
         <div className={styles.wardIdentity}>
-          <h1>{formatWardLabel(ward.number)}{wardLocality ? <span> / {wardLocality}</span> : null}</h1>
+          <h1>{headerWard ? <>{formatWardLabel(headerWard.number)}{headerLocality ? <span> / {headerLocality}</span> : null}</> : data.municipality.name}</h1>
           <p className={styles.wardLocation}><MapPin size={15} aria-hidden="true" /> <span>{data.municipality.name}, {data.municipality.district}</span></p>
         </div>
       </div>

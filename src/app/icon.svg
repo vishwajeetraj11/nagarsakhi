@@ -1,10 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="18" fill="#17385f"/>
-  <g fill="#36aa99">
-    <path d="M18 24h8v-6h-2v-3h-4v3h-2z"/>
-    <path d="M29 24h7v-11h-2v-4h-3v4h-2z"/>
-    <path d="M39 24h8v-8h-2v-3h-4v3h-2z"/>
-    <path d="M16 24h32v3H16z"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="NagarSakhi">
+  <rect width="64" height="64" rx="15" fill="#16325c"/>
+  <g fill="#3fb3a6" transform="translate(11,2.5) scale(0.65625)">
+    <rect x="4" y="34" width="56" height="4" rx="2"/>
+    <rect x="8" y="21" width="14" height="13" rx="4"/>
+    <path d="M27 34v-9c0-6 2.4-10 6-13 3.6 3 6 7 6 13v9z"/>
+    <circle cx="33" cy="8.4" r="2.8"/>
+    <rect x="45" y="17" width="13" height="9" rx="4.5"/>
+    <rect x="46.6" y="25" width="3.4" height="9" rx="1.7"/>
+    <rect x="53" y="25" width="3.4" height="9" rx="1.7"/>
   </g>
-  <path d="M15 28h34v6H37v10c0 4.4-3.2 7-7.8 7H22v-6h6.2c1.7 0 2.8-.9 2.8-2.5V34H22v8h-7z" fill="#fff8ea"/>
+  <path fill="#fdfaf3" fill-rule="evenodd" transform="translate(0,4)" d="M19.75 25.13L19.75 29.46L34.38 29.5L34.33 34.79L25.17 34.79L21.29 37.58L21.29 38.58L21.38 38.67L21.38 39.25L21.46 39.33L21.46 39.75L21.54 39.83L21.63 40.5L21.71 40.58L21.88 41.25L22.46 42.42L23.04 43.25L24.42 44.54L25.17 44.96L25.33 45.13L25.5 45.13L25.83 45.29L26.75 44.79L26.92 44.79L28.25 44.13L28.38 44L28.42 39.63L34.33 39.63L34.38 51.92L40 51.96L40.04 29.5L44.21 29.42L44.21 25.17L19.75 25.13Z"/>
 </svg>

@@ -290,11 +290,9 @@
   .municipality-table-person:hover { color: var(--indigo-strong); }
   .municipality-table-amount { color: var(--indigo); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .municipality-missing { color: var(--ink-faint); font-style: italic; }
-  .municipality-footer-nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-top: 3px solid var(--ink); margin-top: 4rem; padding-top: 1rem; color: var(--ink-soft); }
-  .municipality-footer-nav a { display: inline-flex; align-items: center; gap: .35rem; color: var(--indigo); font-weight: 600; }
 
   @media (max-width: 42rem) {
-    .municipality-hero, .municipality-section-heading, .municipality-footer-nav { align-items: start; flex-direction: column; }
+    .municipality-hero, .municipality-section-heading { align-items: start; flex-direction: column; }
     .municipality-stamp { align-self: stretch; }
     .municipality-section-heading > p { text-align: left; }
     .municipality-facts { grid-template-columns: 1fr; }

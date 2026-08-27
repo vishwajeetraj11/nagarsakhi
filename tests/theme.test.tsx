@@ -33,6 +33,12 @@ const contrast = (a: string, b: string) => {
 };
 
 describe("shared civic theme", () => {
+  it("keeps sticky navigation on an opaque paper surface", () => {
+    expect(citizenStyles.nav).toContain("bg-[var(--paper)]");
+    expect(citizenStyles.nav).not.toContain("color-mix(");
+    expect(citizenStyles.nav).not.toContain("backdrop-blur");
+  });
+
   it("does not let workspaces override the palette or reintroduce heavy type", () => {
     for (const styles of [adminStyles, citizenStyles]) {
       const classes = Object.values(styles).join(" ");
