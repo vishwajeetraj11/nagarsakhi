@@ -53,6 +53,7 @@ const english = {
   processing: "In progress",
   failed: "Failed",
   statusRequested: "Requested",
+  statusAcknowledged: "Acknowledged",
   statusInProgress: "In progress",
   statusCompleted: "Completed",
   statusRejected: "Rejected",
@@ -112,6 +113,7 @@ const hindi: Dictionary = {
   processing: "प्रक्रिया जारी",
   failed: "विफल",
   statusRequested: "अनुरोध प्राप्त",
+  statusAcknowledged: "संज्ञान में",
   statusInProgress: "काम जारी है",
   statusCompleted: "काम पूरा",
   statusRejected: "अस्वीकृत",
@@ -134,6 +136,7 @@ export function translate(language: Language, key: TranslationKey): string {
 
 const statusKeys: Record<IssueStatus, TranslationKey> = {
   requested: "statusRequested",
+  acknowledged: "statusAcknowledged",
   in_progress: "statusInProgress",
   completed: "statusCompleted",
   rejected: "statusRejected",

@@ -82,7 +82,9 @@ type IssueStatusEventRow = {
   from_status: string | null;
   to_status: string;
   changed_by: string;
+  actor_role: string | null;
   note: string | null;
+  support_count_at_change: number | null;
   created_at: string;
 };
 type IssueMediaRow = { id: string; issue_id: string; kind: string; storage_path: string; alt_text: string | null; sort_order: number };
@@ -132,7 +134,7 @@ const isRole = (value: string): value is UserRole => (
 );
 
 const isIssueStatus = (value: string): value is IssueStatus => (
-  value === "requested" || value === "in_progress" || value === "completed" || value === "rejected"
+  value === "requested" || value === "acknowledged" || value === "in_progress" || value === "completed" || value === "rejected"
 );
 
 const isEscalationStatus = (value: string): value is EscalationStatus => (
@@ -194,7 +196,9 @@ function mapIssueRows(
     const historyEvent: IssueStatusEvent = {
       status: event.to_status,
       actorName: nameByProfile.get(event.changed_by) ?? (event.to_status === "requested" ? "Community reporter" : "Ward representative"),
+      actorRole: event.actor_role === "citizen" || event.actor_role === "parshad" || event.actor_role === "corporation_admin" ? event.actor_role : undefined,
       note: event.note ?? undefined,
+      supportCountAtChange: event.support_count_at_change,
       createdAt: event.created_at,
     };
     statusHistoryByIssue.set(event.issue_id, [...(statusHistoryByIssue.get(event.issue_id) ?? []), historyEvent]);
@@ -262,7 +266,7 @@ export async function loadWardIssues(
     supabase.from("issue_media").select("id, issue_id, kind, storage_path, alt_text, sort_order").in("issue_id", issueIds).order("sort_order").limit(LIMITS.media),
     supabase.from("issue_votes").select("issue_id, value").eq("voter_id", input.viewerId).in("issue_id", issueIds).limit(LIMITS.votes),
     supabase.from("escalations").select("id, issue_id, reason, status, created_at").in("issue_id", issueIds).order("created_at", { ascending: false }).limit(LIMITS.escalations),
-    supabase.from("issue_status_events").select("issue_id, from_status, to_status, changed_by, note, created_at").in("issue_id", issueIds).order("created_at", { ascending: false }).limit(LIMITS.issues * 4),
+    supabase.from("issue_status_events").select("issue_id, from_status, to_status, changed_by, actor_role, note, support_count_at_change, created_at").in("issue_id", issueIds).order("created_at", { ascending: false }).limit(LIMITS.issues * 4),
   ]) as unknown as [
     QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>, QueryResult<IssueStatusEventRow[]>,
   ];
@@ -412,7 +416,7 @@ export async function loadLiveData(
       supabase.from("issue_media").select("id, issue_id, kind, storage_path, alt_text, sort_order").in("issue_id", issueIdList).order("sort_order").limit(LIMITS.media),
       supabase.from("issue_votes").select("issue_id, value").eq("voter_id", viewer.id).in("issue_id", issueIdList).limit(LIMITS.votes),
       supabase.from("escalations").select("id, issue_id, reason, status, created_at").in("issue_id", issueIdList).order("created_at", { ascending: false }).limit(LIMITS.escalations),
-      supabase.from("issue_status_events").select("issue_id, from_status, to_status, changed_by, note, created_at").in("issue_id", issueIdList).order("created_at", { ascending: false }).limit(LIMITS.issues * 4),
+      supabase.from("issue_status_events").select("issue_id, from_status, to_status, changed_by, actor_role, note, support_count_at_change, created_at").in("issue_id", issueIdList).order("created_at", { ascending: false }).limit(LIMITS.issues * 4),
     ]) as unknown as [QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>, QueryResult<IssueStatusEventRow[]>]
     : [emptyRows, emptyRows, emptyRows, emptyRows] as [QueryResult<IssueMediaRow[]>, QueryResult<IssueVoteRow[]>, QueryResult<EscalationRow[]>, QueryResult<IssueStatusEventRow[]>];
 

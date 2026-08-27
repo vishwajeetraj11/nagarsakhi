@@ -40,16 +40,10 @@ describe("municipal ward finder", () => {
     if (role === "citizen") {
       expect(screen.getByRole("link", { name: "Go to your ward" })).toHaveAttribute("href", "/wards");
     } else {
-      const link = screen.getByRole("link", { name: "Find a ward" });
-      expect(document.querySelector(link.getAttribute("href")!)).not.toBeNull();
+      expect(screen.queryByRole("link", { name: "Find a ward" })).toBeNull();
     }
-    if (role === "citizen") {
-      expect(screen.queryByRole("link", { name: "Municipality details" })).toBeNull();
-      expect(screen.queryByRole("heading", { name: "Municipality details" })).toBeNull();
-    } else {
-      const link = screen.getByRole("link", { name: "Municipality details" });
-      expect(document.querySelector(link.getAttribute("href")!)).not.toBeNull();
-    }
+    expect(screen.queryByRole("link", { name: "Municipality details" })).toBeNull();
+    if (role === "citizen") expect(screen.queryByRole("heading", { name: "Municipality details" })).toBeNull();
   });
 
   it.each(["parshad", "corporation_admin"] as const)("places municipality details before ward representatives for %s", (role) => {

@@ -74,6 +74,7 @@ const viewForPath = (pathname: string | null): View => {
 
 const statusCopy: Record<IssueStatus, string> = {
   requested: "Reported",
+  acknowledged: "Acknowledged",
   in_progress: "In progress",
   completed: "Fixed",
   rejected: "Rejected",
@@ -81,6 +82,7 @@ const statusCopy: Record<IssueStatus, string> = {
 
 const statusHindi: Record<IssueStatus, string> = {
   requested: "दर्ज किया गया",
+  acknowledged: "संज्ञान में",
   in_progress: "काम जारी है",
   completed: "ठीक हुआ",
   rejected: "अस्वीकृत",
@@ -141,20 +143,19 @@ function IssueStateMark({ issue }: { issue: Issue }) {
 
 function StatusTrail({ issue }: { issue: Issue }) {
   const events = issue.statusHistory ?? [];
-  if (issue.status !== "completed") return null;
 
   return <section className={styles.statusTrail} aria-label="Status trail">
-    <div className={styles.statusTrailHeader}><p className={styles.kicker}>Status trail</p><span>{events.length ? `${events.length} updates` : "History pending"}</span></div>
+    <div className={styles.statusTrailHeader}><p className={styles.kicker}>Status trail</p><span>{events.length ? `${events.length} updates` : "Legacy record"}</span></div>
     {events.length ? <ol className={styles.statusTrailList}>
       {events.map((event, index) => <li key={`${event.status}-${event.createdAt}-${index}`} className={styles.statusTrailItem}>
         <span className={styles.statusTrailRail} aria-hidden="true"><span className={`${styles.statusTrailMarker} ${styles[`statusTrailMarker_${event.status}`]}`} /></span>
         <div className={styles.statusTrailBody}>
           <div className={styles.statusTrailMeta}><strong>{statusCopy[event.status]} <span className={styles.hindiHint}>· {statusHindi[event.status]}</span></strong><time dateTime={event.createdAt}>{formatDate(event.createdAt)}</time></div>
           <p>{event.note ?? (event.status === "requested" ? issue.description : "This update was recorded in the public issue history.")}</p>
-          <small>By {event.actorName}</small>
+          <small>By {event.actorName}{event.actorRole ? ` · ${event.actorRole === "parshad" ? "Parshad" : event.actorRole === "citizen" ? "Citizen" : "Municipality officer"}` : ""}{event.supportCountAtChange == null ? "" : ` · ${event.supportCountAtChange} community supports`}</small>
         </div>
       </li>)}
-    </ol> : <p className={styles.statusTrailEmpty}>The public status history is still being recorded for this fixed report.</p>}
+    </ol> : <p className={styles.statusTrailEmpty}>This is a legacy record. Its earlier status changes were not recorded.</p>}
   </section>;
 }
 
@@ -300,7 +301,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
   const expenditures = data.expenditures.filter((item) => item.wardId === ward.id);
   const counts = wardIssues.reduce<Record<IssueStatus, number>>(
     (result, item) => ({ ...result, [item.status]: result[item.status] + 1 }),
-    { requested: 0, in_progress: 0, completed: 0, rejected: 0 },
+    { requested: 0, acknowledged: 0, in_progress: 0, completed: 0, rejected: 0 },
   );
 
   const moveTo = (next: View, destination = viewRoutes[next]) => {
@@ -557,6 +558,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
 
             <section className={styles.pulse} aria-label="Issue status summary">
               <button type="button" onClick={() => { setFilter("requested"); moveTo("issues"); }}><strong>{counts.requested}</strong><span>Reported</span></button>
+              <button type="button" onClick={() => { setFilter("acknowledged"); moveTo("issues"); }}><strong>{counts.acknowledged}</strong><span>Acknowledged</span></button>
               <button type="button" onClick={() => { setFilter("in_progress"); moveTo("issues"); }}><strong>{counts.in_progress}</strong><span>In progress</span></button>
               <button type="button" onClick={() => { setFilter("completed"); moveTo("issues"); }}><strong>{counts.completed}</strong><span>Fixed</span></button>
               <button type="button" onClick={() => { setFilter("rejected"); moveTo("issues"); }}><strong>{counts.rejected}</strong><span>Rejected</span></button>

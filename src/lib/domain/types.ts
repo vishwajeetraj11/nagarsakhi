@@ -1,6 +1,6 @@
 export type UserRole = "citizen" | "parshad" | "corporation_admin";
 
-export type IssueStatus = "requested" | "in_progress" | "completed" | "rejected";
+export type IssueStatus = "requested" | "acknowledged" | "in_progress" | "completed" | "rejected";
 
 export type EscalationStatus = "open" | "acknowledged" | "resolved";
 
@@ -59,7 +59,9 @@ export type IssueMedia = {
 export type IssueStatusEvent = {
   status: IssueStatus;
   actorName: string;
+  actorRole?: UserRole;
   note?: string;
+  supportCountAtChange?: number | null;
   createdAt: string;
 };
 

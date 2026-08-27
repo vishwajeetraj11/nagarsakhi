@@ -24,6 +24,7 @@ type ExperienceProps = {
 
 const statusCopy: Record<IssueStatus, string> = {
   requested: "Requested / प्राप्त",
+  acknowledged: "Acknowledged / संज्ञान में",
   in_progress: "In progress / कार्य जारी",
   completed: "Fixed / ठीक",
   rejected: "Rejected / अस्वीकृत",
@@ -31,13 +32,14 @@ const statusCopy: Record<IssueStatus, string> = {
 
 const statusClass: Record<IssueStatus, string> = {
   requested: styles.requested,
+  acknowledged: styles.inProgress,
   in_progress: styles.inProgress,
   completed: styles.completed,
   rejected: styles.rejected,
 };
 
 const nextIssueStatus = (status: IssueStatus): Exclude<IssueStatus, "requested" | "rejected"> | null => (
-  status === "requested" ? "in_progress" : status === "in_progress" ? "completed" : null
+  status === "requested" ? "acknowledged" : status === "acknowledged" ? "in_progress" : status === "in_progress" ? "completed" : null
 );
 
 const escalationCopy: Record<Escalation["status"], string> = {
@@ -296,7 +298,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
         <p>{issues.length} reports</p>
       </div>
       <div className={styles.issueFilters} role="group" aria-label="Filter issue register by status">
-        {(["all", "requested", "in_progress", "completed", "rejected"] as const).map((filter) => <button key={filter} type="button" className={issueFilter === filter ? styles.issueFilterActive : ""} aria-pressed={issueFilter === filter} onClick={() => { setIssueFilter(filter); setSelectedIssueId(issues.find((issue) => filter === "all" || issue.status === filter)?.id ?? ""); setOpenIssueAction(null); }}>{filter === "all" ? "All reports" : statusCopy[filter]}</button>)}
+        {(["all", "requested", "acknowledged", "in_progress", "completed", "rejected"] as const).map((filter) => <button key={filter} type="button" className={issueFilter === filter ? styles.issueFilterActive : ""} aria-pressed={issueFilter === filter} onClick={() => { setIssueFilter(filter); setSelectedIssueId(sortIssuesBySupport(issues.filter((issue) => filter === "all" || issue.status === filter))[0]?.id ?? ""); setOpenIssueAction(null); }}>{filter === "all" ? "All reports" : statusCopy[filter]}</button>)}
       </div>
       <div className={styles.issueLayout}>
         <div className={styles.issueList} aria-label={`${formatWardLabel(ward.number)} issue list`}>
@@ -314,7 +316,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
           <p className={styles.issueDescription}>{selectedIssue.description}</p>
           <dl className={styles.detailMeta}><div><dt>Reporter</dt><dd>{selectedIssue.reporterName}</dd></div><div><dt>Recorded on</dt><dd>{formatDate(selectedIssue.updatedAt)}</dd></div></dl>
           {selectedIssue.media.length > 0 && <div className={styles.evidence}><p className={styles.kicker}>Attached evidence</p><div className={styles.evidenceStrip}>{selectedIssue.media.map((media) => <figure key={media.id}>{media.kind === "video" ? <video src={media.url} controls preload="metadata" width={144} height={104} aria-label={media.alt ?? "Issue video evidence"} /> : <Image src={media.url} alt={media.alt ?? "Issue evidence"} width={144} height={104} unoptimized={dataMode === "supabase"} />}<figcaption>{media.kind === "photo" ? "Photo evidence" : media.kind === "video" ? "Video evidence" : "Audio statement"}</figcaption></figure>)}</div></div>}
-          {selectedIssue.status === "rejected" ? <div className={styles.rejectionNotice}><b>Rejected report. This decision is terminal.</b><span>Reason: {selectedIssue.rejectionReason ?? "No reason recorded."}</span></div> : selectedNextStatus ? <fieldset className={styles.statusField}><legend>Update status</legend><p>{selectedNextStatus === "in_progress" ? "New reports move to In progress first. Mark them fixed only after work is underway and verified." : "This report is in progress. Mark it fixed once the work is verified."}</p><div className={styles.statusActions}><button type="button" onClick={() => void changeStatus(selectedIssue.id, selectedNextStatus)}>{selectedNextStatus === "in_progress" ? "Move to In progress / कार्य जारी" : "Mark fixed / ठीक"}</button></div></fieldset> : null}
+          {selectedIssue.status === "rejected" ? <div className={styles.rejectionNotice}><b>Rejected report. This decision is terminal.</b><span>Reason: {selectedIssue.rejectionReason ?? "No reason recorded."}</span></div> : selectedNextStatus ? <fieldset className={styles.statusField}><legend>Update status</legend><p>{selectedNextStatus === "acknowledged" ? "Acknowledge this resident report before work begins." : selectedNextStatus === "in_progress" ? "Acknowledged reports move to In progress when ward work begins." : "Mark the report fixed only after the work is verified."}</p><div className={styles.statusActions}><button type="button" onClick={() => void changeStatus(selectedIssue.id, selectedNextStatus)}>{selectedNextStatus === "acknowledged" ? "Acknowledge report / संज्ञान में" : selectedNextStatus === "in_progress" ? "Move to In progress / कार्य जारी" : "Mark fixed / ठीक"}</button></div></fieldset> : null}
           {(selectedIssue.status === "requested" || canEscalateIssue) ? <>
             <div className={styles.actionChooser} role="group" aria-label="Report actions">
               {selectedIssue.status === "requested" ? <button type="button" className={`${styles.actionButton} ${styles.rejectAction} ${openIssueAction === "reject" ? styles.rejectActionActive : ""}`} aria-expanded={openIssueAction === "reject"} aria-pressed={openIssueAction === "reject"} aria-controls={openIssueAction === "reject" ? "rejection-reason-panel" : undefined} onClick={() => setOpenIssueAction((current) => current === "reject" ? null : "reject")}>Reject this report</button> : null}

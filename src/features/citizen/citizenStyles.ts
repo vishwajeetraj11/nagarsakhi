@@ -87,6 +87,7 @@ const styles: Record<string, string> = {
   statusTrailRail: "relative flex justify-center border-l border-[var(--rule)]",
   statusTrailMarker: "relative z-[1] mt-[.3rem] h-[.65rem] w-[.65rem] shrink-0 rounded-full bg-[var(--indigo)] ring-4 ring-[var(--paper)]",
   statusTrailMarker_requested: "bg-[var(--marigold)]",
+  statusTrailMarker_acknowledged: "bg-[var(--teal)]",
   statusTrailMarker_in_progress: "bg-[var(--indigo)]",
   statusTrailMarker_completed: "bg-[var(--green)]",
   statusTrailMarker_rejected: "bg-[var(--red)]",

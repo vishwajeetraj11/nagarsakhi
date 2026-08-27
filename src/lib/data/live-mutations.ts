@@ -153,7 +153,7 @@ export async function transitionLiveIssue(
   note?: string,
   client?: MutationClient,
 ): Promise<LiveMutationResult<IssueStatus>> {
-  if (!issueId || (status !== "in_progress" && status !== "completed")) {
+  if (!issueId || (status !== "acknowledged" && status !== "in_progress" && status !== "completed")) {
     return { ok: false, error: { code: "VALIDATION", message: "Choose a valid next issue status." } };
   }
   const configured = getClient(client);
