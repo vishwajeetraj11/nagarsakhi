@@ -134,11 +134,11 @@ function IssueStateMark({ issue }: { issue: Issue }) {
 
 function StatusTrail({ issue }: { issue: Issue }) {
   const events = issue.statusHistory ?? [];
-  if (issue.status !== "completed" || events.length < 2) return null;
+  if (issue.status !== "completed") return null;
 
   return <section className={styles.statusTrail} aria-label="Status trail">
-    <div className={styles.statusTrailHeader}><p className={styles.kicker}>Status trail</p><span>{events.length} updates</span></div>
-    <ol className={styles.statusTrailList}>
+    <div className={styles.statusTrailHeader}><p className={styles.kicker}>Status trail</p><span>{events.length ? `${events.length} updates` : "History pending"}</span></div>
+    {events.length ? <ol className={styles.statusTrailList}>
       {events.map((event, index) => <li key={`${event.status}-${event.createdAt}-${index}`} className={styles.statusTrailItem}>
         <span className={styles.statusTrailRail} aria-hidden="true"><span className={`${styles.statusTrailMarker} ${styles[`statusTrailMarker_${event.status}`]}`} /></span>
         <div className={styles.statusTrailBody}>
@@ -147,7 +147,7 @@ function StatusTrail({ issue }: { issue: Issue }) {
           <small>By {event.actorName}</small>
         </div>
       </li>)}
-    </ol>
+    </ol> : <p className={styles.statusTrailEmpty}>The public status history is still being recorded for this fixed report.</p>}
   </section>;
 }
 
@@ -781,6 +781,7 @@ function IssueDetail({ issue, onClose }: { issue: Issue; onClose: () => void }) 
     {issue.escalated && <div className={styles.escalationNotice} role="status"><strong>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated to Nagar Parishad"}</strong><span>Nagar Parishad follow-up is recorded on this report.</span></div>}
     <h3>{issue.title}</h3>
     <p className={styles.detailDescription}>{issue.description}</p>
+    <p className={styles.detailVoteSummary} aria-label={`Support: ${issue.upvotes} up, ${issue.downvotes} down`}>Support: {issue.upvotes} ↑ / {issue.downvotes} ↓</p>
     <StatusTrail issue={issue} />
     {issue.status === "rejected" ? <section className={styles.rejectionNotice} aria-label="Rejection history"><p className={styles.kicker}>Rejection history</p><p><strong>Reason:</strong> {issue.rejectionReason ?? "The ward office marked this report as rejected."}</p><dl className={styles.rejectionFacts}><div><dt>Decision by</dt><dd>{issue.rejectionActorName ?? "Ward representative"}</dd></div><div><dt>Rejected on</dt><dd>{issue.rejectionAt ? formatTimestamp(issue.rejectionAt) : formatDate(issue.updatedAt)}</dd></div></dl></section> : null}
     <dl className={styles.recordFacts}><div><dt>Reported by</dt><dd>{issue.reporterName}</dd></div><div><dt>First recorded</dt><dd>{formatDate(issue.createdAt)}</dd></div><div><dt>Last public update</dt><dd>{formatDate(issue.updatedAt)}</dd></div>{issue.escalated && <div><dt>Escalation</dt><dd>{issue.escalationStatus ? escalationCopy[issue.escalationStatus] : "Escalated to Nagar Parishad"}</dd></div>}</dl>
