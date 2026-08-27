@@ -18,6 +18,7 @@ import type {
   UserRole,
   Ward,
 } from "@/lib/domain/types";
+import { sortIssuesBySupport } from "@/lib/domain/issue-sort";
 
 const LIMITS = {
   alerts: 100,
@@ -205,7 +206,7 @@ function mapIssueRows(
       .map((event) => [event.issue_id, event]),
   );
 
-  return issueRows.map((issue) => {
+  return sortIssuesBySupport(issueRows.map((issue) => {
     const rejection = rejectionByIssue.get(issue.id);
     const escalation = escalationByIssue.get(issue.id);
     const escalationStatus = escalation && isEscalationStatus(escalation.status) ? escalation.status : undefined;
@@ -232,7 +233,7 @@ function mapIssueRows(
       escalated: Boolean(escalation),
       escalationStatus,
     };
-  });
+  }));
 }
 
 export async function loadWardIssues(
@@ -244,6 +245,7 @@ export async function loadWardIssues(
     .select("id, municipality_id, ward_id, reporter_id, title, description, original_language, status, rejection_reason, upvote_count, downvote_count, created_at, updated_at")
     .eq("municipality_id", input.municipalityId)
     .eq("ward_id", input.wardId)
+    .order("upvote_count", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(LIMITS.issues) as unknown as QueryResult<IssueRow[]>;
 
@@ -382,7 +384,7 @@ export async function loadLiveData(
     supabase.from("profiles").select("id, name, role, ward_id").eq("municipality_id", viewer.municipality_id).limit(LIMITS.profiles),
     supabase.from("officials").select("id, municipality_id, name, role_label, department").eq("municipality_id", viewer.municipality_id).limit(LIMITS.officials),
     supabase.from("official_terms").select("id, official_id, ward_id, role_label, won_by_votes, term_number, is_current").limit(LIMITS.officialTerms),
-    issuesQuery.order("created_at", { ascending: false }).limit(LIMITS.issues),
+    issuesQuery.order("upvote_count", { ascending: false }).order("created_at", { ascending: false }).limit(LIMITS.issues),
     supabase.from("notices").select("id, municipality_id, ward_id, author_id, title, body, created_at").eq("municipality_id", viewer.municipality_id).order("created_at", { ascending: false }).limit(LIMITS.notices),
     supabase.from("alerts").select("id, municipality_id, title, description, due_at, targets_all_wards, created_at").eq("municipality_id", viewer.municipality_id).order("created_at", { ascending: false }).limit(LIMITS.alerts),
     supabase.from("alert_ward_targets").select("alert_id, ward_id").limit(LIMITS.alertTargets),

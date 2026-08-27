@@ -28,6 +28,7 @@ import type { PublicDemoData } from "@/data/demo";
 import type { WardIssuesResult } from "@/lib/data/live";
 import { createLiveIssue, deleteIssueVote, setIssueVote, uploadLiveIssueMedia } from "@/lib/data/live-mutations";
 import type { DemoSession, EscalationStatus, Issue, IssueMedia, IssueStatus } from "@/lib/domain/types";
+import { sortIssuesBySupport } from "@/lib/domain/issue-sort";
 import { formatWardLabel, wardLocalityName } from "@/lib/domain/ward-label";
 import { getFirebaseAuthorizationHeader } from "@/lib/firebase";
 import styles from "./citizenStyles";
@@ -264,7 +265,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
   // Live RLS permits votes only for issues in the resident's own ward. Keep
   // the UI in lockstep so browsing another ward never offers a mutation.
   const canVote = session?.role === "citizen" && !readOnly && ward.id === session.wardId;
-  const wardIssues = useMemo(() => issues.filter((item) => item.wardId === wardId), [issues, wardId]);
+  const wardIssues = useMemo(() => sortIssuesBySupport(issues.filter((item) => item.wardId === wardId)), [issues, wardId]);
   const openWardIssues = useMemo(() => wardIssues.filter((item) => item.status === "in_progress"), [wardIssues]);
 
   const requestedView = routing ? viewForPath(pathname) : localView;

@@ -10,6 +10,7 @@ import { CitizenExperience } from "@/features/citizen/CitizenExperience";
 import type { WardIssuesResult } from "@/lib/data/live";
 import { createLiveEscalation, publishLiveNotice, rejectLiveIssue, transitionLiveEscalation, transitionLiveIssue } from "@/lib/data/live-mutations";
 import type { DemoSession, Escalation, Issue, IssueStatus, Notice } from "@/lib/domain/types";
+import { sortIssuesBySupport } from "@/lib/domain/issue-sort";
 import { formatWardLabel, formatWardNumber, wardLocalityName } from "@/lib/domain/ward-label";
 import styles from "./adminStyles";
 import { useNoticePublication, type ActionFeedback } from "./useNoticePublication";
@@ -101,7 +102,7 @@ function WardIssueSection({ title, hint, issues }: { title: string; hint: string
   return <section className={styles.drillIssueSection} aria-label={`${title} issues`}>
     <header><div><p className={styles.kicker}>{hint}</p><h2>{title}</h2></div><strong aria-label={`${issues.length} ${title.toLowerCase()} issues`}>{issues.length}</strong></header>
     {issues.length > 0
-      ? <ol>{issues.map((issue) => <li key={issue.id}>
+      ? <ol>{sortIssuesBySupport(issues).map((issue) => <li key={issue.id}>
         <div>
           <b>{issue.title}</b>
           <details className={styles.drillReport}>
@@ -119,10 +120,10 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   const [citizenView, setCitizenView] = useState(false);
   const ward = data.wards.find((item) => item.id === session?.wardId) ?? data.wards.find((item) => item.number === 12) ?? data.wards[0];
   const official = data.officials.find((item) => item.wardId === ward?.id && item.current);
-  const [issues, setIssues] = useState(() => data.issues.filter((item) => item.wardId === ward?.id).map((issue) => {
+  const [issues, setIssues] = useState(() => sortIssuesBySupport(data.issues.filter((item) => item.wardId === ward?.id).map((issue) => {
     const escalation = data.escalations.find((item) => item.issueId === issue.id);
     return escalation ? { ...issue, escalated: true, escalationStatus: escalation.status } : issue;
-  }));
+  })));
   const [selectedIssueId, setSelectedIssueId] = useState(issues[0]?.id ?? "");
   const [issueFilter, setIssueFilter] = useState<"all" | IssueStatus>("all");
   const [auditMessage, setAuditMessage] = useState("");
@@ -139,7 +140,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   const requestedCount = issues.filter((item) => item.status === "requested").length;
   const completedCount = issues.filter((item) => item.status === "completed").length;
   const residents = data.publicProfiles.filter((person) => person.wardId === ward?.id).length;
-  const visibleIssues = issueFilter === "all" ? issues : issues.filter((issue) => issue.status === issueFilter);
+  const visibleIssues = sortIssuesBySupport(issueFilter === "all" ? issues : issues.filter((issue) => issue.status === issueFilter));
   const selectedIssue = visibleIssues.find((item) => item.id === selectedIssueId) ?? visibleIssues[0];
   const municipalityNotice = data.notices.find((notice) => notice.wardId === null);
 
