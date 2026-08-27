@@ -5,7 +5,7 @@ import type { User } from "firebase/auth";
 
 import { formatWardLabel, wardLocalityName } from "@/lib/domain/ward-label";
 import { createFirebaseSupabaseClient } from "@/lib/supabase";
-import { BrandMark } from "./BrandMark";
+import { BrandLockup } from "./BrandLockup";
 
 type LocationRow = {
   municipality_id: string;
@@ -106,7 +106,7 @@ export function LiveOnboarding({ user, onComplete, registrationRequired = false 
   return (
     <main className="login-page live-onboarding" id="main-content">
       <section className="login-intro" aria-labelledby="ward-setup-title">
-        <div className="brand-lockup"><BrandMark /><span>NagarSakhi</span></div>
+        <BrandLockup />
         <p className="eyebrow">First-time setup</p>
         <h1 id="ward-setup-title">Choose your municipality and ward.</h1>
       </section>

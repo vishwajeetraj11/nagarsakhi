@@ -61,6 +61,8 @@
     --indigo-strong: #1b3046;
     --indigo-soft: #e5eae9;
     --green: #41685b;
+    --brand-teal: #36aa99;
+    --brand-teal-deep: #218376;
     --green-soft: #e5ede5;
     --marigold: #b78a35;
     --marigold-soft: #f2e8d2;
@@ -324,12 +326,34 @@
   .brand-lockup {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: 0.62rem;
     color: var(--indigo-strong);
     font-family: var(--font-body);
+    line-height: 1;
+  }
+
+  .brand-wordmark {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .brand-wordmark__name {
+    display: inline-flex;
+    color: var(--indigo-strong);
     font-size: var(--text-lg);
     font-weight: 600;
-    letter-spacing: -0.035em;
+    letter-spacing: -0.05em;
+  }
+
+  .brand-wordmark__name span:last-child {
+    color: var(--brand-teal-deep);
+  }
+
+  .brand-wordmark__local {
+    color: var(--ink-soft);
+    font-size: 0.68rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
   }
 
   .brand-mark {
@@ -342,6 +366,9 @@
   .brand-lockup--compact .brand-mark {
     width: 2.35rem;
     height: 2.35rem;
+  }
+
+  .brand-lockup--compact .brand-wordmark__name {
     font-size: 1.1rem;
   }
 

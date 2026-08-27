@@ -5,7 +5,7 @@ import { ClipboardEvent, FormEvent, KeyboardEvent, useEffect, useRef, useState }
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 import { getFirebaseAuth } from "@/lib/firebase";
-import { BrandMark } from "./BrandMark";
+import { BrandLockup } from "./BrandLockup";
 import styles from "./LiveLogin.module.css";
 
 type LoginStage = "phone" | "code";
@@ -227,10 +227,7 @@ export function LiveLogin() {
   return (
     <main className={styles.page} id="main-content">
       <section className={styles.intro} aria-labelledby="live-welcome-title">
-        <div className={`brand-lockup ${styles.brand}`}>
-          <BrandMark />
-          <span>NagarSakhi</span>
-        </div>
+        <BrandLockup className={styles.brand} />
         <div className={styles.introContent}>
           <p className={styles.lede}>Only residents verified by their Nagar Parishad can sign in.</p>
           <h1 id="live-welcome-title" className={styles.headline}>

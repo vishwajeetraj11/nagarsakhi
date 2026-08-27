@@ -2,13 +2,21 @@ type BrandMarkProps = {
   className?: string;
 };
 
-/** The shared mark mirrors src/app/icon.svg so browser chrome and the app agree. */
+/**
+ * The 4B NagarSakhi mark: a shared civic roofline above the local "न" initial.
+ * It is kept as paths rather than a font glyph so app chrome and the favicon agree.
+ */
 export function BrandMark({ className = "brand-mark" }: BrandMarkProps) {
   return (
     <svg className={className} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-      <rect width="64" height="64" rx="18" fill="#2d3c78" />
-      <path d="M18 47V17h7.2l13.6 17.2V17H46v30h-7.1L25.2 29.7V47z" fill="#fff8ea" />
-      <circle cx="50" cy="14" r="5" fill="#e0a526" />
+      <rect width="64" height="64" rx="18" fill="#17385f" />
+      <g fill="#36aa99">
+        <path d="M18 24h8v-6h-2v-3h-4v3h-2z" />
+        <path d="M29 24h7v-11h-2v-4h-3v4h-2z" />
+        <path d="M39 24h8v-8h-2v-3h-4v3h-2z" />
+        <path d="M16 24h32v3H16z" />
+      </g>
+      <path d="M15 28h34v6H37v10c0 4.4-3.2 7-7.8 7H22v-6h6.2c1.7 0 2.8-.9 2.8-2.5V34H22v8h-7z" fill="#fff8ea" />
     </svg>
   );
 }
