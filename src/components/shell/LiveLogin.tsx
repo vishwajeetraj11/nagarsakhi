@@ -233,7 +233,7 @@ export function LiveLogin() {
           </div>
           <p className="eyebrow">Your ward, in the open</p>
           <h1 id="live-welcome-title">Your ward&apos;s issues, budget, and progress — all in one place.</h1>
-          <p className="login-lede">Sign in with the mobile number registered to your ward.</p>
+          <p className="login-lede">Only residents verified by their Nagar Parishad can sign in.</p>
         </div>
         <footer className="login-footer">Private sign-in. Public accountability.</footer>
       </section>

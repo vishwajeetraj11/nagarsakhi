@@ -1,8 +1,8 @@
 "use client";
 
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppShell } from "@/components/shell/AppShell";
 import { BrandMark } from "@/components/shell/BrandMark";
@@ -42,6 +42,8 @@ async function provisionFirebaseProfile(user: User) {
 export function LiveApp() {
   const auth = useMemo(() => getFirebaseAuth(), []);
   const pathname = usePathname();
+  const router = useRouter();
+  const redirectedAfterLogin = useRef(false);
   const [state, setState] = useState<LiveState>(() => (
     auth
       ? { status: "checking" }
@@ -58,6 +60,7 @@ export function LiveApp() {
 
     return onAuthStateChanged(auth, async (user) => {
       if (!user) {
+        redirectedAfterLogin.current = false;
         setState({ status: "signed_out" });
         return;
       }
@@ -87,6 +90,17 @@ export function LiveApp() {
       }
     });
   }, [auth]);
+
+  useEffect(() => {
+    if (state.status !== "ready" || redirectedAfterLogin.current) {
+      return;
+    }
+
+    redirectedAfterLogin.current = true;
+    if (pathname !== "/municipality/phusro") {
+      router.replace("/municipality/phusro");
+    }
+  }, [pathname, router, state.status]);
 
   if (state.status === "signed_out") return <LiveLogin />;
 

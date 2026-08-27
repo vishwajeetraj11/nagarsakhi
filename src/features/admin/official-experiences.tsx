@@ -50,6 +50,8 @@ const escalationStateCopy: Record<Escalation["status"], string> = {
   resolved: "Escalated · Resolved / प्रेषित · समाधान",
 };
 
+type IssueAction = "reject" | "escalate";
+
 const formatDate = (value: string) => new Intl.DateTimeFormat("en-IN", {
   day: "numeric", month: "short", year: "numeric",
 }).format(new Date(value));
@@ -117,6 +119,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   const [rejectingIssueId, setRejectingIssueId] = useState<string | null>(null);
   const [escalationReason, setEscalationReason] = useState("");
   const [escalatingIssueId, setEscalatingIssueId] = useState<string | null>(null);
+  const [openIssueAction, setOpenIssueAction] = useState<IssueAction | null>(null);
   const requestedCount = issues.filter((item) => item.status === "requested").length;
   const completedCount = issues.filter((item) => item.status === "completed").length;
   const residents = data.publicProfiles.filter((person) => person.wardId === ward?.id).length;
@@ -178,6 +181,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
       }
       setIssues((current) => current.map((item) => item.id === issueId ? { ...item, status: "rejected", rejectionReason: reason, updatedAt: new Date().toISOString() } : item));
       setRejectionReason("");
+      setOpenIssueAction(null);
       recordAudit(`${target.title} was rejected by ${official?.name ?? "Ward official"}. The reason is now part of the public record.`);
     } finally {
       setRejectingIssueId(null);
@@ -208,6 +212,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
       }
       setIssues((current) => current.map((item) => item.id === issueId ? { ...item, escalated: true, escalationStatus: "open", updatedAt: new Date().toISOString() } : item));
       setEscalationReason("");
+      setOpenIssueAction(null);
       recordAudit(`${target.title} was escalated to the Nagar Parishad follow-up queue by ${official?.name ?? "Ward Parshad"}. ${dataMode === "demo" ? "Demo escalation recorded locally." : "The Nagar Parishad view will show this follow-up."}`);
     } finally {
       setEscalatingIssueId(null);
@@ -272,11 +277,11 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
         <p>{issues.length} reports</p>
       </div>
       <div className={styles.issueFilters} role="group" aria-label="Filter issue register by status">
-        {(["all", "requested", "in_progress", "completed", "rejected"] as const).map((filter) => <button key={filter} type="button" className={issueFilter === filter ? styles.issueFilterActive : ""} aria-pressed={issueFilter === filter} onClick={() => { setIssueFilter(filter); setSelectedIssueId(issues.find((issue) => filter === "all" || issue.status === filter)?.id ?? ""); }}>{filter === "all" ? "All reports" : statusCopy[filter]}</button>)}
+        {(["all", "requested", "in_progress", "completed", "rejected"] as const).map((filter) => <button key={filter} type="button" className={issueFilter === filter ? styles.issueFilterActive : ""} aria-pressed={issueFilter === filter} onClick={() => { setIssueFilter(filter); setSelectedIssueId(issues.find((issue) => filter === "all" || issue.status === filter)?.id ?? ""); setOpenIssueAction(null); }}>{filter === "all" ? "All reports" : statusCopy[filter]}</button>)}
       </div>
       <div className={styles.issueLayout}>
         <div className={styles.issueList} aria-label={`${formatWardLabel(ward.number)} issue list`}>
-          {visibleIssues.length > 0 ? visibleIssues.map((issue, index) => <button key={issue.id} className={`${styles.issueRow} ${selectedIssue?.id === issue.id ? styles.activeIssue : ""}`} onClick={() => { setSelectedIssueId(issue.id); setEscalationReason(""); }} aria-pressed={selectedIssue?.id === issue.id}>
+          {visibleIssues.length > 0 ? visibleIssues.map((issue, index) => <button key={issue.id} className={`${styles.issueRow} ${selectedIssue?.id === issue.id ? styles.activeIssue : ""}`} onClick={() => { setSelectedIssueId(issue.id); setEscalationReason(""); setOpenIssueAction(null); }} aria-pressed={selectedIssue?.id === issue.id}>
             <span className={styles.issueNumber}>{String(index + 1).padStart(2, "0")}</span>
             <span className={styles.issueWords}><b>{issue.title}</b><small>{formatDate(issue.createdAt)} · {issue.upvotes} supports</small></span>
             <span className={styles.issueBadges} aria-label={issue.escalated && issue.escalationStatus ? escalationStateCopy[issue.escalationStatus] : statusCopy[issue.status]}>
@@ -291,8 +296,14 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
           <dl className={styles.detailMeta}><div><dt>Reporter</dt><dd>{selectedIssue.reporterName}</dd></div><div><dt>Recorded on</dt><dd>{formatDate(selectedIssue.updatedAt)}</dd></div></dl>
           {selectedIssue.media.length > 0 && <div className={styles.evidence}><p className={styles.kicker}>Attached evidence</p><div className={styles.evidenceStrip}>{selectedIssue.media.map((media) => <figure key={media.id}>{media.kind === "video" ? <video src={media.url} controls preload="metadata" width={144} height={104} aria-label={media.alt ?? "Issue video evidence"} /> : <Image src={media.url} alt={media.alt ?? "Issue evidence"} width={144} height={104} unoptimized={dataMode === "supabase"} />}<figcaption>{media.kind === "photo" ? "Photo evidence" : media.kind === "video" ? "Video evidence" : "Audio statement"}</figcaption></figure>)}</div></div>}
           {selectedIssue.status === "rejected" ? <div className={styles.rejectionNotice}><b>Rejected report. This decision is terminal.</b><span>Reason: {selectedIssue.rejectionReason ?? "No reason recorded."}</span></div> : selectedNextStatus ? <fieldset className={styles.statusField}><legend>Update status</legend><p>{selectedNextStatus === "in_progress" ? "New reports move to In progress first. Mark them fixed only after work is underway and verified." : "This report is in progress. Mark it fixed once the work is verified."}</p><div className={styles.statusActions}><button type="button" onClick={() => void changeStatus(selectedIssue.id, selectedNextStatus)}>{selectedNextStatus === "in_progress" ? "Move to In progress / कार्य जारी" : "Mark fixed / ठीक"}</button></div></fieldset> : null}
-          {selectedIssue.status === "requested" ? <form className={styles.rejectionField} onSubmit={(event) => { event.preventDefault(); void rejectIssue(selectedIssue.id); }}><label htmlFor="rejection-reason">Reject this report <span>Reason required</span></label><textarea id="rejection-reason" value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} maxLength={500} rows={3} placeholder="Explain why the ward office cannot accept this report." disabled={rejectingIssueId === selectedIssue.id} /><div><small>{rejectionReason.length}/500</small><button type="submit" className={styles.rejectButton} disabled={rejectingIssueId === selectedIssue.id || rejectionReason.trim().length < 8}>{rejectingIssueId === selectedIssue.id ? "Rejecting…" : "Reject issue"}</button></div></form> : null}
-          {canEscalateIssue ? <form className={styles.escalationField} onSubmit={(event) => { event.preventDefault(); void escalateIssue(selectedIssue.id); }}><label htmlFor="escalation-reason">Escalate to Nagar Parishad <span>Reason required</span></label><textarea id="escalation-reason" value={escalationReason} onChange={(event) => setEscalationReason(event.target.value)} maxLength={1000} rows={3} placeholder="Explain why Nagar Parishad follow-up is needed." disabled={escalatingIssueId === selectedIssue.id} /><div><small>{escalationReason.length}/1000</small><button type="submit" className={styles.escalateButton} disabled={escalatingIssueId === selectedIssue.id || escalationReason.trim().length < 3}>{escalatingIssueId === selectedIssue.id ? "Escalating…" : "Escalate issue"}</button></div></form> : null}
+          {(selectedIssue.status === "requested" || canEscalateIssue) ? <>
+            <div className={styles.actionChooser} role="group" aria-label="Report actions">
+              {selectedIssue.status === "requested" ? <button type="button" className={`${styles.actionButton} ${styles.rejectAction} ${openIssueAction === "reject" ? styles.rejectActionActive : ""}`} aria-expanded={openIssueAction === "reject"} aria-pressed={openIssueAction === "reject"} aria-controls={openIssueAction === "reject" ? "rejection-reason-panel" : undefined} onClick={() => setOpenIssueAction((current) => current === "reject" ? null : "reject")}>Reject this report</button> : null}
+              {canEscalateIssue ? <button type="button" className={`${styles.actionButton} ${styles.escalateAction} ${openIssueAction === "escalate" ? styles.escalateActionActive : ""}`} aria-expanded={openIssueAction === "escalate"} aria-pressed={openIssueAction === "escalate"} aria-controls={openIssueAction === "escalate" ? "escalation-reason-panel" : undefined} onClick={() => setOpenIssueAction((current) => current === "escalate" ? null : "escalate")}>Escalate to Nagar Parishad</button> : null}
+            </div>
+            {selectedIssue.status === "requested" && openIssueAction === "reject" ? <form id="rejection-reason-panel" className={styles.rejectionField} onSubmit={(event) => { event.preventDefault(); void rejectIssue(selectedIssue.id); }}><label htmlFor="rejection-reason">Reason for rejection</label><textarea id="rejection-reason" value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} maxLength={500} rows={3} placeholder="Explain why the ward office cannot accept this report." disabled={rejectingIssueId === selectedIssue.id} /><div><small>{rejectionReason.length}/500</small><button type="submit" className={styles.rejectButton} disabled={rejectingIssueId === selectedIssue.id || rejectionReason.trim().length < 8}>{rejectingIssueId === selectedIssue.id ? "Rejecting…" : "Reject issue"}</button></div></form> : null}
+            {canEscalateIssue && openIssueAction === "escalate" ? <form id="escalation-reason-panel" className={styles.escalationField} onSubmit={(event) => { event.preventDefault(); void escalateIssue(selectedIssue.id); }}><label htmlFor="escalation-reason">Reason for escalation</label><textarea id="escalation-reason" value={escalationReason} onChange={(event) => setEscalationReason(event.target.value)} maxLength={1000} rows={3} placeholder="Explain why Nagar Parishad follow-up is needed." disabled={escalatingIssueId === selectedIssue.id} /><div><small>{escalationReason.length}/1000</small><button type="submit" className={styles.escalateButton} disabled={escalatingIssueId === selectedIssue.id || escalationReason.trim().length < 3}>{escalatingIssueId === selectedIssue.id ? "Escalating…" : "Escalate issue"}</button></div></form> : null}
+          </> : null}
           {selectedIssue.escalated && <div className={styles.escalationBand}><b>{selectedIssue.escalationStatus ? escalationCopy[selectedIssue.escalationStatus] : "Escalated / प्रेषित"}</b><span>This report has a Nagar Parishad follow-up record. Keep the resident update specific.</span></div>}
         </article>}
       </div>
