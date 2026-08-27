@@ -50,7 +50,9 @@ export function LiveOnboarding({ user, onComplete, registrationRequired = false 
       const rows = data as LocationRow[];
       setLocations(rows);
       setMunicipalityId(rows[0]?.municipality_id ?? "");
-      setWardId(rows[0]?.ward_id ?? "");
+      // Do not silently place a new account in the first ward. The resident
+      // must make an explicit ward choice during setup.
+      setWardId("");
     };
     void load();
     return () => {
@@ -107,8 +109,8 @@ export function LiveOnboarding({ user, onComplete, registrationRequired = false 
     <main className="login-page live-onboarding" id="main-content">
       <section className="login-intro" aria-labelledby="ward-setup-title">
         <BrandLockup />
-        <p className="eyebrow">First-time setup</p>
         <h1 id="ward-setup-title">Choose your municipality and ward.</h1>
+        <p className="eyebrow">First-time setup</p>
       </section>
 
       <section className="login-panel" aria-labelledby="ward-form-title">
@@ -133,9 +135,8 @@ export function LiveOnboarding({ user, onComplete, registrationRequired = false 
             id="onboarding-municipality"
             onChange={(event) => {
               const nextMunicipalityId = event.target.value;
-              const firstWard = locations.find((location) => location.municipality_id === nextMunicipalityId);
               setMunicipalityId(nextMunicipalityId);
-              setWardId(firstWard?.ward_id ?? "");
+              setWardId("");
             }}
             required
             value={municipalityId}
@@ -149,6 +150,7 @@ export function LiveOnboarding({ user, onComplete, registrationRequired = false 
 
           <label htmlFor="onboarding-ward">Ward</label>
           <select id="onboarding-ward" onChange={(event) => setWardId(event.target.value)} required value={wardId}>
+            <option disabled value="">Choose your ward</option>
             {wards.map((ward) => (
               <option key={ward.ward_id} value={ward.ward_id}>
                 {formatWardLabel(ward.ward_number)}{wardLocalityName(ward.ward_name) ? `: ${wardLocalityName(ward.ward_name)}` : ""}

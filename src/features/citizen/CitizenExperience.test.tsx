@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const route = vi.hoisted(() => ({ pathname: "/overview", query: "" }));
@@ -41,6 +41,14 @@ describe("representative profile ward context", () => {
     route.pathname = `/officials/representative-${ward.number}`;
     render(<CitizenExperience data={data} dataMode="demo" session={corporation} readOnly />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(wardHeading(ward.number));
+    expect(screen.queryByRole("navigation", { name: "Citizen sections" })).toBeNull();
+    expect(screen.getByRole("button", { name: `Back to Ward ${String(ward.number).padStart(2, "0")}` })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: `Representative ${ward.number}` }).nextElementSibling?.textContent).toBe("Ward Parshad");
+    expect(screen.getByRole("heading", { level: 3, name: `Representative ${ward.number} manages Ward ${String(ward.number).padStart(2, "0")}'s public issue board.` })).toBeTruthy();
+    const metric = screen.getByText("Fixed public issues").nextElementSibling;
+    expect(metric?.textContent).toBe(String(data.issues.filter((issue) => issue.wardId === ward.id && issue.status === "completed").length));
+    expect(metric?.nextElementSibling).toBeNull();
+    expect(screen.queryByText(/^Issues fixed in Ward/)).toBeNull();
   });
 
   it("updates the header when switching profiles without remounting", () => {
@@ -96,5 +104,73 @@ describe("representative profile ward context", () => {
     route.pathname = "/parshad";
     render(<CitizenExperience data={data} dataMode="demo" session={resident} />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(wardHeading(12));
+    expect(screen.queryByRole("navigation", { name: "Citizen sections" })).toBeNull();
+  });
+});
+
+describe("profile navigation", () => {
+  it.each([
+    ["citizen", "Return to citizen view"],
+    ["parshad", "Return to Parshad dashboard"],
+    ["corporation_admin", "Return to corporation dashboard"],
+  ] as const)("labels the return action for %s and opens the role-specific overview", (role, label) => {
+    route.pathname = "/officials/representative-5";
+    window.history.replaceState(null, "", route.pathname);
+    render(<CitizenExperience data={data} dataMode="demo" session={{ ...resident, role }} readOnly />);
+    const button = screen.getByRole("button", { name: label });
+    expect(button.classList.contains("mt-4")).toBe(true);
+    if (role !== "citizen") expect(screen.queryByRole("button", { name: "Return to citizen view" })).toBeNull();
+    const pushState = vi.spyOn(window.history, "pushState").mockImplementation(() => {});
+    try {
+      fireEvent.click(button);
+      expect(pushState).toHaveBeenCalledWith(null, "", "/overview");
+    } finally {
+      pushState.mockRestore();
+      window.history.replaceState(null, "", "/");
+    }
+  });
+
+  it("uses a neutral return label without a session", () => {
+    route.pathname = "/officials/representative-5";
+    render(<CitizenExperience data={data} dataMode="demo" readOnly />);
+    expect(screen.getByRole("button", { name: "Return to ward overview" })).toBeTruthy();
+  });
+
+  it("places one accessible back arrow beside the ward heading without a duplicate text row", () => {
+    route.pathname = "/officials/representative-5";
+    render(<CitizenExperience data={data} dataMode="demo" session={corporation} readOnly />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    const back = screen.getByRole("button", { name: "Back to Ward 05" });
+    expect(back.parentElement).toBe(heading.parentElement);
+    expect(back.nextElementSibling).toBe(heading);
+    expect(back.textContent).toBe("");
+    expect(within(screen.getByRole("main")).queryByRole("button", { name: "Back to Ward 05" })).toBeNull();
+    const pushState = vi.spyOn(window.history, "pushState");
+    try {
+      fireEvent.click(back);
+      expect(pushState).toHaveBeenCalledWith(null, "", "/overview");
+    } finally {
+      pushState.mockRestore();
+    }
+  });
+
+  it.each(["citizen", "parshad", "corporation_admin"] as const)("hides workspace tabs on profiles for %s viewers", (role) => {
+    route.pathname = "/officials/representative-4";
+    render(<CitizenExperience data={data} dataMode="demo" session={{ ...resident, role }} />);
+    expect(screen.queryByRole("navigation", { name: "Citizen sections" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Back to Ward 04" })).toBeTruthy();
+  });
+
+  it.each(["/overview", "/issues", "/wards", "/report"])("restores workspace navigation when leaving a profile for %s", (pathname) => {
+    route.pathname = "/officials/representative-4";
+    const { rerender } = render(<CitizenExperience data={data} dataMode="demo" session={resident} />);
+    expect(screen.queryByRole("navigation", { name: "Citizen sections" })).toBeNull();
+    route.pathname = pathname;
+    rerender(<CitizenExperience data={data} dataMode="demo" session={resident} />);
+    expect(screen.getByRole("navigation", { name: "Citizen sections" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Back to Ward/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Overview" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Issues" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Wards" })).toBeTruthy();
   });
 });

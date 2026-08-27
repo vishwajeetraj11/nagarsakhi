@@ -47,6 +47,12 @@ const viewRoutes: Record<View, string> = {
 
 const officialPath = (officialId: string) => `/officials/${encodeURIComponent(officialId)}`;
 
+const profileReturnLabels: Record<DemoSession["role"], string> = {
+  citizen: "Return to citizen view",
+  parshad: "Return to Parshad dashboard",
+  corporation_admin: "Return to corporation dashboard",
+};
+
 const officialIdFromPath = (pathname: string | null) => {
   const match = pathname?.match(/^\/officials\/([^/]+)\/?$/);
   if (!match) return null;
@@ -507,19 +513,20 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
   return (
     <section className={styles.experience} aria-label="NagarSakhi citizen experience">
       <div className={styles.wardBand}>
-        <div className={styles.wardIdentity}>
+        <div className={`${styles.wardIdentity} ${view === "profile" ? styles.profileWardIdentity : ""}`}>
+          {view === "profile" && <button type="button" className={styles.profileBackButton} onClick={returnFromProfile} aria-label={`Back to ${formatWardLabel((displayedOfficialWard ?? ward).number)}`} title={`Back to ${formatWardLabel((displayedOfficialWard ?? ward).number)}`}><ArrowLeft size={22} aria-hidden="true" /></button>}
           <h1>{headerWard ? <>{formatWardLabel(headerWard.number)}{headerLocality ? <span> / {headerLocality}</span> : null}</> : data.municipality.name}</h1>
           <p className={styles.wardLocation}><MapPin size={15} aria-hidden="true" /> <span>{data.municipality.name}, {data.municipality.district}</span></p>
         </div>
       </div>
 
-      <nav className={styles.nav} aria-label="Citizen sections">
+      {view !== "profile" && <nav className={styles.nav} aria-label="Citizen sections">
         {([
           ["home", "Overview"], ["issues", "Issues"], ...(canReportInWard ? [["report", "Report"]] : []), ["wards", "Wards"],
         ] as [View, string][]).map(([item, label]) => (
           <button key={item} type="button" aria-current={view === item ? "page" : undefined} className={view === item ? styles.navActive : ""} onClick={() => { if (item !== "issues") setSelectedIssueId(null); moveTo(item); }}>{label}</button>
         ))}
-      </nav>
+      </nav>}
 
       <main id="citizen-main" className={styles.main}>
         {view === "home" && (
@@ -639,18 +646,17 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
         {view === "wards" && <section className={styles.wardBrowser} aria-labelledby="ward-browser-title" aria-busy={Boolean(loadingWardId)}><p className={styles.kicker}>{data.municipality.district}, {data.municipality.state}</p><h2 id="ward-browser-title">Browse {data.municipality.name} wards</h2><p className={styles.leadCopy}>Your ward is the place linked to your verified mobile number. You can read other ward records, but reports can only be filed in your own ward.</p>{residentWard && <div className={styles.yourWardCard}><div><p className={styles.kicker}>Your ward · आपका वार्ड</p><strong>{formatWardLabel(residentWard.number)}{residentWardLocality ? ` · ${residentWardLocality}` : ""}</strong><p>Report issues and follow work here.</p></div><button type="button" className={styles.secondaryAction} disabled={Boolean(loadingWardId)} onClick={() => void openWard(residentWard)}>Open your ward <ArrowUpRight size={16} aria-hidden="true" /></button></div>}<div className={styles.wardList}>{data.wards.map((item) => <button key={item.id} type="button" disabled={Boolean(loadingWardId)} className={item.id === residentWard?.id ? `${styles.wardSelected} ${styles.wardResident}` : item.number === ward.number ? styles.wardSelected : ""} aria-current={item.id === residentWard?.id ? "true" : undefined} onClick={() => void openWard(item)}><span>{item.id === residentWard?.id ? "Your ward" : formatWardLabel(item.number)}</span><strong>{loadingWardId === item.id ? "Opening…" : wardLocalityName(item.name) ?? formatWardLabel(item.number)}</strong><small>{formatRupees(item.spentBudget)} spent</small><ChevronRight size={18} aria-hidden="true" /></button>)}</div></section>}
 
         {view === "profile" && <section className={styles.profilePage} aria-labelledby="parshad-profile-title">
-          <button type="button" className={styles.backButton} onClick={returnFromProfile}><ArrowLeft size={18} aria-hidden="true" /> Back to {formatWardLabel((displayedOfficialWard ?? ward).number)}</button>
           <p className={styles.kicker}>Public representative profile · सार्वजनिक प्रोफ़ाइल</p>
           {displayedOfficial ? <>
             <h2 id="parshad-profile-title">{displayedOfficial.name}</h2>
-            <p className={styles.profileRole}>{displayedOfficial.roleLabel} · {displayedOfficialWard ? `${formatWardLabel(displayedOfficialWard.number)}, ` : ""}{data.municipality.name}</p>
+            <p className={styles.profileRole}>{displayedOfficial.roleLabel}</p>
             <div className={styles.profileGrid}>
-              <section><p className={styles.kicker}>Public responsibility</p><h3>{displayedOfficialWard ? `This Parshad manages ${formatWardLabel(displayedOfficialWard.number)}'s public issue board.` : "This public official is part of the municipality’s civic record."}</h3><p>{displayedOfficialWard ? `Residents can follow reported issues, public notices, and progress updates for ${formatWardLabel(displayedOfficialWard.number)}.` : "This public official is part of the municipality’s civic record."}</p></section>
+              <section><p className={styles.kicker}>Public responsibility</p><h3>{displayedOfficialWard ? `${displayedOfficial.name} manages ${formatWardLabel(displayedOfficialWard.number)}'s public issue board.` : "This public official is part of the municipality’s civic record."}</h3><p>{displayedOfficialWard ? `Residents can follow reported issues, public notices, and progress updates for ${formatWardLabel(displayedOfficialWard.number)}.` : "This public official is part of the municipality’s civic record."}</p></section>
               <section><p className={styles.kicker}>Service record</p><h3>{displayedOfficial.current ? (displayedOfficial.termNumber ? `Active · ${formatTermLabel(displayedOfficial.termNumber)}` : "Active representative") : "Term record"}</h3><p>{displayedOfficial.wonByVotes ? `${displayedOfficial.wonByVotes.toLocaleString("en-IN")} votes recorded` : displayedOfficial.termNumber ? `Serving their ${formatTermLabel(displayedOfficial.termNumber)}.` : "Term history has not been recorded."}</p></section>
-            <section><p className={styles.kicker}>Fixed public issues</p><h3 className={styles.profileMetric}>{completedOfficialIssueCount}</h3><p>{displayedOfficialWard ? `Issues fixed in ${formatWardLabel(displayedOfficialWard.number)}.` : "Fixed issues recorded by the municipality."}</p></section>
+            <section><p className={styles.kicker}>Fixed public issues</p><h3 className={styles.profileMetric}>{completedOfficialIssueCount}</h3></section>
             </div>
             <p className={styles.finePrint}>Only public role and term information is shown here. Private contact details are not part of the public record.</p>
-            <button type="button" className={styles.primaryAction} onClick={() => moveTo("home")}>Return to citizen view</button>
+            <button type="button" className={`${styles.primaryAction} mt-4`} onClick={() => moveTo("home")}>{session ? profileReturnLabels[session.role] : "Return to ward overview"}</button>
           </> : <div className={styles.profileEmpty} role="status">
             <span className={styles.profileEmptyIcon}><FileQuestion size={25} aria-hidden="true" /></span>
             <p className={styles.kicker}>Public record unavailable · सार्वजनिक रिकॉर्ड उपलब्ध नहीं</p>

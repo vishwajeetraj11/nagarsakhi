@@ -61,6 +61,24 @@ describe("shared civic theme", () => {
 
   it("keeps form boundaries distinguishable", () => {
     expect(contrast("line-strong", "surface")).toBeGreaterThanOrEqual(3);
+    expect(contrast("line-strong", "paper")).toBeGreaterThanOrEqual(3);
+    expect(adminStyles.noticeForm).toContain("[&_input]:border-[var(--line-strong)]");
+    expect(adminStyles.noticeForm).toContain("[&_textarea]:border-[var(--line-strong)]");
+  });
+
+  it("keeps operational copy readable and standalone municipal links touch-sized", () => {
+    expect(adminStyles.drillIssueSection).toContain("[&_li_p]:text-base");
+    expect(adminStyles.drillIssueSection).toContain("[&_li>small]:text-sm");
+    expect(adminStyles.budgetLedger).toContain("[&_dt]:text-sm");
+    expect(adminStyles.noticeForm).toContain("[&_input]:text-base");
+    expect(adminStyles.tableAction).toContain("min-h-11");
+    expect(adminStyles.tableAction).toContain("text-base");
+    expect(adminStyles.escalatedPill).toContain("whitespace-normal");
+    for (const selector of ["municipality-table-action", "municipality-table-person"]) {
+      const rule = css.match(new RegExp(`\\.${selector} \\{([^}]+)\\}`))?.[1];
+      expect(rule).toContain("min-height: 44px");
+      expect(rule).toContain("min-width: 44px");
+    }
   });
 });
 

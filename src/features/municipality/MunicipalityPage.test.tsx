@@ -1,0 +1,51 @@
+// @vitest-environment jsdom
+import React from "react";
+import "@testing-library/jest-dom/vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { getPublicDemoData } from "@/data/demo";
+import type { DemoSession } from "@/lib/domain/types";
+import { MunicipalityPage } from "./MunicipalityPage";
+
+const data = getPublicDemoData();
+const session: DemoSession = { profileId: "test", name: "Test official", role: "corporation_admin", wardId: null, municipalityId: data.municipality.id };
+afterEach(cleanup);
+
+describe("municipal ward finder", () => {
+  it.each(["7", "07", "Ward 7", " ward 07 ", "MEENA"])("finds the correct ward for %s", (query) => {
+    render(<MunicipalityPage data={data} session={session} />);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: query } });
+    expect(screen.getAllByRole("link", { name: "Open ward" })).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "Open ward" })).toHaveAttribute("href", "/wards?ward=ward-7");
+    expect(screen.getByRole("status")).toHaveTextContent("1 of 28 wards match");
+  });
+
+  it("matches locality and handles empty results with clear recovery", () => {
+    const customData = { ...data, wards: data.wards.map((ward) => ward.number === 7 ? { ...ward, name: "शिव मंदिर" } : ward) };
+    render(<MunicipalityPage data={customData} session={session} />);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "शिव" } });
+    expect(screen.getAllByRole("link", { name: "Open ward" })).toHaveLength(1);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "No such ward" } });
+    expect(screen.queryByRole("link", { name: "Open ward" })).toBeNull();
+    expect(screen.getByText(/No wards found/)).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(screen.getByRole("searchbox")).toHaveValue("");
+    expect(screen.getAllByRole("link", { name: "Open ward" })).toHaveLength(28);
+  });
+
+  it.each(["citizen", "parshad", "corporation_admin"] as const)("only offers the appropriate desk for %s", (role) => {
+    render(<MunicipalityPage data={data} session={{ ...session, role }} />);
+    expect(screen.queryByRole("link", { name: /Administration desk/ }) !== null).toBe(role === "corporation_admin");
+    expect(screen.queryByRole("link", { name: /Parshad desk/ }) !== null).toBe(role === "parshad");
+    if (role === "citizen") {
+      expect(screen.getByRole("link", { name: "Go to your ward" })).toHaveAttribute("href", "/wards");
+    } else {
+      const link = screen.getByRole("link", { name: "Find a ward" });
+      expect(document.querySelector(link.getAttribute("href")!)).not.toBeNull();
+    }
+    for (const name of ["Municipality details"]) {
+      const link = screen.getByRole("link", { name });
+      expect(document.querySelector(link.getAttribute("href")!)).not.toBeNull();
+    }
+  });
+});

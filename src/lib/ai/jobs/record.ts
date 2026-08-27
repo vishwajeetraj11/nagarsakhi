@@ -47,6 +47,41 @@ export function toAiJobRecord(value: DatabaseJob): AiJobRecord {
 export function parseAiJobRecord(value: unknown): AiJobRecord | null {
   if (!value || typeof value !== "object") return null;
   const row = value as Record<string, unknown>;
+
+  // Route handlers expose the public camelCase contract, while Realtime sends
+  // raw Postgres rows. Accept both at this boundary so polling and Realtime
+  // can update the same UI state.
+  if (
+    typeof row.id === "string" &&
+    typeof row.municipalityId === "string" &&
+    typeof row.createdBy === "string" &&
+    isAiJobType(row.type) &&
+    isAiJobStatus(row.status) &&
+    typeof row.attemptCount === "number" &&
+    typeof row.idempotencyKey === "string" &&
+    typeof row.createdAt === "string" &&
+    typeof row.updatedAt === "string"
+  ) {
+    return {
+      id: row.id,
+      municipalityId: row.municipalityId,
+      createdBy: row.createdBy,
+      issueId: typeof row.issueId === "string" ? row.issueId : null,
+      type: row.type,
+      status: row.status,
+      attemptCount: row.attemptCount,
+      idempotencyKey: row.idempotencyKey,
+      input: asJsonValue(row.input),
+      result: (row.result ?? null) as AiJobResult | null,
+      providerRequestId: typeof row.providerRequestId === "string" ? row.providerRequestId : null,
+      lastError: typeof row.lastError === "string" ? row.lastError : null,
+      nextRetryAt: typeof row.nextRetryAt === "string" ? row.nextRetryAt : null,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      completedAt: typeof row.completedAt === "string" ? row.completedAt : null,
+    };
+  }
+
   if (
     typeof row.id !== "string" ||
     typeof row.municipality_id !== "string" ||

@@ -12,6 +12,7 @@ import { createLiveEscalation, publishLiveNotice, rejectLiveIssue, transitionLiv
 import type { DemoSession, Escalation, Issue, IssueStatus, Notice } from "@/lib/domain/types";
 import { formatWardLabel, formatWardNumber, wardLocalityName } from "@/lib/domain/ward-label";
 import styles from "./adminStyles";
+import { useNoticePublication, type ActionFeedback } from "./useNoticePublication";
 
 type ExperienceProps = {
   data: PublicDemoData;
@@ -88,12 +89,26 @@ function AuditLine({ children }: { children: React.ReactNode }) {
   return <p className={styles.auditLine}><span aria-hidden="true">•</span>{children}</p>;
 }
 
+function InlineFeedback({ feedback, id }: { feedback: ActionFeedback | null | undefined; id?: string }) {
+  return feedback ? <p id={id} className={`${styles.inlineFeedback} ${feedback.state === "error" ? styles.inlineError : ""}`} role={feedback.state === "error" ? "alert" : "status"}>{feedback.message}</p> : null;
+}
+
+function SectionShortcuts({ links }: { links: [string, string][] }) {
+  return <nav className={styles.sectionShortcuts} aria-label="Dashboard sections">{links.map(([id, label]) => <a key={id} href={`#${id}`}>{label}</a>)}</nav>;
+}
+
 function WardIssueSection({ title, hint, issues }: { title: string; hint: string; issues: Issue[] }) {
   return <section className={styles.drillIssueSection} aria-label={`${title} issues`}>
     <header><div><p className={styles.kicker}>{hint}</p><h2>{title}</h2></div><strong aria-label={`${issues.length} ${title.toLowerCase()} issues`}>{issues.length}</strong></header>
     {issues.length > 0
       ? <ol>{issues.map((issue) => <li key={issue.id}>
-        <div><b>{issue.title}</b><p>{issue.description}</p></div>
+        <div>
+          <b>{issue.title}</b>
+          <details className={styles.drillReport}>
+            <summary aria-label={`Read full report: ${issue.title}`}>Read full report</summary>
+            <p>{issue.description}</p>
+          </details>
+        </div>
         <small>{formatDate(issue.updatedAt)} · {issue.upvotes} support{issue.upvotes === 1 ? "" : "s"}{issue.escalated ? " · Escalated" : ""}</small>
       </li>)}</ol>
       : <p className={styles.emptyRecord}>No {title.toLowerCase()} reports in this ward.</p>}
@@ -115,6 +130,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   const [noticeText, setNoticeText] = useState("");
   const [notices, setNotices] = useState(() => data.notices.filter((notice) => notice.wardId === ward?.id));
   const noticeSequence = useRef(0);
+  const noticePublication = useNoticePublication();
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectingIssueId, setRejectingIssueId] = useState<string | null>(null);
   const [escalationReason, setEscalationReason] = useState("");
@@ -222,21 +238,22 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
   async function publishWardNotice(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const body = noticeText.trim();
-    if (!body || !ward) return;
-    let noticeId = `notice-local-${noticeSequence.current + 1}`;
-    if (dataMode === "supabase") {
-      const result = await publishLiveNotice({ municipalityId: data.municipality.id, wardId: ward.id, title: `${formatWardLabel(ward.number)} notice`, body });
-      if (!result.ok) {
-        recordAudit(result.error.message, "error");
-        return;
+    if (body.length < 2 || !ward) return;
+    await noticePublication.run(async () => {
+      let noticeId = `notice-local-${noticeSequence.current + 1}`;
+      if (dataMode === "supabase") {
+        const result = await publishLiveNotice({ municipalityId: data.municipality.id, wardId: ward.id, title: `${formatWardLabel(ward.number)} notice`, body });
+        if (!result.ok) {
+          throw new Error(result.error.message);
+        }
+        noticeId = result.data.id;
       }
-      noticeId = result.data.id;
-    }
-    noticeSequence.current += 1;
-    const notice: Notice = { id: noticeId, municipalityId: data.municipality.id, wardId: ward.id, authorName: official?.name ?? "Ward Parshad", title: `${formatWardLabel(ward.number)} notice`, body, createdAt: new Date().toISOString() };
-    setNotices((current) => [notice, ...current]);
-    setNoticeText("");
-    recordAudit(dataMode === "demo" ? `Draft notice published locally by ${notice.authorName}. It remains demo data.` : `Public ward notice published by ${notice.authorName}.`);
+      noticeSequence.current += 1;
+      const notice: Notice = { id: noticeId, municipalityId: data.municipality.id, wardId: ward.id, authorName: official?.name ?? "Ward Parshad", title: `${formatWardLabel(ward.number)} notice`, body, createdAt: new Date().toISOString() };
+      setNotices((current) => [notice, ...current]);
+      setNoticeText("");
+      return dataMode === "demo" ? `Draft notice published locally by ${notice.authorName}. It remains demo data.` : `Public ward notice published by ${notice.authorName}.`;
+    });
   }
 
   if (!ward) return null;
@@ -258,6 +275,7 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
       <span>Viewing as <b>Parshad</b></span>
       <button type="button" onClick={() => setCitizenView(true)}>View as Citizen</button>
     </div>
+    <SectionShortcuts links={[["ward-workflow", "Reports"], ["ward-notices", "Post a notice"], ["ward-finance", "Budget"]]} />
     <WorkspaceNotice dataMode={dataMode} />
     {municipalityNotice ? <section className={styles.municipalityNotice} aria-labelledby="municipality-notice-title">
       <div><p className={styles.kicker}>Nagar Parishad notice / नगर सूचना</p><h2 id="municipality-notice-title">{municipalityNotice.title ?? "Nagar Parishad notice"}</h2><p>{municipalityNotice.body}</p></div>
@@ -310,15 +328,16 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
       {auditMessage ? <div className={`${styles.auditFeedback} ${auditTone === "error" ? styles.auditError : ""}`} role={auditTone === "error" ? "alert" : "status"}><b>{auditTone === "error" ? "Action could not be completed" : "Audited feedback"}</b><AuditLine>{auditMessage}</AuditLine></div> : null}
     </section>
 
-    <section className={`${styles.section} ${styles.publicWork}`} aria-labelledby="public-work-title">
+    <section id="ward-finance" className={`${styles.section} ${styles.publicWork}`} aria-labelledby="public-work-title">
       <div className={styles.sectionHeading}><div><p className={styles.kicker}>Ward budget · वार्ड बजट</p><h2 id="public-work-title">Allocation and spending</h2></div><p>{formatRupees(ward.spentBudget)} spent <span className={styles.financeSubline}>of {formatRupees(ward.allocatedBudget)} allocated</span></p></div>
       <div className={styles.financeLedger} aria-label={`${formatWardLabel(ward.number)} ward budget`}><div><span>Allocated</span><strong>{formatRupees(ward.allocatedBudget)}</strong></div><div><span>Spent</span><strong>{formatRupees(ward.spentBudget)}</strong></div><div><span>Remaining</span><strong>{formatRupees(ward.allocatedBudget - ward.spentBudget)}</strong></div></div>
       <div className={styles.recentSpending}><p className={styles.kicker}>Recent spending</p>{wardExpenditures.length > 0 ? <ol className={styles.expenditureList}>{wardExpenditures.map((item) => <li key={item.id}><div><b>{item.description}</b><small>{formatDate(item.spentAt)}</small></div><strong>{formatRupees(item.amount)}</strong></li>)}</ol> : <p className={styles.emptyRecord}>No expenditure records have been published for this ward.</p>}</div>
     </section>
 
     <div className={styles.secondaryColumns}>
-      <section className={styles.section} aria-labelledby="notice-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Ward notice · वार्ड सूचना</p><h2 id="notice-title">Post a ward notice</h2></div></div>
-        <form className={styles.noticeForm} onSubmit={publishWardNotice}><label htmlFor="ward-notice">Notice text <span>(public)</span></label><textarea id="ward-notice" value={noticeText} onChange={(event) => setNoticeText(event.target.value)} placeholder="Example: Drain cleaning will begin on…" maxLength={280} /><div><small>{noticeText.length}/280</small><button type="submit" disabled={!noticeText.trim()}>{dataMode === "demo" ? "Publish local draft" : "Publish ward notice"}</button></div></form>
+      <section id="ward-notices" className={styles.section} aria-labelledby="notice-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Ward notice · वार्ड सूचना</p><h2 id="notice-title">Post a ward notice</h2></div></div>
+        <form className={styles.noticeForm} onSubmit={publishWardNotice} aria-busy={noticePublication.pending}><label htmlFor="ward-notice">Notice text <span>(public)</span></label><textarea id="ward-notice" value={noticeText} onChange={(event) => setNoticeText(event.target.value)} placeholder="Example: Drain cleaning will begin on…" maxLength={280} disabled={noticePublication.pending} /><div><small>{noticeText.length}/280</small><button type="submit" disabled={noticePublication.pending || noticeText.trim().length < 2}>{noticePublication.pending ? "Publishing…" : dataMode === "demo" ? "Publish local draft" : "Publish ward notice"}</button></div></form>
+        <InlineFeedback feedback={noticePublication.feedback} />
         <ol className={styles.noticeList}>{notices.map((notice) => <li key={notice.id}><p><strong>{notice.title ?? "Ward notice"}</strong><br />{notice.body}</p><small>{notice.authorName} · {formatDate(notice.createdAt)}</small></li>)}</ol>
       </section>
     </div>
@@ -330,14 +349,17 @@ export function ParshadExperience({ data, dataMode, session, onWardIssuesLoad }:
 export function CorporationExperience({ data, dataMode }: ExperienceProps) {
   const searchParams = useSearchParams();
   const requestedWard = searchParams.get("ward");
-  const requestedWardId = data.wards.find((ward) => ward.id === requestedWard || String(ward.number) === requestedWard)?.id ?? null;
+  // Derive the review from the URL on every render, including Back/Forward.
+  const selectedWard = data.wards.find((ward) => ward.id === requestedWard || String(ward.number) === requestedWard);
   const [escalations, setEscalations] = useState(data.escalations);
-  const [selectedWardId, setSelectedWardId] = useState<string | null>(requestedWardId);
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeText, setNoticeText] = useState("");
   const [notices, setNotices] = useState(data.notices.filter((notice) => notice.wardId === null));
   const [activity, setActivity] = useState(dataMode === "demo" ? "No Nagar Parishad action recorded in this demo session." : "No Nagar Parishad action recorded in this session.");
   const noticeSequence = useRef(0);
+  const noticePublication = useNoticePublication();
+  const escalationInFlight = useRef(new Set<string>());
+  const [escalationFeedback, setEscalationFeedback] = useState<Record<string, ActionFeedback>>({});
   const escalationByIssue = new Map(escalations.map((item) => [item.issueId, item]));
   const allIssues = data.issues.map((issue) => {
     const escalation = escalationByIssue.get(issue.id);
@@ -353,53 +375,58 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
     ? Math.round((fixedCount / allIssues.length) * 100)
     : 0;
 
-  const selectedWard = data.wards.find((ward) => ward.id === selectedWardId);
-
   function openWard(wardId: string) {
-    setSelectedWardId(wardId);
+    window.history.pushState(null, "", `/wards?ward=${encodeURIComponent(wardId)}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function returnToOverview() {
-    setSelectedWardId(null);
+    window.history.pushState(null, "", "/overview");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function updateEscalation(id: string, status: Escalation["status"]) {
     const item = escalations.find((escalation) => escalation.id === id);
-    if (dataMode === "supabase") {
-      if (status === "open") {
-        setActivity("Live escalation status can only move forward; reopening requires a reviewed action.");
-        return;
+    const nextStatus = item?.status === "open" ? "acknowledged" : item?.status === "acknowledged" ? "resolved" : null;
+    if (!item || status !== nextStatus || escalationInFlight.current.has(id)) return;
+    const reportFeedback = (feedback: ActionFeedback) => setEscalationFeedback((current) => ({ ...current, [id]: feedback }));
+    escalationInFlight.current.add(id);
+    reportFeedback({ state: "pending", message: "Saving status…" });
+    try {
+      if (dataMode === "supabase") {
+        const result = await transitionLiveEscalation(id, status);
+        if (!result.ok) throw new Error(result.error.message);
       }
-      const result = await transitionLiveEscalation(id, status);
-      if (!result.ok) {
-        setActivity(result.error.message);
-        return;
-      }
+      setEscalations((current) => current.map((escalation) => escalation.id === id ? { ...escalation, status } : escalation));
+      const message = `${item.issueTitle} marked “${escalationCopy[status]}”. ${dataMode === "demo" ? "Demo change recorded locally." : "Saved to the audit trail."}`;
+      reportFeedback({ state: "success", message });
+      setActivity(message);
+    } catch (error) {
+      reportFeedback({ state: "error", message: error instanceof Error ? error.message : "Could not confirm the status update. Refresh the record before retrying." });
+    } finally {
+      escalationInFlight.current.delete(id);
     }
-    setEscalations((current) => current.map((escalation) => escalation.id === id ? { ...escalation, status } : escalation));
-    setActivity(`${item?.issueTitle ?? "Escalation"} marked “${escalationCopy[status]}” by Nagar Parishad desk. ${dataMode === "demo" ? "Demo change recorded locally." : "The transition was committed to the audit trail."}`);
   }
 
   async function publishCorporationNotice(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const title = noticeTitle.trim();
     const body = noticeText.trim();
-    if (!title || !body) return;
-    let noticeId = `corporation-local-${noticeSequence.current + 1}`;
-    if (dataMode === "supabase") {
-      const result = await publishLiveNotice({ municipalityId: data.municipality.id, wardId: null, title, body });
-      if (!result.ok) {
-        setActivity(result.error.message);
-        return;
+    if (title.length < 3 || body.length < 2) return;
+    await noticePublication.run(async () => {
+      let noticeId = `corporation-local-${noticeSequence.current + 1}`;
+      if (dataMode === "supabase") {
+        const result = await publishLiveNotice({ municipalityId: data.municipality.id, wardId: null, title, body });
+        if (!result.ok) {
+          throw new Error(result.error.message);
+        }
+        noticeId = result.data.id;
       }
-      noticeId = result.data.id;
-    }
-    noticeSequence.current += 1;
-    const notice: Notice = { id: noticeId, municipalityId: data.municipality.id, wardId: null, authorName: "Nagar Parishad desk", title, body, createdAt: new Date().toISOString() };
-    setNotices((current) => [notice, ...current]); setNoticeTitle(""); setNoticeText("");
-    setActivity(dataMode === "demo" ? "Nagar Parishad notice added locally as synthetic demo content." : "Nagar Parishad notice published to all wards.");
+      noticeSequence.current += 1;
+      const notice: Notice = { id: noticeId, municipalityId: data.municipality.id, wardId: null, authorName: "Nagar Parishad desk", title, body, createdAt: new Date().toISOString() };
+      setNotices((current) => [notice, ...current]); setNoticeTitle(""); setNoticeText("");
+      return dataMode === "demo" ? "Nagar Parishad notice added locally as synthetic demo content." : "Nagar Parishad notice published to all wards.";
+    });
   }
 
   if (selectedWard) {
@@ -421,6 +448,7 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
         <div><p className={styles.eyebrow}>Nagar Parishad desk · Ward review</p><h1>{formatWardLabel(selectedWard.number)}{wardLocality ? <><span> · </span>{wardLocality}</> : null}</h1><p className={styles.roleLine}><b>{currentParshad?.name ?? "Parshad not assigned"}</b> · {currentParshad ? formatTermLabel(currentParshad.termNumber) : "Term record requires review"}</p></div>
         <div className={styles.wardStamp} aria-label={`${completedIssues.length} fixed issues`}><b>{completedIssues.length}</b><span>fixed<br />issues</span></div>
       </header>
+      <SectionShortcuts links={[["ward-work", "Reports"], ["review-budget", "Budget"], ["review-activity", "Activity"]]} />
       <WorkspaceNotice dataMode={dataMode} />
 
       <section className={styles.ledgerSummary} aria-label={`${formatWardLabel(selectedWard.number)} indicators`}>
@@ -430,7 +458,7 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
         <div><span>Open escalations</span><strong>{wardEscalations.filter((item) => item.status !== "resolved").length}</strong><small>Nagar Parishad follow-ups</small></div>
       </section>
 
-      <section className={styles.section} aria-labelledby="ward-register-title">
+      <section id="ward-work" className={styles.section} aria-labelledby="ward-register-title">
         <div className={styles.sectionHeading}><div><p className={styles.kicker}>Issue register · शिकायत रजिस्टर</p><h2 id="ward-register-title">Ward work by status</h2></div><p>Rejected reports remain in public history and are not counted as active work.</p></div>
         <div className={styles.drillIssueGrid}>
           <WardIssueSection title="Requested" hint="Needs a decision" issues={requestedIssues} />
@@ -440,11 +468,11 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
       </section>
 
       <div className={styles.secondaryColumns}>
-        <section className={styles.section} aria-labelledby="ward-budget-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Ward budget</p><h2 id="ward-budget-title">Allocation & spending</h2></div></div>
+        <section id="review-budget" className={styles.section} aria-labelledby="ward-budget-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Ward budget</p><h2 id="ward-budget-title">Allocation & spending</h2></div></div>
           <dl className={styles.budgetLedger}><div><dt>Allocated</dt><dd>{formatRupees(selectedWard.allocatedBudget)}</dd></div><div><dt>Spent</dt><dd>{formatRupees(selectedWard.spentBudget)}</dd></div><div><dt>Remaining</dt><dd>{formatRupees(remainingBudget)}</dd></div><div><dt>Used</dt><dd>{budgetUsed}%</dd></div></dl>
           {wardExpenditures.length > 0 ? <ol className={styles.expenditureList}>{wardExpenditures.map((item) => <li key={item.id}><div><b>{item.description}</b><small>{formatDate(item.spentAt)}</small></div><strong>{formatRupees(item.amount)}</strong></li>)}</ol> : <p className={styles.emptyRecord}>No expenditure records have been published for this ward.</p>}
         </section>
-        <section className={styles.section} aria-labelledby="ward-activity-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Ward activity</p><h2 id="ward-activity-title">Latest public changes</h2></div></div>
+        <section id="review-activity" className={styles.section} aria-labelledby="ward-activity-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Ward activity</p><h2 id="ward-activity-title">Latest public changes</h2></div></div>
           {recentIssues.length > 0 ? <ol className={styles.activityList}>{recentIssues.map((issue) => <li key={issue.id}><div><b>{issue.title}</b><StatusPill status={issue.status} /></div><small>Updated {formatDate(issue.updatedAt)}</small></li>)}</ol> : <p className={styles.emptyRecord}>No issue activity has been recorded for this ward.</p>}
         </section>
       </div>
@@ -458,6 +486,7 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
       <div><p className={styles.eyebrow}>Nagar Parishad desk / नगर पालिका डेस्क</p><h1>{data.municipality.name}</h1><p className={styles.roleLine}>Cross-ward review · {data.municipality.district}, {data.municipality.state}</p></div>
       <div className={styles.wardStamp} aria-label={`${data.municipality.wardCount} wards`}><b>{data.municipality.wardCount}</b><span>wards<br />in register</span></div>
     </header>
+    <SectionShortcuts links={[["ward-overview", "Choose a ward"], ["municipal-follow-ups", "Follow-ups"], ["municipal-notices", "Publish notice"], ["municipal-budget", "Budget"]]} />
     <WorkspaceNotice dataMode={dataMode} />
     <section className={styles.ledgerSummary} aria-label="Nagar Parishad indicators"><div><span>Total reports</span><strong>{allIssues.length}</strong><small>{unresolved} still active</small></div><div><span>Escalations</span><strong>{activeEscalations.length}</strong><small>Require tracking</small></div><div><span>Ward coverage</span><strong>{coveredWardIds.size}/{data.wards.length}</strong><small>Active wards covered</small></div><div><span>Resolution rate</span><strong>{compliancePercent}%</strong><small>{fixedCount} of {allIssues.length} reports resolved</small></div></section>
 
@@ -465,12 +494,42 @@ export function CorporationExperience({ data, dataMode }: ExperienceProps) {
       <div className={styles.wardPicker}><label htmlFor="corporation-ward-select">Ward number</label><select id="corporation-ward-select" defaultValue="" onChange={(event) => { if (event.target.value) openWard(event.target.value); }}><option value="">Select a ward</option>{data.wards.map((ward) => <option key={ward.id} value={ward.id}>{formatWardLabel(ward.number)}</option>)}</select></div>
     </section>
 
-    <section className={styles.section} aria-labelledby="escalation-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Escalated issues</p><h2 id="escalation-title">Nagar Parishad follow-up register</h2></div><p>Open a ward to read its full issue and activity record.</p></div>
-      {escalations.length > 0 ? <div className={styles.tableWrap}><table className={`${styles.wardTable} ${styles.escalationTable}`}><thead><tr><th>Ward</th><th>Parshad</th><th>Issue</th><th>Requested</th><th>Status</th><th>Ward record</th></tr></thead><tbody>{escalations.map((item) => { const ward = data.wards.find((candidate) => candidate.id === item.wardId); const locality = ward ? wardLocalityName(ward.name) : null; return <tr key={item.id}><td data-label="Ward"><div><b>{formatWardNumber(item.wardNumber)}</b>{locality ? <span>{locality}</span> : null}</div></td><td data-label="Parshad"><b>{item.parshadName}</b><span>Current representative</span></td><td data-label="Issue"><b>{item.issueTitle}</b><span>{item.reason}</span></td><td data-label="Requested"><b>{formatDate(item.createdAt)}</b><span>Nagar Parishad follow-up</span></td><td data-label="Status"><label className={styles.statusSelect}><span>Nagar Parishad status</span><select value={item.status} onChange={(event) => updateEscalation(item.id, event.target.value as Escalation["status"])}><option value="open">Open / खुला</option><option value="acknowledged">Acknowledged / संज्ञान में</option><option value="resolved">Resolved / समाधान</option></select></label></td><td data-label="Ward record"><button type="button" className={styles.tableAction} onClick={() => openWard(item.wardId)}>Open ward →</button></td></tr>; })}</tbody></table></div> : <div className={styles.emptyState}><b>No escalated issues</b><p>New ward escalations will appear here with their request date, budget context, and responsible Parshad.</p></div>}
+    <section id="municipal-follow-ups" className={styles.section} aria-labelledby="escalation-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Escalated issues</p><h2 id="escalation-title">Nagar Parishad follow-up register</h2></div><p>Open a ward to read its full issue and activity record.</p></div>
+      {escalations.length > 0 ? <div className={styles.tableWrap}><table className={`${styles.wardTable} ${styles.escalationTable}`} aria-label="Escalated reports" role="table">
+        <thead><tr role="row">{["Ward", "Parshad", "Issue", "Requested", "Status", "Ward record"].map((label) => <th key={label} scope="col" role="columnheader">{label}</th>)}</tr></thead>
+        <tbody>{escalations.map((item) => {
+          const ward = data.wards.find((candidate) => candidate.id === item.wardId);
+          const locality = ward ? wardLocalityName(ward.name) : null;
+          const nextStatus = item.status === "open" ? "acknowledged" : item.status === "acknowledged" ? "resolved" : null;
+          const feedback = escalationFeedback[item.id];
+          const pending = feedback?.state === "pending";
+          const feedbackId = `escalation-feedback-${item.id}`;
+          return <tr key={item.id} role="row">
+            <td data-label="Ward" role="cell"><div><b>{formatWardNumber(item.wardNumber)}</b>{locality ? <span>{locality}</span> : null}</div></td>
+            <td data-label="Parshad" role="cell"><div><b>{item.parshadName}</b><span>Current representative</span></div></td>
+            <td data-label="Issue" role="cell"><div><b>{item.issueTitle}</b><span>{item.reason}</span></div></td>
+            <td data-label="Requested" role="cell"><div><b>{formatDate(item.createdAt)}</b><span>Nagar Parishad follow-up</span></div></td>
+            <td data-label="Status" role="cell"><div className={styles.escalationControl} aria-busy={pending}>
+              <b>{escalationCopy[item.status]}</b>
+              {nextStatus ? <>
+                {nextStatus === "resolved" ? <p id={`resolution-hint-${item.id}`}>Resolution is final. Confirm follow-up is complete before marking resolved.</p> : null}
+                <button type="button" className={styles.tableAction} disabled={pending}
+                  aria-label={`${nextStatus === "acknowledged" ? "Acknowledge" : "Mark resolved"}: ${item.issueTitle}`}
+                  aria-describedby={nextStatus === "resolved" ? `resolution-hint-${item.id}` : undefined}
+                  onClick={() => void updateEscalation(item.id, nextStatus)}>
+                  {pending ? "Saving…" : nextStatus === "acknowledged" ? "Acknowledge" : "Mark resolved"}
+                </button>
+              </> : <p>Follow-up complete. This record cannot be reopened here.</p>}
+              <InlineFeedback id={feedbackId} feedback={feedback} />
+            </div></td>
+            <td data-label="Ward record" role="cell"><button type="button" className={styles.tableAction} onClick={() => openWard(item.wardId)}>Open ward →</button></td>
+          </tr>;
+        })}</tbody>
+      </table></div> : <div className={styles.emptyState}><b>No escalated issues</b><p>New ward escalations will appear here with their request date, budget context, and responsible Parshad.</p></div>}
     </section>
 
-    <section className={styles.section} aria-labelledby="publish-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Nagar Parishad notices · नगर सूचना</p><h2 id="publish-title">Publish a Nagar Parishad notice</h2></div></div><form className={styles.noticeForm} onSubmit={publishCorporationNotice}><label htmlFor="corp-notice-title">Title <span>(shown to all wards)</span></label><input id="corp-notice-title" value={noticeTitle} onChange={(event) => setNoticeTitle(event.target.value)} placeholder="Example: Ward sabha records will be published" maxLength={160} /><label htmlFor="corp-notice">Description <span>(public to all wards)</span></label><textarea id="corp-notice" value={noticeText} onChange={(event) => setNoticeText(event.target.value)} placeholder="Explain the update for residents…" maxLength={280} /><div><small>{noticeTitle.length}/160 · {noticeText.length}/280</small><button type="submit" disabled={!noticeTitle.trim() || !noticeText.trim()}>{dataMode === "demo" ? "Publish local draft" : "Publish Nagar Parishad notice"}</button></div></form><ol className={styles.noticeList}>{notices.map((notice) => <li key={notice.id}><p><strong>{notice.title ?? "Nagar Parishad notice"}</strong><br />{notice.body}</p><small>{notice.authorName} · {formatDate(notice.createdAt)}</small></li>)}</ol></section>
-    <section className={styles.section} aria-labelledby="budget-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Budget overview · बजट अवलोकन</p><h2 id="budget-title">Nagar Parishad budget and expenditure</h2></div></div><div className={styles.budgetTotal}><span>Total allocations across all wards</span><strong>{formatRupees(allocated)}</strong><small>{formatRupees(spent)} in published spending records</small></div><ol className={styles.expenditureList}>{data.expenditures.map((item) => { const ward = data.wards.find((candidate) => candidate.id === item.wardId); return <li key={item.id}><div><b>{ward ? formatWardLabel(ward.number) : "Ward record"} · {item.description}</b><small>{formatDate(item.spentAt)}</small></div><strong>{formatRupees(item.amount)}</strong></li>; })}</ol></section>
-    <section className={`${styles.section} ${styles.compliance}`} aria-labelledby="corp-audit-title"><p className={styles.kicker}>Record boundaries</p><h2 id="corp-audit-title">Decision feedback</h2><div role="status"><AuditLine>{activity}</AuditLine><AuditLine>Nagar Parishad accounts do not expose ward-private citizen contact or house data by default.</AuditLine></div></section>
+    <section id="municipal-notices" className={styles.section} aria-labelledby="publish-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Nagar Parishad notices · नगर सूचना</p><h2 id="publish-title">Publish a Nagar Parishad notice</h2></div></div><form className={styles.noticeForm} onSubmit={publishCorporationNotice} aria-busy={noticePublication.pending}><label htmlFor="corp-notice-title">Title <span>(shown to all wards)</span></label><input id="corp-notice-title" disabled={noticePublication.pending} value={noticeTitle} onChange={(event) => setNoticeTitle(event.target.value)} placeholder="Example: Ward sabha records will be published" maxLength={160} /><label htmlFor="corp-notice">Description <span>(public to all wards)</span></label><textarea id="corp-notice" disabled={noticePublication.pending} value={noticeText} onChange={(event) => setNoticeText(event.target.value)} placeholder="Explain the update for residents…" maxLength={280} /><div><small>{noticeTitle.length}/160 · {noticeText.length}/280</small><button type="submit" disabled={noticePublication.pending || noticeTitle.trim().length < 3 || noticeText.trim().length < 2}>{noticePublication.pending ? "Publishing…" : dataMode === "demo" ? "Publish local draft" : "Publish Nagar Parishad notice"}</button></div></form><InlineFeedback feedback={noticePublication.feedback} /><ol className={styles.noticeList}>{notices.map((notice) => <li key={notice.id}><p><strong>{notice.title ?? "Nagar Parishad notice"}</strong><br />{notice.body}</p><small>{notice.authorName} · {formatDate(notice.createdAt)}</small></li>)}</ol></section>
+    <section id="municipal-budget" className={styles.section} aria-labelledby="budget-title"><div className={styles.sectionHeading}><div><p className={styles.kicker}>Budget overview · बजट अवलोकन</p><h2 id="budget-title">Nagar Parishad budget and expenditure</h2></div></div><div className={styles.budgetTotal}><span>Total allocations across all wards</span><strong>{formatRupees(allocated)}</strong><small>{formatRupees(spent)} in published spending records</small></div><ol className={styles.expenditureList}>{data.expenditures.map((item) => { const ward = data.wards.find((candidate) => candidate.id === item.wardId); return <li key={item.id}><div><b>{ward ? formatWardLabel(ward.number) : "Ward record"} · {item.description}</b><small>{formatDate(item.spentAt)}</small></div><strong>{formatRupees(item.amount)}</strong></li>; })}</ol></section>
+    <section className={`${styles.section} ${styles.compliance}`} aria-labelledby="corp-audit-title"><p className={styles.kicker}>Record boundaries</p><h2 id="corp-audit-title">Decision feedback</h2><div><AuditLine>{activity}</AuditLine><AuditLine>Nagar Parishad accounts do not expose ward-private citizen contact or house data by default.</AuditLine></div></section>
   </main>;
 }
