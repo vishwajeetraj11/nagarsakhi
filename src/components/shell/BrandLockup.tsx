@@ -13,7 +13,7 @@ export function BrandLockup({ compact = false, className = "" }: BrandLockupProp
       <BrandMark />
       <span className="brand-wordmark">
         <span className="brand-wordmark__name"><span>Nagar</span><span>Sakhi</span></span>
-        {!compact ? <span className="brand-wordmark__local">नगर साखी</span> : null}
+        {!compact ? <span className="brand-wordmark__local">नगर सखी</span> : null}
       </span>
     </div>
   );
