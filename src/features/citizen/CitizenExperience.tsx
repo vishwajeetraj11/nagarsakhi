@@ -145,7 +145,7 @@ function StatusTrail({ issue }: { issue: Issue }) {
   const events = issue.statusHistory ?? [];
 
   return <section className={styles.statusTrail} aria-label="Status trail">
-    <div className={styles.statusTrailHeader}><p className={styles.kicker}>Status trail</p><span>{events.length ? `${events.length} updates` : "Legacy record"}</span></div>
+    <div className={styles.statusTrailHeader}><p className={styles.kicker}>Status trail</p><span>{events.length ? `${events.length} update${events.length === 1 ? "" : "s"}` : "Legacy record"}</span></div>
     {events.length ? <ol className={styles.statusTrailList}>
       {events.map((event, index) => <li key={`${event.status}-${event.createdAt}-${index}`} className={styles.statusTrailItem}>
         <span className={styles.statusTrailRail} aria-hidden="true"><span className={`${styles.statusTrailMarker} ${styles[`statusTrailMarker_${event.status}`]}`} /></span>
@@ -445,6 +445,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
         showToast("The report was saved, but language processing could not be queued.", "info");
       }
     }
+    const recordedAt = new Date().toISOString();
     const newIssue: Issue = {
       id: issueId,
       municipalityId: data.municipality.id,
@@ -459,8 +460,16 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
       downvotes: 0,
       viewerVote: 0,
       media: evidenceFiles.map((file, index) => ({ id: `local-media-${index}`, kind: file.type.startsWith("video/") ? "video" as const : "photo" as const, url: URL.createObjectURL(file), alt: file.name })),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      statusHistory: [{
+        status: "requested",
+        actorName: "You",
+        actorRole: "citizen",
+        note: reportDescription,
+        supportCountAtChange: null,
+        createdAt: recordedAt,
+      }],
+      createdAt: recordedAt,
+      updatedAt: recordedAt,
       escalated: false,
     };
     setIssues((current) => [newIssue, ...current]);

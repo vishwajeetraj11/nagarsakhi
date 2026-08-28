@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const route = vi.hoisted(() => ({ pathname: "/overview", query: "" }));
@@ -172,5 +172,31 @@ describe("profile navigation", () => {
     expect(screen.getByRole("button", { name: "Overview" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Issues" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Wards" })).toBeTruthy();
+  });
+});
+
+describe("new issue status trail", () => {
+  it("shows the optimistic Reported event immediately after submitting a report", async () => {
+    render(<CitizenExperience data={data} dataMode="demo" session={resident} routing={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "Report" }));
+
+    fireEvent.change(screen.getByLabelText("What needs attention?"), {
+      target: { value: "Drain blocked near Ward 12 community hall" },
+    });
+    fireEvent.change(screen.getByLabelText("Where is the problem and what is wrong?"), {
+      target: { value: "The drain is blocked with plastic waste and water is overflowing onto the road." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit report" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "View the issue board" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "View the issue board" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Open issue: Drain blocked near Ward 12 community hall" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Open issue: Drain blocked near Ward 12 community hall" }));
+
+    const trail = screen.getByRole("region", { name: "Status trail" });
+    expect(within(trail).getByText("1 update")).toBeTruthy();
+    expect(within(trail).getByText(/Reported/)).toBeTruthy();
+    expect(within(trail).getByText("The drain is blocked with plastic waste and water is overflowing onto the road.")).toBeTruthy();
+    expect(within(trail).getByText("By You · Citizen")).toBeTruthy();
+    expect(within(trail).queryByText("Legacy record")).toBeNull();
   });
 });

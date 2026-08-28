@@ -84,7 +84,7 @@ const styles: Record<string, string> = {
   statusTrailHeader: "mb-4 flex items-center justify-between gap-3 [&_.kicker]:mb-0 [&>span]:text-[.75rem] [&>span]:font-semibold [&>span]:text-[var(--muted)]",
   statusTrailList: "m-0 list-none p-0",
   statusTrailItem: "grid grid-cols-[1rem_minmax(0,1fr)] gap-3 pb-5 last:pb-0",
-  statusTrailRail: "relative flex justify-center border-l border-[var(--rule)]",
+  statusTrailRail: "relative flex justify-center before:absolute before:inset-y-0 before:left-1/2 before:w-px before:-translate-x-1/2 before:bg-[var(--rule)]",
   statusTrailMarker: "relative z-[1] mt-[.3rem] h-[.65rem] w-[.65rem] shrink-0 rounded-full bg-[var(--indigo)] ring-4 ring-[var(--paper)]",
   statusTrailMarker_requested: "bg-[var(--marigold)]",
   statusTrailMarker_acknowledged: "bg-[var(--teal)]",
