@@ -32,7 +32,7 @@ const statusCopy: Record<IssueStatus, string> = {
 
 const statusClass: Record<IssueStatus, string> = {
   requested: styles.requested,
-  acknowledged: styles.inProgress,
+  acknowledged: styles.acknowledged,
   in_progress: styles.inProgress,
   completed: styles.completed,
   rejected: styles.rejected,
