@@ -264,6 +264,7 @@ export function LiveLogin() {
             </li>
           </ol>
           {stage === "phone" ? (
+          <>
           <form className="login-form" onSubmit={sendOtp}>
             <label htmlFor="live-phone">Mobile number</label>
             <div className="phone-field">
@@ -286,6 +287,11 @@ export function LiveLogin() {
               {busy ? "Sending code..." : "Get OTP"}
             </button>
           </form>
+          <a className={styles.demoLink} href="/overview?demo=ward-7">
+            <span>Explore Ward 7</span>
+            <small>Read-only demo · no sign-in required</small>
+          </a>
+          </>
           ) : (
           <form className="login-form otp-form" onSubmit={verifyOtp}>
             <div className="otp-heading">

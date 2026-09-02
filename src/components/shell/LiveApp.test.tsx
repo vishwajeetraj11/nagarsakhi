@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("firebase/auth", () => ({ onAuthStateChanged: mocks.observe }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/", useRouter: () => ({ replace: mocks.replace }) }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/", useSearchParams: () => new URLSearchParams(), useRouter: () => ({ replace: mocks.replace }) }));
 vi.mock("@/lib/firebase", () => ({ getFirebaseAuth: () => mocks.auth }));
 vi.mock("@/lib/supabase", () => ({ createFirebaseSupabaseClient: () => ({ rpc: mocks.rpc }) }));
 vi.mock("@/lib/data/live", () => ({ loadLiveData: mocks.load, loadWardIssues: vi.fn() }));

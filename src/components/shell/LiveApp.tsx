@@ -1,7 +1,7 @@
 "use client";
 
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppShell } from "@/components/shell/AppShell";
@@ -20,11 +20,22 @@ import { createFirebaseSupabaseClient } from "@/lib/supabase";
 type LiveState =
   | { status: "checking" }
   | { status: "signed_out" }
+  | { status: "public_demo_loading" }
+  | { status: "public_demo"; data: PublicDemoData; session: DemoSession }
   | { status: "onboarding"; user: User; registrationRequired?: boolean }
   | { status: "ready"; data: PublicDemoData; session: DemoSession }
   | { status: "error"; error: LiveDataFailure["error"] };
 
 const SESSION_LOAD_TIMEOUT_MS = 15000;
+const PUBLIC_DEMO_QUERY = "ward-7";
+
+const publicDemoSession = (data: PublicDemoData): DemoSession => ({
+  profileId: "00000000-0000-4000-8000-000000000007",
+  name: "Ward 7 citizen demo",
+  role: "citizen",
+  wardId: data.wards.find((ward) => ward.number === 7)?.id ?? null,
+  municipalityId: data.municipality.id,
+});
 
 async function provisionFirebaseProfile(user: User) {
   const supabase = createFirebaseSupabaseClient(() => user.getIdToken(false));
@@ -44,12 +55,16 @@ async function provisionFirebaseProfile(user: User) {
 export function LiveApp() {
   const auth = useMemo(() => getFirebaseAuth(), []);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
+  const isPublicDemo = searchParams.get("demo") === PUBLIC_DEMO_QUERY;
   const redirectedAfterLogin = useRef(false);
   const refreshTokenOnLoad = useRef(false);
   const [sessionAttempt, setSessionAttempt] = useState(0);
   const [state, setState] = useState<LiveState>(() => (
-    auth
+    isPublicDemo
+      ? { status: "public_demo_loading" }
+      : auth
       ? { status: "checking" }
       : {
         status: "error",
@@ -58,6 +73,20 @@ export function LiveApp() {
   ));
 
   useEffect(() => {
+    if (isPublicDemo) {
+      let cancelled = false;
+      fetch("/api/public-demo?ward=7", { cache: "no-store" }).then(async (response) => {
+        const body = await response.json() as { data?: PublicDemoData; error?: string };
+        if (!response.ok || !body.data) throw new Error(body.error ?? "Unable to load the public Ward 7 record.");
+        return body.data;
+      }).then((data) => {
+        if (!cancelled) setState({ status: "public_demo", data, session: publicDemoSession(data) });
+      }).catch((error: unknown) => {
+        if (!cancelled) setState({ status: "error", error: { code: "QUERY_FAILED", message: "The public Ward 7 record could not be loaded.", detail: error instanceof Error ? error.message : "Check your connection and try again." } });
+      });
+      return () => { cancelled = true; };
+    }
+
     if (!auth) {
       return;
     }
@@ -146,7 +175,7 @@ export function LiveApp() {
       window.clearTimeout(timeout);
       unsubscribe();
     };
-  }, [auth, sessionAttempt]);
+  }, [auth, isPublicDemo, sessionAttempt]);
 
   useEffect(() => {
     if (state.status !== "ready" || redirectedAfterLogin.current) {
@@ -160,6 +189,18 @@ export function LiveApp() {
   }, [pathname, router, state.status]);
 
   if (state.status === "signed_out") return <LiveLogin />;
+
+  if (state.status === "public_demo") {
+    return (
+      <AppShell session={state.session} dataMode="demo" readOnly>
+        <CitizenExperience data={state.data} dataMode="demo" session={state.session} readOnly publicDemo />
+      </AppShell>
+    );
+  }
+
+  if (state.status === "public_demo_loading") {
+    return <main className="login-page live-loading" id="main-content" aria-busy="true"><section className="login-intro" aria-labelledby="public-demo-loading-title"><BrandLockup /><p className="eyebrow">Public Ward 7 record</p><h1 id="public-demo-loading-title">Opening the ward showcase.</h1><p className="login-lede">Loading the current public records from Phusro Nagar Parishad.</p></section></main>;
+  }
 
   if (state.status === "onboarding") {
     return (

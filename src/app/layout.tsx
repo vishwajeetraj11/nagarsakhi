@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Mukta, Tiro_Devanagari_Hindi } from "next/font/google";
+import { Suspense } from "react";
 import { Toaster } from "sonner";
 
 import { LiveApp } from "@/components/shell/LiveApp";
@@ -36,7 +37,9 @@ export default function RootLayout() {
   return (
     <html lang="en" className={`${mukta.variable} ${editorial.variable}`}>
       <body>
-        <LiveApp />
+        <Suspense fallback={null}>
+          <LiveApp />
+        </Suspense>
         <Toaster
           position="bottom-right"
           theme="light"

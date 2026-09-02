@@ -16,6 +16,7 @@ type AppShellProps = {
   children: ReactNode;
   session: DemoSession;
   dataMode?: "demo" | "supabase";
+  readOnly?: boolean;
 };
 
 function AppFooter({ dataMode }: { dataMode: "demo" | "supabase" }) {
@@ -29,19 +30,22 @@ function AppFooter({ dataMode }: { dataMode: "demo" | "supabase" }) {
   );
 }
 
-export function AppShell({ children, session, dataMode = "supabase" }: AppShellProps) {
+export function AppShell({ children, session, dataMode = "supabase", readOnly = false }: AppShellProps) {
+  const homeHref = readOnly && dataMode === "demo" ? "/overview?demo=ward-7" : "/municipality/phusro";
+  const publicDemo = readOnly && dataMode === "demo";
+
   return (
     <div className="app-frame">
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="app-header">
         <div className="app-header__inner">
-          <Link href="/municipality/phusro" aria-label="Open Phusro Nagar Parishad home">
+          <Link href={homeHref} aria-label="Open Phusro Nagar Parishad home">
             <BrandLockup compact />
           </Link>
           <div className="session-context">
-            <span className="role-chip">{roleLabel[session.role]}</span>
-            <span className="session-name">{session.name}</span>
-            <SignOutButton />
+            {!publicDemo && <span className="role-chip">{roleLabel[session.role]}</span>}
+            <span className="session-name">{publicDemo ? "Ward 7" : session.name}</span>
+            {readOnly ? <span className="role-chip">{publicDemo ? "Read-only" : "Read-only demo"}</span> : <SignOutButton />}
           </div>
         </div>
       </header>

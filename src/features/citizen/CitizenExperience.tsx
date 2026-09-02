@@ -218,11 +218,12 @@ type CitizenExperienceProps = {
   dataMode: "demo" | "supabase";
   session?: DemoSession;
   readOnly?: boolean;
+  publicDemo?: boolean;
   routing?: boolean;
   onWardIssuesLoad?: (wardId: string) => Promise<WardIssuesResult>;
 };
 
-export function CitizenExperience({ data, dataMode, session, readOnly = false, routing = true, onWardIssuesLoad }: CitizenExperienceProps) {
+export function CitizenExperience({ data, dataMode, session, readOnly = false, publicDemo = false, routing = true, onWardIssuesLoad }: CitizenExperienceProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const requestedWard = searchParams.get("ward");
@@ -310,7 +311,8 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
       return;
     }
     if (routing && window.location.pathname !== destination) {
-      window.history.pushState(null, "", destination);
+      const demoQuery = publicDemo ? "?demo=ward-7" : "";
+      window.history.pushState(null, "", `${destination}${demoQuery}`);
     }
     if (!routing) setLocalView(next);
     if (next === "report") {
@@ -561,7 +563,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
             <section className={styles.homeLead} aria-labelledby="overview-title">
               <div>
                 <h2 id="overview-title">What’s happening in your ward</h2>
-                <p className={styles.leadCopy}>Track reports, support a neighbour’s issue, and follow public work.</p>
+                <p className={styles.leadCopy}>{readOnly ? "Explore reports, public notices, and ward spending." : "Track reports, support a neighbour’s issue, and follow public work."}</p>
               </div>
             </section>
 
@@ -655,7 +657,7 @@ export function CitizenExperience({ data, dataMode, session, readOnly = false, r
           </section>
         )}
 
-        {view === "wards" && <section className={styles.wardBrowser} aria-labelledby="ward-browser-title" aria-busy={Boolean(loadingWardId)}><p className={styles.kicker}>{data.municipality.district}, {data.municipality.state}</p><h2 id="ward-browser-title">Browse {data.municipality.name} wards</h2><p className={styles.leadCopy}>Your ward is the place linked to your verified mobile number. You can read other ward records, but reports can only be filed in your own ward.</p>{residentWard && <div className={styles.yourWardCard}><div><p className={styles.kicker}>Your ward · आपका वार्ड</p><strong>{formatWardLabel(residentWard.number)}{residentWardLocality ? ` · ${residentWardLocality}` : ""}</strong><p>Report issues and follow work here.</p></div><button type="button" className={styles.secondaryAction} disabled={Boolean(loadingWardId)} onClick={() => void openWard(residentWard)}>Open your ward <ArrowUpRight size={16} aria-hidden="true" /></button></div>}<div className={styles.wardList}>{data.wards.map((item) => <button key={item.id} type="button" disabled={Boolean(loadingWardId)} className={item.id === residentWard?.id ? `${styles.wardSelected} ${styles.wardResident}` : item.number === ward.number ? styles.wardSelected : ""} aria-current={item.id === residentWard?.id ? "true" : undefined} onClick={() => void openWard(item)}><span>{item.id === residentWard?.id ? "Your ward" : formatWardLabel(item.number)}</span><strong>{loadingWardId === item.id ? "Opening…" : wardLocalityName(item.name) ?? formatWardLabel(item.number)}</strong><small>{formatRupees(item.spentBudget)} spent</small><ChevronRight size={18} aria-hidden="true" /></button>)}</div></section>}
+        {view === "wards" && <section className={styles.wardBrowser} aria-labelledby="ward-browser-title" aria-busy={Boolean(loadingWardId)}><p className={styles.kicker}>{data.municipality.district}, {data.municipality.state}</p><h2 id="ward-browser-title">Browse {data.municipality.name} wards</h2><p className={styles.leadCopy}>{readOnly ? "This public demo lets you explore ward records without signing in." : "Your ward is the place linked to your verified mobile number. You can read other ward records, but reports can only be filed in your own ward."}</p>{residentWard && <div className={styles.yourWardCard}><div><p className={styles.kicker}>Your ward · आपका वार्ड</p><strong>{formatWardLabel(residentWard.number)}{residentWardLocality ? ` · ${residentWardLocality}` : ""}</strong><p>{readOnly ? "Public read-only record." : "Report issues and follow work here."}</p></div><button type="button" className={styles.secondaryAction} disabled={Boolean(loadingWardId)} onClick={() => void openWard(residentWard)}>Open your ward <ArrowUpRight size={16} aria-hidden="true" /></button></div>}<div className={styles.wardList}>{data.wards.map((item) => <button key={item.id} type="button" disabled={Boolean(loadingWardId)} className={item.id === residentWard?.id ? `${styles.wardSelected} ${styles.wardResident}` : item.number === ward.number ? styles.wardSelected : ""} aria-current={item.id === residentWard?.id ? "true" : undefined} onClick={() => void openWard(item)}><span>{item.id === residentWard?.id ? "Your ward" : formatWardLabel(item.number)}</span><strong>{loadingWardId === item.id ? "Opening…" : wardLocalityName(item.name) ?? formatWardLabel(item.number)}</strong><small>{formatRupees(item.spentBudget)} spent</small><ChevronRight size={18} aria-hidden="true" /></button>)}</div></section>}
 
         {view === "profile" && <section className={styles.profilePage} aria-labelledby="parshad-profile-title">
           <p className={styles.kicker}>Public representative profile · सार्वजनिक प्रोफ़ाइल</p>

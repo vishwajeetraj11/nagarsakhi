@@ -241,6 +241,32 @@
   background: var(--indigo-strong);
 }
 
+.demoLink {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.375rem;
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.demoLink:hover {
+  border-color: var(--ink);
+  background: var(--paper);
+}
+
+.demoLink span {
+  font-weight: 600;
+}
+
+.demoLink small {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
 .page :global(.otp-digit) {
   border-width: 1px !important;
   border-radius: 0.375rem;
