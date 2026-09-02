@@ -251,7 +251,7 @@ export function LiveLogin() {
           <div className={styles.formHeader}>
             <p className={styles.eyebrow}>Resident sign-in</p>
             <h2 id="live-signin-title">{stage === "phone" ? "A closer connection to your ward." : "Check your messages."}</h2>
-            <p>{stage === "phone" ? "Use your registered mobile number. We’ll send a one-time verification code." : "Enter the six-digit code sent to your mobile number to continue."}</p>
+            {stage === "code" ? <p>Enter the six-digit code sent to your mobile number to continue.</p> : null}
           </div>
           <ol className={styles.steps} aria-label="Sign-in progress">
             <li aria-current={stage === "phone" ? "step" : undefined} data-complete={stage === "code"}>
@@ -270,7 +270,6 @@ export function LiveLogin() {
               <span aria-hidden="true">+91</span>
               <input
                 autoComplete="tel-national"
-                aria-describedby="live-phone-hint"
                 id="live-phone"
                 inputMode="numeric"
                 maxLength={10}
@@ -281,7 +280,6 @@ export function LiveLogin() {
                 value={phone}
               />
             </div>
-            <p className={styles.fieldHint} id="live-phone-hint">Use the number registered with your Nagar Parishad.</p>
             <div className="recaptcha-wrap" id="firebase-recaptcha" />
             <button className="primary-action" disabled={busy} type="submit">
               <ShieldCheck aria-hidden="true" size={18} />
@@ -332,10 +330,6 @@ export function LiveLogin() {
               {message}
             </p>
           ) : null}
-          <p className={styles.signinNote}>
-            <ShieldCheck aria-hidden="true" size={16} />
-            No password to remember. Just your mobile.
-          </p>
         </div>
       </section>
     </main>
